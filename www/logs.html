@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MonSet — Лог</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0e1117;--surface:#161b22;--border:#30363d;--accent:#2dd4bf;--text:#c9d1d9;--muted:#8b949e;--green:#3fb950;--yellow:#d29922;--red:#f85149;--blue:#58a6ff}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-name{font-size:16px;font-weight:700;letter-spacing:.08em;color:var(--text)}
+.status-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .4s}
+.dot.active{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot.pulse{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+nav{display:flex;gap:4px}
+nav a{padding:5px 12px;border-radius:4px;font-size:12px;color:var(--muted);border:1px solid transparent;transition:all .15s}
+nav a:hover{color:var(--text);border-color:var(--border)}
+nav a.active{color:var(--accent);border-color:var(--accent);background:rgba(45,212,191,.08)}
+
+/* LAYOUT */
+.page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+main{flex:1;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
+
+/* LOG PANEL */
+.log-panel{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+
+/* PANEL TITLE BAR */
+.panel-title{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);flex-shrink:0}
+.panel-title-text{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex:1}
+.btn-icon{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:4px 9px;font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent);background:rgba(45,212,191,.08)}
+.btn-icon.danger:hover{border-color:var(--red);color:var(--red);background:rgba(248,81,73,.08)}
+
+/* FILTERS */
+.filters{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.filter-label{color:var(--muted);font-size:11px;white-space:nowrap}
+select.filter-select{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit;cursor:pointer;outline:none;transition:border-color .15s}
+select.filter-select:focus{border-color:var(--accent)}
+.search-input{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 10px;font-size:12px;font-family:inherit;outline:none;transition:border-color .15s}
+.search-input::placeholder{color:var(--muted)}
+.search-input:focus{border-color:var(--accent)}
+
+/* LOG VIEWPORT */
+.log-viewport{flex:1;overflow-y:auto;padding:6px 0;min-height:0;scroll-behavior:smooth}
+.log-viewport::-webkit-scrollbar{width:6px}
+.log-viewport::-webkit-scrollbar-track{background:transparent}
+.log-viewport::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.log-viewport::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* LOG LINES */
+.line{display:flex;align-items:baseline;gap:0;padding:1px 12px;font-size:12px;white-space:pre-wrap;word-break:break-all;line-height:1.6}
+.line:hover{background:rgba(255,255,255,.03)}
+.line.hidden{display:none}
+.line .ts{color:var(--muted);flex-shrink:0;margin-right:8px;user-select:none}
+.line .lv{flex-shrink:0;margin-right:8px;font-weight:700;width:4ch;display:inline-block;user-select:none}
+.line.INFO .lv{color:var(--muted)}
+.line.WARN .lv{color:var(--yellow)}
+.line.ERR .lv{color:var(--red)}
+.line.DATA .lv{color:var(--blue)}
+.line.INFO .msg{color:var(--muted)}
+.line.WARN .msg{color:var(--text)}
+.line.ERR .msg{color:var(--red)}
+.line.DATA .msg{color:var(--blue)}
+
+/* EMPTY / ERROR STATES */
+.log-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:12px;flex-direction:column;gap:8px;user-select:none}
+.log-empty .icon{font-size:24px;opacity:.4}
+
+/* STATUS BAR */
+.status-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;gap:8px}
+.status-left{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted)}
+.status-count{white-space:nowrap}
+.net-error{color:var(--red);font-size:11px;display:none;align-items:center;gap:4px}
+.net-error.show{display:flex}
+.autoscroll-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);white-space:nowrap}
+.toggle{position:relative;display:inline-flex;cursor:pointer;user-select:none}
+.toggle input{position:absolute;opacity:0;width:0;height:0}
+.toggle-track{width:36px;height:18px;background:var(--border);border-radius:9px;transition:background .2s;flex-shrink:0}
+.toggle input:checked+.toggle-track{background:var(--accent)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s;pointer-events:none}
+.toggle input:checked~.toggle-thumb{left:20px}
+
+/* SCROLLED INDICATOR */
+.scroll-hint{display:none;position:absolute;bottom:60px;right:24px;background:var(--accent);color:#0e1117;border:none;border-radius:12px;padding:4px 12px;font-size:11px;font-family:inherit;cursor:pointer;font-weight:700;z-index:10}
+.scroll-hint.show{display:block}
+.main-wrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="brand">
+      <span class="brand-name">MonSet</span>
+      <div class="status-dot">
+        <span class="dot pulse" id="hdrDot"></span>
+        <span id="hdrLabel">ONLINE</span>
+      </div>
+    </div>
+    <nav>
+      <a href="/config">Конфиг</a>
+      <a href="/">Тест</a>
+      <a href="/logs" class="active">Лог</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="main-wrap">
+      <div class="log-panel">
+        <!-- Title bar -->
+        <div class="panel-title">
+          <span class="panel-title-text">Системный лог</span>
+          <button class="btn-icon" id="btnDownload" title="Скачать лог">⬇ Скачать</button>
+          <button class="btn-icon danger" id="btnClear" title="Очистить лог">✕ Очистить</button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+          <span class="filter-label">Уровень:</span>
+          <select class="filter-select" id="selLevel">
+            <option value="">ВСЕ</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERR">ERR</option>
+            <option value="DATA">DATA</option>
+          </select>
+          <span class="filter-label">Поиск:</span>
+          <input class="search-input" id="inpSearch" type="text" placeholder="Фильтр сообщений...">
+        </div>
+
+        <!-- Log viewport -->
+        <div class="log-viewport" id="logViewport">
+          <div class="log-empty" id="logEmpty">
+            <span class="icon">📋</span>
+            <span>Загрузка журнала...</span>
+          </div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="status-bar">
+          <div class="status-left">
+            <span class="status-count" id="statusCount">Строк: 0/500</span>
+            <span class="net-error" id="netError">⚠ Нет связи</span>
+          </div>
+          <div class="autoscroll-wrap">
+            Автопрокрутка:
+            <label class="toggle" title="Автопрокрутка">
+              <input type="checkbox" id="chkAutoScroll" checked>
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+            <span id="autoScrollLabel">ON</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="scroll-hint" id="scrollHint" title="К последней строке">▼ Новые строки</button>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── constants ── */
+const MAX_LINES = 500;
+const POLL_LOGS_MS = 3000;
+const POLL_WEB_MS = 5000;
+const FETCH_COUNT = 100;
+const POLL_COUNT = 50;
+
+/* ── state ── */
+let allLines = [];       // {raw, ts, lv, msg}
+let offset = 0;
+let autoScroll = true;
+let userScrolled = false;
+let pollTimer = null;
+let webTimer = null;
+
+/* ── elements ── */
+const viewport   = document.getElementById('logViewport');
+const logEmpty   = document.getElementById('logEmpty');
+const statusCount= document.getElementById('statusCount');
+const netError   = document.getElementById('netError');
+const selLevel   = document.getElementById('selLevel');
+const inpSearch  = document.getElementById('inpSearch');
+const chkAS      = document.getElementById('chkAutoScroll');
+const asLabel    = document.getElementById('autoScrollLabel');
+const scrollHint = document.getElementById('scrollHint');
+const hdrDot     = document.getElementById('hdrDot');
+const hdrLabel   = document.getElementById('hdrLabel');
+
+/* ── parse a raw log line ── */
+function parseLine(raw){
+  // format: "[HH:MM:SS] LEVEL msg"
+  const m = raw.match(/^\[(\d{2}:\d{2}:\d{2})\]\s+(\w+)\s*(.*)/);
+  if(m) return {raw, ts:m[1], lv:m[2].toUpperCase().slice(0,4), msg:m[3]};
+  return {raw, ts:'--:--:--', lv:'INFO', msg:raw};
+}
+
+/* ── build DOM element for one line ── */
+function buildLineEl(o){
+  const lvClass = ['INFO','WARN','ERR','DATA'].includes(o.lv) ? o.lv : 'INFO';
+  const d = document.createElement('div');
+  d.className = 'line ' + lvClass;
+  d.innerHTML =
+    '<span class="ts">['+esc(o.ts)+']</span>'+
+    '<span class="lv '+lvClass+'">'+esc(o.lv)+'</span>'+
+    '<span class="msg">'+esc(o.msg)+'</span>';
+  return d;
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── apply filters to a single element ── */
+function matchesFilter(o, lv, q){
+  if(lv && o.lv !== lv) return false;
+  if(q && !o.raw.toLowerCase().includes(q)) return false;
+  return true;
+}
+
+/* ── re-render all lines with current filter ── */
+function applyFilter(){
+  const lv = selLevel.value;
+  const q  = inpSearch.value.toLowerCase().trim();
+  const nodes = viewport.querySelectorAll('.line');
+  nodes.forEach((node, i) => {
+    const o = allLines[i];
+    if(!o){ node.classList.add('hidden'); return; }
+    node.classList.toggle('hidden', !matchesFilter(o, lv, q));
+  });
+  updateCount();
+}
+
+function updateCount(){
+  const lv = selLevel.value;
+  const q  = inpSearch.value.toLowerCase().trim();
+  const visible = allLines.filter(o => matchesFilter(o,lv,q)).length;
+  statusCount.textContent = 'Строк: ' + visible + '/' + allLines.length;
+}
+
+/* ── append new lines to DOM and allLines[] ── */
+function appendLines(raws){
+  if(!raws || !raws.length) return;
+  const lv = selLevel.value;
+  const q  = inpSearch.value.toLowerCase().trim();
+  const frag = document.createDocumentFragment();
+
+  raws.forEach(raw => {
+    const o = parseLine(raw);
+    allLines.push(o);
+    const el = buildLineEl(o);
+    if(!matchesFilter(o, lv, q)) el.classList.add('hidden');
+    frag.appendChild(el);
+  });
+
+  // enforce MAX_LINES in DOM and array
+  const nodes = viewport.querySelectorAll('.line');
+  const excess = allLines.length - MAX_LINES;
+  if(excess > 0){
+    allLines.splice(0, excess);
+    for(let i=0; i<excess; i++){
+      if(nodes[i]) nodes[i].remove();
+    }
+  }
+
+  // remove empty placeholder if present
+  if(logEmpty.parentNode === viewport) logEmpty.remove();
+
+  viewport.appendChild(frag);
+  updateCount();
+
+  if(autoScroll){
+    scrollToBottom();
+  } else {
+    scrollHint.classList.add('show');
+  }
+}
+
+function scrollToBottom(){
+  viewport.scrollTop = viewport.scrollHeight;
+}
+
+/* ── network ── */
+function setNetError(on){
+  netError.classList.toggle('show', on);
+}
+
+async function fetchLogs(fetchOffset, count){
+  const r = await fetch('/api/logs?offset='+fetchOffset+'&count='+count);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json(); // expects {lines:["...",...],"total":N}
+}
+
+async function initialLoad(){
+  try{
+    const data = await fetchLogs(0, FETCH_COUNT);
+    const lines = Array.isArray(data) ? data : (data.lines || []);
+    offset = lines.length;
+    appendLines(lines);
+    setNetError(false);
+  }catch(e){
+    setNetError(true);
+    logEmpty.innerHTML = '<span class="icon">⚠</span><span>Ошибка загрузки журнала</span>';
+    if(logEmpty.parentNode !== viewport) viewport.appendChild(logEmpty);
+  }
+  schedulePoll();
+}
+
+async function pollLogs(){
+  try{
+    const data = await fetchLogs(offset, POLL_COUNT);
+    const lines = Array.isArray(data) ? data : (data.lines || []);
+    if(lines.length){
+      offset += lines.length;
+      appendLines(lines);
+    }
+    setNetError(false);
+  }catch(e){
+    setNetError(true);
+  }
+  schedulePoll();
+}
+
+function schedulePoll(){
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(pollLogs, POLL_LOGS_MS);
+}
+
+/* ── web mode poll ── */
+async function pollWebMode(){
+  try{
+    const r = await fetch('/api/web_mode');
+    if(!r.ok) throw new Error();
+    const d = await r.json();
+    const active = d.active || d.enabled || d.web_mode;
+    hdrDot.className = 'dot' + (active ? ' active' : ' pulse');
+    hdrLabel.textContent = active ? 'WEB ACTIVE' : 'ONLINE';
+  }catch(e){
+    hdrDot.className = 'dot pulse';
+    hdrLabel.textContent = 'ONLINE';
+  }
+  clearTimeout(webTimer);
+  webTimer = setTimeout(pollWebMode, POLL_WEB_MS);
+}
+
+/* ── download ── */
+document.getElementById('btnDownload').addEventListener('click', async()=>{
+  try{
+    const r = await fetch('/api/logs/export');
+    if(!r.ok) throw new Error();
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'monset.log';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  }catch(e){
+    alert('Ошибка экспорта лога');
+  }
+});
+
+/* ── clear ── */
+document.getElementById('btnClear').addEventListener('click', async()=>{
+  if(!confirm('Очистить системный журнал?')) return;
+  try{
+    const r = await fetch('/api/logs/clear',{method:'POST'});
+    if(!r.ok) throw new Error();
+    allLines = [];
+    viewport.querySelectorAll('.line').forEach(n=>n.remove());
+    if(logEmpty.parentNode !== viewport) viewport.appendChild(logEmpty);
+    logEmpty.innerHTML = '<span class="icon">📋</span><span>Журнал очищен</span>';
+    offset = 0;
+    updateCount();
+  }catch(e){
+    alert('Ошибка очистки журнала');
+  }
+});
+
+/* ── filters ── */
+selLevel.addEventListener('change', applyFilter);
+inpSearch.addEventListener('input', applyFilter);
+
+/* ── auto-scroll toggle ── */
+chkAS.addEventListener('change', ()=>{
+  autoScroll = chkAS.checked;
+  asLabel.textContent = autoScroll ? 'ON' : 'OFF';
+  userScrolled = false;
+  if(autoScroll){
+    scrollHint.classList.remove('show');
+    scrollToBottom();
+  }
+});
+
+/* ── scroll listener: disable autoscroll on manual scroll up ── */
+let lastScrollTop = 0;
+viewport.addEventListener('scroll', ()=>{
+  const st = viewport.scrollTop;
+  const isAtBottom = viewport.scrollHeight - st - viewport.clientHeight < 32;
+
+  if(st < lastScrollTop && !isAtBottom){
+    // scrolled up
+    if(autoScroll){
+      autoScroll = false;
+      chkAS.checked = false;
+      asLabel.textContent = 'OFF';
+      userScrolled = true;
+    }
+  }
+
+  if(isAtBottom && userScrolled){
+    autoScroll = true;
+    chkAS.checked = true;
+    asLabel.textContent = 'ON';
+    userScrolled = false;
+    scrollHint.classList.remove('show');
+  }
+
+  lastScrollTop = st;
+},{passive:true});
+
+/* ── scroll hint button ── */
+scrollHint.addEventListener('click', ()=>{
+  autoScroll = true;
+  chkAS.checked = true;
+  asLabel.textContent = 'ON';
+  userScrolled = false;
+  scrollHint.classList.remove('show');
+  scrollToBottom();
+});
+
+/* ── init ── */
+initialLoad();
+pollWebMode();
+
+})();
+</script>
+</body>
+</html>
