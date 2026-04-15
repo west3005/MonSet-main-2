@@ -1584,7 +1584,7 @@
  *
  * Uncomment to enable the Connection ID extension.
  */
-#define MBEDTLS_SSL_DTLS_CONNECTION_ID
+//#define MBEDTLS_SSL_DTLS_CONNECTION_ID
 
 
 /**
@@ -1688,7 +1688,7 @@
  *
  * Comment to disable the context serialization APIs.
  */
-#define MBEDTLS_SSL_CONTEXT_SERIALIZATION
+//#define MBEDTLS_SSL_CONTEXT_SERIALIZATION
 
 /**
  * \def MBEDTLS_SSL_DEBUG_ALL
@@ -1964,7 +1964,7 @@
  *
  * Comment this macro to disable support for DTLS
  */
-#define MBEDTLS_SSL_PROTO_DTLS
+//#define MBEDTLS_SSL_PROTO_DTLS
 
 /**
  * \def MBEDTLS_SSL_ALPN
@@ -1988,7 +1988,7 @@
  *
  * Comment this to disable anti-replay in DTLS.
  */
-#define MBEDTLS_SSL_DTLS_ANTI_REPLAY
+//#define MBEDTLS_SSL_DTLS_ANTI_REPLAY
 
 /**
  * \def MBEDTLS_SSL_DTLS_HELLO_VERIFY
@@ -2006,7 +2006,7 @@
  *
  * Comment this to disable support for HelloVerifyRequest.
  */
-#define MBEDTLS_SSL_DTLS_HELLO_VERIFY
+//#define MBEDTLS_SSL_DTLS_HELLO_VERIFY
 
 /**
  * \def MBEDTLS_SSL_DTLS_SRTP
@@ -2053,7 +2053,7 @@
  *
  * Comment this to disable support for clients reusing the source port.
  */
-#define MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
+//#define MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
 
 /**
  * \def MBEDTLS_SSL_SESSION_TICKETS
@@ -2754,7 +2754,7 @@
  *
  * This module provides debugging functions.
  */
-#define MBEDTLS_DEBUG_C
+//#define MBEDTLS_DEBUG_C
 
 /**
  * \def MBEDTLS_DES_C
@@ -3077,7 +3077,7 @@
  *
  * This module provides networking routines.
  */
-#define MBEDTLS_NET_C
+//#define MBEDTLS_NET_C
 
 /**
  * \def MBEDTLS_OID_C
@@ -3654,7 +3654,7 @@
  * Module:  library/ssl_cookie.c
  * Caller:
  */
-#define MBEDTLS_SSL_COOKIE_C
+//#define MBEDTLS_SSL_COOKIE_C
 
 /**
  * \def MBEDTLS_SSL_TICKET_C
@@ -3695,7 +3695,7 @@
  *
  * This module is required for SSL/TLS server support.
  */
-#define MBEDTLS_SSL_SRV_C
+//#define MBEDTLS_SSL_SRV_C
 
 /**
  * \def MBEDTLS_SSL_TLS_C
@@ -3785,7 +3785,7 @@
  *
  * Module:  library/timing.c
  */
-#define MBEDTLS_TIMING_C
+//#define MBEDTLS_TIMING_C
 
 /**
  * \def MBEDTLS_VERSION_C
@@ -4244,7 +4244,7 @@
  *
  * Uncomment to set the maximum plaintext size of the incoming I/O buffer.
  */
-//#define MBEDTLS_SSL_IN_CONTENT_LEN              16384
+#define MBEDTLS_SSL_IN_CONTENT_LEN              8192
 
 /** \def MBEDTLS_SSL_CID_IN_LEN_MAX
  *
@@ -4294,7 +4294,7 @@
  *
  * Uncomment to set the maximum plaintext size of the outgoing I/O buffer.
  */
-//#define MBEDTLS_SSL_OUT_CONTENT_LEN             16384
+#define MBEDTLS_SSL_OUT_CONTENT_LEN             2048
 
 /** \def MBEDTLS_SSL_DTLS_MAX_BUFFERING
  *

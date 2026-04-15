@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cctype>
 
+
 extern "C" {
 #include "socket.h"
 #include "dns.h"
@@ -15,6 +16,7 @@ extern "C" {
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/error.h"
 #include "stm32f4xx_hal.h"
+#include "psa/crypto.h"
 }
 
 volatile bool g_web_exclusive = false;
@@ -183,19 +185,31 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
     // DRBG seed — выполняется ОДИН РАЗ за всё время работы устройства
     // ================================================================
     if (!s_drbg_seeded) {
-        TLS_STEP(4, "entropy_init");
+
+    	TLS_STEP(4, "psa_crypto_init");
+    	{
+    	    psa_status_t psa_st = psa_crypto_init();
+    	    if (psa_st != PSA_SUCCESS) {
+    	        DBG.error("PSA: init failed %d", (int)psa_st);
+    	        // не фатально для TLS 1.2 без PSA шифров, но логируем
+    	    } else {
+    	        DBG.info("PSA: init OK");
+    	    }
+    	}
+
+    	TLS_STEP(5, "entropy_init");
         mbedtls_entropy_init(&s_entropy);
 
-        TLS_STEP(5, "ctr_drbg_init");
+        TLS_STEP(6, "ctr_drbg_init");
         mbedtls_ctr_drbg_init(&s_ctr);
 
-        TLS_STEP(6, "ctr_drbg_seed START");
+        TLS_STEP(7, "ctr_drbg_seed START");
         IWDG_FEED();
         const char* pers = "w5500";
         int rc = mbedtls_ctr_drbg_seed(&s_ctr, mbedtls_entropy_func, &s_entropy,
                                         (const unsigned char*)pers, 5);
         IWDG_FEED();
-        TLS_STEP(7, "ctr_drbg_seed DONE");
+        TLS_STEP(8, "ctr_drbg_seed DONE");
         if (rc != 0) {
             logMbedtlsErr("TLS: seed", rc);
             disconnect(sn); close(sn); return -30;
@@ -211,7 +225,7 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
     // SSL context setup — каждый раз заново, но static структуры
     // FIX: не вызываем mbedtls_ssl_free на нулевой static (первый вызов)
     // ================================================================
-    TLS_STEP(8, "ssl context reset");
+    TLS_STEP(9, "ssl context reset");
     if (s_ssl_init_done) {
         mbedtls_ssl_free(&s_ssl);
         mbedtls_ssl_config_free(&s_conf);
@@ -223,7 +237,7 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
     s_ssl_init_done = true;
     IWDG_FEED();
 
-    TLS_STEP(9, "ssl_config_defaults");
+    TLS_STEP(10, "ssl_config_defaults");
     int rc = mbedtls_ssl_config_defaults(&s_conf,
                                           MBEDTLS_SSL_IS_CLIENT,
                                           MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -234,12 +248,12 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
         disconnect(sn); close(sn); return -32;
     }
 
-    TLS_STEP(10, "ssl_conf_rng + authmode");
+    TLS_STEP(11, "ssl_conf_rng + authmode");
     mbedtls_ssl_conf_rng(&s_conf, mbedtls_ctr_drbg_random, &s_ctr);
     mbedtls_ssl_conf_authmode(&s_conf, MBEDTLS_SSL_VERIFY_NONE);
     IWDG_FEED();
 
-    TLS_STEP(11, "ssl_setup");
+    TLS_STEP(12, "ssl_setup");
     rc = mbedtls_ssl_setup(&s_ssl, &s_conf);
     IWDG_FEED();
     if (rc != 0) {
@@ -247,14 +261,14 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
         disconnect(sn); close(sn); return -33;
     }
 
-    TLS_STEP(12, "ssl_set_hostname + set_bio");
+    TLS_STEP(13, "ssl_set_hostname + set_bio");
     (void)mbedtls_ssl_set_hostname(&s_ssl, u.host);
     s_bio.sn       = sn;
     s_bio.deadline = HAL_GetTick() + timeoutMs;
     mbedtls_ssl_set_bio(&s_ssl, &s_bio, w5500_send_cb, w5500_recv_cb, nullptr);
     IWDG_FEED();
 
-    TLS_STEP(13, "handshake loop START");
+    TLS_STEP(14, "handshake loop START");
     while (true) {
         if (g_web_exclusive) {
             DBG.warn("HTTPS: handshake abort (web)"); rc = MBEDTLS_ERR_SSL_TIMEOUT; break;
@@ -274,7 +288,7 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
     }
     if (rc != 0) { disconnect(sn); close(sn); return -40; }
 
-    TLS_STEP(14, "HTTP write");
+    TLS_STEP(15, "HTTP write");
     int hdrLen = std::snprintf(s_hdr, sizeof(s_hdr),
         "POST %s HTTP/1.1\r\nHost: %s\r\n"
         "Authorization: Basic %s\r\n"
@@ -299,7 +313,7 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
     if (hdrLen > 0 && sslWriteAll((const uint8_t*)s_hdr,  (uint32_t)hdrLen) != 0) return -51;
     if (             sslWriteAll((const uint8_t*)json,     (uint32_t)jsonLen) != 0) return -52;
 
-    TLS_STEP(15, "HTTP read");
+    TLS_STEP(16, "HTTP read");
     int used = 0; int httpCode = -1;
     uint32_t t0 = HAL_GetTick();
     while ((HAL_GetTick() - t0) < timeoutMs) {
