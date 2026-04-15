@@ -2,27 +2,6 @@
  * ================================================================
  * @file web_server.hpp
  * @brief Minimal HTTP server on W5500 socket (port 80).
- *
- * Routes:
- *   GET  /                  → Config page (HTML, main page)
- *   GET  /config            → Config page (HTML)
- *   GET  /dashboard         → Dashboard (sensors, battery, channels)
- *   GET  /logs              → Log viewer (inline from RAM)
- *   GET  /test              → Test-send page
- *   GET  /api/sensors       → JSON sensor data
- *   GET  /api/channels      → JSON channel status
- *   GET  /api/config        → JSON current config
- *   GET  /api/web_mode      → JSON web-mode status
- *   GET  /api/test_result   → JSON last test result
- *   GET  /api/logs          → JSON log lines [?offset=N&count=M]
- *   GET  /api/logs/export   → Plain-text log dump
- *   POST /config            → Save config (JSON body)
- *   POST /api/config        → Save config (JSON body)
- *   POST /api/test_send     → Trigger manual send
- *   POST /api/logs/clear    → Clear RAM log buffer
- *
- * Basic Auth from RuntimeConfig (web_user, web_pass).
- * Non-blocking — call tick() from main loop.
  * ================================================================
  */
 #pragma once
@@ -46,7 +25,13 @@ public:
     bool isRunning() const { return m_running; }
     void setActivityCallback(void (*cb)(void*), void* ctx);
 
-    // sendResponse is public so that helper lambdas / free functions can use it
+    /**
+     * sendResponse — public.
+     * Sends HTTP response with chunked TX to work around W5500
+     * 2KB-per-socket TX buffer limit. Without chunking, pages > 2KB
+     * are silently truncated by ioLibrary send(), resulting in a
+     * blank page in the browser.
+     */
     void sendResponse(uint8_t sn, int code, const char* contentType,
                       const char* body, uint16_t bodyLen);
 
@@ -66,8 +51,21 @@ private:
     static constexpr uint16_t REQ_BUF_SIZE  = 1024;
     char m_reqBuf[REQ_BUF_SIZE];
 
-    // 6 KB — вмещает любую inline HTML страницу (~3.5 KB max)
+    /**
+     * RESP_BUF_SIZE — 6KB вмещает любую inline HTML страницу.
+     * TX отправка идёт чанками по TX_CHUNK_SIZE, поэтому буфер
+     * может быть больше TX буфера W5500.
+     */
     static constexpr uint16_t RESP_BUF_SIZE = 6144;
+
+    /**
+     * TX_CHUNK_SIZE — размер одного вызова send() в sendResponse.
+     * W5500 по умолчанию 2KB/сокет. Ставим 1024 с запасом.
+     * Если увеличишь TX буфер сокета 5 до 4KB в W5500 init —
+     * можно поднять до 2048.
+     */
+    static constexpr uint16_t TX_CHUNK_SIZE = 1024;
+
     char m_respBuf[RESP_BUF_SIZE];
 
     bool checkAuth(const char* request);
@@ -92,7 +90,7 @@ private:
     void handleApiTestSend(uint8_t sn);
     void handleApiTestResult(uint8_t sn);
     void handleApiLogs(uint8_t sn, const char* queryStr);
-    void handleApiLogsExport(uint8_t sn);
+    void handleApiLogsExport(uint8_t sn);   // ← ДОЛЖЕН БЫТЬ ОПРЕДЕЛЁН В CPP
     void handleApiLogsClear(uint8_t sn);
 
     // POST

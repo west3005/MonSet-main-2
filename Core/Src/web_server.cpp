@@ -149,26 +149,39 @@ bool WebServer::checkAuth(const char* req){
     char exp[72]; std::snprintf(exp,sizeof(exp),"%s:%s",c.web_user,c.web_pass);
     return std::strcmp((const char*)dec,exp)==0;
 }
-void WebServer::sendResponse(uint8_t sn,int code,const char* ct,
-                              const char* body,uint16_t blen){
-    const char* status="200 OK";
-    if(code==400) status="400 Bad Request";
-    else if(code==401) status="401 Unauthorized";
-    else if(code==404) status="404 Not Found";
-    char hdr[320]; int hlen;
-    if(code==401){
-        hlen=std::snprintf(hdr,sizeof(hdr),
+void WebServer::sendResponse(uint8_t sn, int code, const char* ct,
+                              const char* body, uint16_t bodyLen)
+{
+    const char* status = "200 OK";
+    if (code == 400) status = "400 Bad Request";
+    else if (code == 401) status = "401 Unauthorized";
+    else if (code == 404) status = "404 Not Found";
+
+    char hdr[320];
+    int hlen;
+    if (code == 401) {
+        hlen = std::snprintf(hdr, sizeof(hdr),
             "HTTP/1.1 %s\r\nWWW-Authenticate: Basic realm=\"MonSet\"\r\n"
             "Content-Type: %s\r\nContent-Length: %u\r\nConnection: close\r\n\r\n",
-            status,ct,(unsigned)blen);
-    }else{
-        hlen=std::snprintf(hdr,sizeof(hdr),
+            status, ct, (unsigned)bodyLen);
+    } else {
+        hlen = std::snprintf(hdr, sizeof(hdr),
             "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %u\r\n"
             "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
-            status,ct,(unsigned)blen);
+            status, ct, (unsigned)bodyLen);
     }
-    send(sn,(uint8_t*)hdr,(uint16_t)hlen);
-    if(blen>0&&body) send(sn,(uint8_t*)body,blen);
+    send(sn, (uint8_t*)hdr, (uint16_t)hlen);
+
+    /* ── Chunked TX to handle W5500 2KB/socket TX buffer limit ── */
+    uint16_t offset = 0;
+    while (offset < bodyLen && body) {
+        uint16_t chunk = bodyLen - offset;
+        if (chunk > TX_CHUNK_SIZE) chunk = TX_CHUNK_SIZE;
+        int32_t r = send(sn, (uint8_t*)(body + offset), chunk);
+        if (r <= 0) break;
+        offset += (uint16_t)r;
+        IWDG->KR = 0xAAAA;   // кормим watchdog при больших страницах
+    }
 }
 void WebServer::send401(uint8_t sn){
     const char* b="{\"error\":\"Unauthorized\"}";
@@ -580,18 +593,35 @@ void WebServer::handleApiLogs(uint8_t sn,const char* queryStr){
     if(pos<(int)sizeof(resp)-2){resp[pos++]=']';resp[pos++]='}';resp[pos]='\0';}
     sendResponse(sn,200,"application/json",resp,(uint16_t)pos);
 }
-void WebServer::handleApiLogsExport(uint8_t sn){
-    CircularLogBuffer& log=CircularLogBuffer::instance();
-    char resp[RESP_BUF_SIZE]; int pos=0;
-    uint16_t cnt=log.getCount();
+void WebServer::handleApiLogsExport(uint8_t sn)
+{
+    CircularLogBuffer& log = CircularLogBuffer::instance();
+    uint16_t total = log.getCount();
+
+    // Отправляем заголовок вручную (размер заранее не известен)
+    char hdr[256];
+    int hl = std::snprintf(hdr, sizeof(hdr),
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=UTF-8\r\n"
+        "Content-Disposition: attachment; filename=\"monset.log\"\r\n"
+        "Access-Control-Allow-Origin: *\r\nTransfer-Encoding: chunked\r\n"
+        "Connection: close\r\n\r\n");
+    send(sn, (uint8_t*)hdr, (uint16_t)hl);
+
     char line[CircularLogBuffer::LINE_SIZE];
-    for(uint16_t i=0;i<cnt&&pos<(int)sizeof(resp)-CircularLogBuffer::LINE_SIZE-2;++i){
-        if(log.getLine(i,line,sizeof(line))){
-            int nn=std::snprintf(resp+pos,sizeof(resp)-pos,"%s\n",line);
-            if(nn>0) pos+=nn;
+    for (uint16_t i = 0; i < total; i++) {
+        if (log.getLine(i, line, sizeof(line))) {
+            // chunked HTTP: размер строки в hex
+            char chunk_hdr[12];
+            int chl = std::snprintf(chunk_hdr, sizeof(chunk_hdr),
+                "%X\r\n", (unsigned)std::strlen(line));
+            send(sn, (uint8_t*)chunk_hdr, (uint16_t)chl);
+            send(sn, (uint8_t*)line, (uint16_t)std::strlen(line));
+            send(sn, (uint8_t*)"\r\n", 2);
+            IWDG->KR = 0xAAAA;
         }
     }
-    sendResponse(sn,200,"text/plain",resp,(uint16_t)pos);
+    // Завершающий chunk
+    send(sn, (uint8_t*)"0\r\n\r\n", 5);
 }
 void WebServer::handleApiLogsClear(uint8_t sn){
     CircularLogBuffer::instance().clear();
