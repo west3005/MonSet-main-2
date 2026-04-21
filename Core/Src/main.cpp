@@ -52,6 +52,7 @@ extern "C" void MX_RTC_Init(void);
 extern "C" void MX_TIM6_Init(void);
 extern "C" void MX_RNG_Init(void);
 extern "C" void MX_DMA_Init(void);
+extern "C" bool HttpsW5500_tlsOneTimeInit(void);
 
 /* =============================================================
  * main()
@@ -94,6 +95,13 @@ extern "C" int main(void)
 
     MX_RNG_Init();
     DBG.info("RNG OK");
+
+    // TLS pre-init ДО IWDG — теперь должен пройти быстро (<1с)
+    // после исправления конфига
+
+    DBG.info("TLS pre-init...");
+    HttpsW5500_tlsOneTimeInit();   // <-- просто вызов, без объявления
+    DBG.info("TLS pre-init DONE");
 
     MX_IWDG_Init();
     DBG.info("IWDG OK");

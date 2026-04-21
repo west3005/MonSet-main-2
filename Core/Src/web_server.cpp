@@ -493,43 +493,147 @@ void WebServer::handleApiSensors(uint8_t sn){
     }
     n+=std::snprintf(m_respBuf+n,RESP_BUF_SIZE-n,"}");
     sendResponse(sn,200,"application/json",m_respBuf,(uint16_t)n);
+
+    uint32_t tick = HAL_GetTick() / 1000;
+    n+=std::snprintf(m_respBuf+n,RESP_BUF_SIZE-n,
+        ",\"uptime_s\":%lu,\"timestamp\":\"uptime %lu s\"",
+        (unsigned long)tick,(unsigned long)tick);
 }
 
 // ── GET /api/config (JSON) ────────────────────────────────────────────────────
 // FIX: ProtocolMode::HTTPS → ProtocolMode::HTTPS_THINGSBOARD
 void WebServer::handleApiConfig(uint8_t sn){
-    const RuntimeConfig& c=Cfg();
-    int n=std::snprintf(m_respBuf,RESP_BUF_SIZE,
-        "{\"server_url\":\"%s\","
+    const RuntimeConfig& c = Cfg();
+
+    char sip[16],ssn[16],sgw[16],sdns[16];
+    std::snprintf(sip,16,"%u.%u.%u.%u",c.eth_ip[0],c.eth_ip[1],c.eth_ip[2],c.eth_ip[3]);
+    std::snprintf(ssn,16,"%u.%u.%u.%u",c.eth_sn[0],c.eth_sn[1],c.eth_sn[2],c.eth_sn[3]);
+    std::snprintf(sgw,16,"%u.%u.%u.%u",c.eth_gw[0],c.eth_gw[1],c.eth_gw[2],c.eth_gw[3]);
+    std::snprintf(sdns,16,"%u.%u.%u.%u",c.eth_dns[0],c.eth_dns[1],c.eth_dns[2],c.eth_dns[3]);
+
+    const char* protoStr =
+        (c.protocol==ProtocolMode::HTTPS_THINGSBOARD)?"https_tb":
+        (c.protocol==ProtocolMode::MQTT_THINGSBOARD) ?"mqtt_tb" :
+        (c.protocol==ProtocolMode::MQTT_GENERIC)     ?"mqtt_gen":
+        (c.protocol==ProtocolMode::WEBHOOK_HTTP)     ?"webhook" :"https_tb";
+
+    const char* web_user = c.web.web_user[0] ? c.web.web_user : c.web_user;
+    const char* ntp_srv  = c.time_cfg.ntp_server[0] ? c.time_cfg.ntp_server : c.ntp_host;
+    bool  ch_eth  = c.channels.eth_enabled      || c.eth_enabled;
+    bool  ch_gsm  = c.channels.gsm_enabled      || c.gsm_enabled;
+    bool  ch_wifi = c.channels.wifi_enabled     || c.wifi_enabled;
+    bool  ch_irid = c.channels.iridium_enabled  || c.iridium_enabled;
+    bool  chain   = c.channels.chain_mode       || c.chain_enabled;
+    uint32_t poll_s = c.meas.poll_interval_s  ? (uint32_t)c.meas.poll_interval_s  : c.poll_interval_sec;
+    uint32_t send_s = c.meas.send_interval_s  ? (uint32_t)c.meas.send_interval_s  : (c.send_interval_polls*c.poll_interval_sec);
+    uint16_t bkup_s = c.meas.backup_retry_s   ? c.meas.backup_retry_s : (uint16_t)c.backup_send_interval_sec;
+    uint8_t  avg    = c.meas.avg_count ? c.meas.avg_count : c.avg_count;
+    const char* tb_host = c.proto.tb_host[0]   ? c.proto.tb_host   : "thingsboard.cloud";
+    const char* mq_host = c.proto.mqtt_host[0] ? c.proto.mqtt_host  : c.mqtt_host;
+    uint16_t mq_port    = c.proto.mqtt_port    ? c.proto.mqtt_port  : c.mqtt_port;
+    const char* mq_user = c.proto.mqtt_user[0]  ? c.proto.mqtt_user  : c.mqtt_user;
+    const char* mq_top  = c.proto.mqtt_topic[0] ? c.proto.mqtt_topic : c.mqtt_topic;
+    const char* wh_url  = c.proto.webhook_url[0]    ? c.proto.webhook_url    : c.webhook_url;
+    const char* wh_meth = c.proto.webhook_method[0] ? c.proto.webhook_method : c.webhook_method;
+    bool eth_dhcp = (c.eth_mode == RuntimeConfig::EthMode::Dhcp);
+    float bat_low = c.alerts.battery_low_threshold_pct>0 ?
+                    c.alerts.battery_low_threshold_pct : (float)c.battery_low_pct;
+
+    char cord[32];
+    std::snprintf(cord,sizeof(cord),"[%u,%u,%u,%u]",
+        c.channels.chain_order[0],c.channels.chain_order[1],
+        c.channels.chain_order[2],c.channels.chain_order[3]);
+
+    int n=0;
+    n+=std::snprintf(m_respBuf+n,RESP_BUF_SIZE-n,
+        "{"
+        "\"server_url\":\"%s\","
         "\"poll_interval_sec\":%lu,\"send_interval_polls\":%lu,"
-        "\"eth_enabled\":%s,\"gsm_enabled\":%s,"
-        "\"wifi_enabled\":%s,\"iridium_enabled\":%s,"
-        "\"protocol\":\"%s\",\"avg_count\":%u}",
+        "\"ch_eth\":%s,\"ch_gsm\":%s,\"ch_wifi\":%s,\"ch_iridium\":%s,"
+        "\"eth_enabled\":%s,\"gsm_enabled\":%s,\"wifi_enabled\":%s,\"iridium_enabled\":%s,"
+        "\"chain_mode\":%s,\"chain_order\":%s,"
+        "\"channel_timeout_s\":%u,\"channel_retry_s\":%u,\"channel_max_retries\":%u,"
+        "\"proto\":\"%s\","
+        "\"tb_host\":\"%s\",\"tb_token\":\"%s\",\"tb_port\":%u,"
+        "\"mqtt_host\":\"%s\",\"mqtt_port\":%u,\"mqtt_user\":\"%s\","
+        "\"mqtt_topic\":\"%s\",\"mqtt_qos\":%u,\"mqtt_tls\":%s,"
+        "\"webhook_url\":\"%s\",\"webhook_method\":\"%s\","
+        "\"poll_interval_s\":%lu,\"send_interval_s\":%lu,"
+        "\"backup_retry_s\":%u,\"avg_count\":%u,"
+        "\"deep_sleep_enabled\":%s,\"deep_sleep_s\":%u,"
+        "\"schedule_enabled\":%s,\"schedule_start\":\"%s\",\"schedule_stop\":\"%s\","
+        "\"eth_dhcp\":%s,"
+        "\"eth_ip\":\"%s\",\"eth_sn\":\"%s\",\"eth_gw\":\"%s\",\"eth_dns\":\"%s\","
+        "\"gsm_apn\":\"%s\",\"gsm_user\":\"%s\","
+        "\"wifi_ssid\":\"%s\","
+        "\"ntp_enabled\":%s,\"ntp_server\":\"%s\",\"tz_off\":%d,"
+        "\"web_user\":\"%s\",\"web_port\":%u,\"web_idle_timeout_s\":%u,"
+        "\"web_auth_enabled\":%s,\"web_exclusive_mode\":%s,"
+        "\"mtcpm_en\":%s,\"mtcps_en\":%s,"
+        "\"sl_port\":%u,\"sl_uid\":%u,\"sl_sock\":%u,\"sl_ctms\":%u,"
+        "\"alerts_enabled\":%s,\"batt_low\":%.1f,"
+        "\"alert_on_channel_fail\":%s,\"alert_on_sensor_fail\":%s,"
+        "\"alert_webhook_url\":\"%s\""
+        "}",
         c.server_url,
-        (unsigned long)c.poll_interval_sec,
-        (unsigned long)c.send_interval_polls,
-        c.eth_enabled?"true":"false",
-        c.gsm_enabled?"true":"false",
-        c.wifi_enabled?"true":"false",
-        c.iridium_enabled?"true":"false",
-        (c.protocol==ProtocolMode::HTTPS_THINGSBOARD)?"https":
-        (c.protocol==ProtocolMode::MQTT_THINGSBOARD)?"mqtt-tb":
-        (c.protocol==ProtocolMode::MQTT_GENERIC)?"mqtt":"webhook",
-        (unsigned)c.avg_count);
+        (unsigned long)c.poll_interval_sec,(unsigned long)c.send_interval_polls,
+        ch_eth?"true":"false",ch_gsm?"true":"false",ch_wifi?"true":"false",ch_irid?"true":"false",
+        ch_eth?"true":"false",ch_gsm?"true":"false",ch_wifi?"true":"false",ch_irid?"true":"false",
+        chain?"true":"false",cord,
+        (unsigned)c.channels.channel_timeout_s,(unsigned)c.channels.channel_retry_s,
+        (unsigned)c.channels.channel_max_retries,
+        protoStr,
+        tb_host,c.proto.tb_token,(unsigned)c.proto.tb_port,
+        mq_host,(unsigned)mq_port,mq_user,
+        mq_top,(unsigned)c.proto.mqtt_qos,(c.proto.mqtt_tls||c.mqtt_tls)?"true":"false",
+        wh_url,wh_meth,
+        (unsigned long)poll_s,(unsigned long)send_s,
+        (unsigned)bkup_s,(unsigned)avg,
+        c.meas.deep_sleep_enabled?"true":"false",(unsigned)c.meas.deep_sleep_s,
+        c.meas.schedule_enabled?"true":"false",c.meas.schedule_start,c.meas.schedule_stop,
+        eth_dhcp?"true":"false",
+        sip,ssn,sgw,sdns,
+        c.gsm_apn,c.gsm_user,c.wifi_ssid,
+        c.time_cfg.ntp_enabled?"true":"false",ntp_srv,(int)c.time_cfg.timezone_offset,
+        web_user,(unsigned)c.web.web_port,(unsigned)c.web.web_idle_timeout_s,
+        c.web.web_auth_enabled?"true":"false",c.web.web_exclusive_mode?"true":"false",
+        c.tcp_master.enabled?"true":"false",c.tcp_slave.enabled?"true":"false",
+        (unsigned)c.tcp_slave.listen_port,(unsigned)c.tcp_slave.unit_id,
+        (unsigned)c.tcp_slave.w5500_socket,(unsigned)c.tcp_slave.connection_timeout_ms,
+        c.alerts.alerts_enabled?"true":"false",(double)bat_low,
+        c.alerts.alert_on_channel_fail?"true":"false",
+        c.alerts.alert_on_sensor_fail?"true":"false",
+        c.alerts.alert_webhook_url
+    );
     sendResponse(sn,200,"application/json",m_respBuf,(uint16_t)n);
 }
 
 // ── GET /api/channels ─────────────────────────────────────────────────────────
 void WebServer::handleApiChannels(uint8_t sn){
-    char buf[512]; const RuntimeConfig& cfg=Cfg();
+    const RuntimeConfig& cfg=Cfg();
     uint8_t st=m_app?m_app->getChannelStatus():0;
+
+    bool e=cfg.channels.eth_enabled     ||cfg.eth_enabled;
+    bool g=cfg.channels.gsm_enabled     ||cfg.gsm_enabled;
+    bool w=cfg.channels.wifi_enabled    ||cfg.wifi_enabled;
+    bool i=cfg.channels.iridium_enabled ||cfg.iridium_enabled;
+
+    const char* se = e?((st&0x01)?"ACTIVE":"STANDBY"):"DISABLED";
+    const char* sg = g?((st&0x02)?"ACTIVE":"STANDBY"):"DISABLED";
+    const char* sw = w?((st&0x04)?"ACTIVE":"STANDBY"):"DISABLED";
+    const char* si = i?((st&0x08)?"ACTIVE":"STANDBY"):"DISABLED";
+
+    char buf[768];
     int len=std::snprintf(buf,sizeof(buf),
-        "{\"eth\":\"%s\",\"gsm\":\"%s\","
-        "\"wifi\":\"%s\",\"iridium\":\"%s\"}",
-        cfg.eth_enabled     ?((st&0x01)?"active":"standby"):"disabled",
-        cfg.gsm_enabled     ?((st&0x02)?"active":"standby"):"disabled",
-        cfg.wifi_enabled    ?((st&0x04)?"active":"standby"):"disabled",
-        cfg.iridium_enabled ?((st&0x08)?"active":"standby"):"disabled");
+        "{\"channels\":["
+        "{\"name\":\"Ethernet W5500\",\"status\":\"%s\",\"label\":\"%s\",\"priority\":\"1\"},"
+        "{\"name\":\"GSM Air780E\",   \"status\":\"%s\",\"label\":\"%s\",\"priority\":\"2\"},"
+        "{\"name\":\"WiFi ESP8266\",  \"status\":\"%s\",\"label\":\"%s\",\"priority\":\"%s\"},"
+        "{\"name\":\"Iridium SBD\",   \"status\":\"%s\",\"label\":\"%s\",\"priority\":\"%s\"}"
+        "],"
+        "\"eth\":\"%s\",\"gsm\":\"%s\",\"wifi\":\"%s\",\"iridium\":\"%s\"}",
+        se,se, sg,sg, sw,sw,w?"3":"—", si,si,i?"4":"—",
+        se,sg,sw,si);
     sendResponse(sn,200,"application/json",buf,(uint16_t)len);
 }
 
@@ -539,8 +643,8 @@ void WebServer::handleApiWebMode(uint8_t sn){
     uint16_t rem=m_app?m_app->webIdleRemainingS():0;
     char buf[128];
     int len=std::snprintf(buf,sizeof(buf),
-        "{\"web_active\":%s,\"idle_remaining_s\":%u}",
-        active?"true":"false",(unsigned)rem);
+        "{\"web_active\":%s,\"remaining\":%u,\"idle_remaining_s\":%u}",
+        active?"true":"false",(unsigned)rem,(unsigned)rem);
     sendResponse(sn,200,"application/json",buf,(uint16_t)len);
 }
 

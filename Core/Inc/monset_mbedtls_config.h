@@ -1,23 +1,10 @@
 #ifndef MONSET_MBEDTLS_CONFIG_H
 #define MONSET_MBEDTLS_CONFIG_H
 
-/* Берём “родной” конфиг из пакета mbedTLS… */
+/* Загружаем базовый конфиг */
 #include "mbedtls/mbedtls_config.h"
 
-/* …и накладываем STM32-override’ы. */
-
-/* 1) Исправление вашей текущей ошибки:
-   entropy_poll.c падает на не-Unix/не-Windows, если НЕ задано MBEDTLS_NO_PLATFORM_ENTROPY. */
-#ifndef MBEDTLS_NO_PLATFORM_ENTROPY
-#define MBEDTLS_NO_PLATFORM_ENTROPY
-#endif
-
-/* На embedded обычно нужен свой источник энтропии. */
-#ifndef MBEDTLS_ENTROPY_HARDWARE_ALT
-#define MBEDTLS_ENTROPY_HARDWARE_ALT
-#endif
-
-/* 2) Рекомендуется отключить TLS 1.3 на STM32, пока не доведёте конфиг до конца. */
+/* ── Отключаем TLS 1.3 полностью ─────────────────────────────── */
 #ifdef MBEDTLS_SSL_PROTO_TLS1_3
 #undef MBEDTLS_SSL_PROTO_TLS1_3
 #endif
@@ -36,36 +23,116 @@
 #ifdef MBEDTLS_SSL_EARLY_DATA
 #undef MBEDTLS_SSL_EARLY_DATA
 #endif
-
-/* 3) На STM32 нет POSIX/WinSock — модуль net_sockets вам не нужен. */
-#ifdef MBEDTLS_NET_C
-#undef MBEDTLS_NET_C
+#ifdef MBEDTLS_SSL_RECORD_SIZE_LIMIT
+#undef MBEDTLS_SSL_RECORD_SIZE_LIMIT
+#endif
+#ifdef MBEDTLS_SSL_KEYING_MATERIAL_EXPORT
+#undef MBEDTLS_SSL_KEYING_MATERIAL_EXPORT
 #endif
 
-/* 4) timing.c в основном для примеров/тестов; если вы его не используете — отключаем. */
-#ifdef MBEDTLS_TIMING_C
-#undef MBEDTLS_TIMING_C
+/* ── Отключаем PSA crypto и все зависимости ──────────────────── */
+#ifdef MBEDTLS_PSA_CRYPTO_C
+#undef MBEDTLS_PSA_CRYPTO_C
+#endif
+#ifdef MBEDTLS_PSA_CRYPTO_CLIENT
+#undef MBEDTLS_PSA_CRYPTO_CLIENT
+#endif
+#ifdef MBEDTLS_PSA_CRYPTO_CONFIG
+#undef MBEDTLS_PSA_CRYPTO_CONFIG
+#endif
+#ifdef MBEDTLS_PSA_CRYPTO_STORAGE_C
+#undef MBEDTLS_PSA_CRYPTO_STORAGE_C
+#endif
+#ifdef MBEDTLS_PSA_ITS_FILE_C
+#undef MBEDTLS_PSA_ITS_FILE_C
+#endif
+#ifdef MBEDTLS_USE_PSA_CRYPTO
+#undef MBEDTLS_USE_PSA_CRYPTO
 #endif
 
-/* Дадим свою реализацию mbedtls_ms_time() для STM32 */
+/* LMS/LMOTS требуют PSA_CRYPTO_C */
+#ifdef MBEDTLS_LMS_C
+#undef MBEDTLS_LMS_C
+#endif
+#ifdef MBEDTLS_LMS_PRIVATE
+#undef MBEDTLS_LMS_PRIVATE
+#endif
+
+/* ── Отключаем DTLS (не нужен для HTTPS) ─────────────────────── */
+#ifdef MBEDTLS_SSL_PROTO_DTLS
+#undef MBEDTLS_SSL_PROTO_DTLS
+#endif
+#ifdef MBEDTLS_SSL_DTLS_ANTI_REPLAY
+#undef MBEDTLS_SSL_DTLS_ANTI_REPLAY
+#endif
+#ifdef MBEDTLS_SSL_DTLS_HELLO_VERIFY
+#undef MBEDTLS_SSL_DTLS_HELLO_VERIFY
+#endif
+#ifdef MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
+#undef MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
+#endif
+#ifdef MBEDTLS_SSL_DTLS_CONNECTION_ID
+#undef MBEDTLS_SSL_DTLS_CONNECTION_ID
+#endif
+#ifdef MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT
+#undef MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT
+#endif
+#ifdef MBEDTLS_SSL_DTLS_SRTP
+#undef MBEDTLS_SSL_DTLS_SRTP
+#endif
+
+/* ── Отключаем ECDHE/ECC key exchange ────────────────────────── */
+#ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
+#undef MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
+#endif
+#ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+#undef MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+#endif
+#ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
+#undef MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
+#endif
+#ifdef MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED
+#undef MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED
+#endif
+#ifdef MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
+#undef MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
+#endif
+#ifdef MBEDTLS_KEY_EXCHANGE_ECDH_RSA_ENABLED
+#undef MBEDTLS_KEY_EXCHANGE_ECDH_RSA_ENABLED
+#endif
+
+/* ── Уменьшаем буферы SSL ────────────────────────────────────── */
+#ifdef MBEDTLS_SSL_IN_CONTENT_LEN
+#undef MBEDTLS_SSL_IN_CONTENT_LEN
+#endif
+#define MBEDTLS_SSL_IN_CONTENT_LEN  4096
+
+#ifdef MBEDTLS_SSL_OUT_CONTENT_LEN
+#undef MBEDTLS_SSL_OUT_CONTENT_LEN
+#endif
+#define MBEDTLS_SSL_OUT_CONTENT_LEN 4096
+
+/* ── Embedded-специфичные опции ──────────────────────────────── */
+#ifndef MBEDTLS_NO_PLATFORM_ENTROPY
+#define MBEDTLS_NO_PLATFORM_ENTROPY
+#endif
+#ifndef MBEDTLS_ENTROPY_HARDWARE_ALT
+#define MBEDTLS_ENTROPY_HARDWARE_ALT
+#endif
+
+/* platform_util.c требует MS_TIME_ALT на платформах без POSIX/Win */
 #ifndef MBEDTLS_PLATFORM_MS_TIME_ALT
 #define MBEDTLS_PLATFORM_MS_TIME_ALT
 #endif
 
-/* На STM32/arm-none-eabi нет POSIX dirent/opendir(), поэтому FS_IO выключаем.
-   Иначе x509_crt.c полезет в <dirent.h> и упадёт. */
+#ifdef MBEDTLS_NET_C
+#undef MBEDTLS_NET_C
+#endif
+#ifdef MBEDTLS_TIMING_C
+#undef MBEDTLS_TIMING_C
+#endif
 #ifdef MBEDTLS_FS_IO
 #undef MBEDTLS_FS_IO
-#endif
-
-/* PSA ITS file backend требует MBEDTLS_FS_IO (stdio/filesystem).
-   На STM32 мы FS_IO отключаем (нет POSIX), поэтому отключаем и этот backend. */
-#ifdef MBEDTLS_PSA_ITS_FILE_C
-#undef MBEDTLS_PSA_ITS_FILE_C
-#endif
-
-#ifdef MBEDTLS_PSA_CRYPTO_STORAGE_C
-#undef MBEDTLS_PSA_CRYPTO_STORAGE_C
 #endif
 
 #endif /* MONSET_MBEDTLS_CONFIG_H */

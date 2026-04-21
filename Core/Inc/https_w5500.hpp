@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-
+extern "C" bool HttpsW5500_tlsOneTimeInit(void);
 class HttpsW5500 {
 public:
   // Возвращает HTTP status code (200/401/...), либо отрицательный код ошибки

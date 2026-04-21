@@ -131,9 +131,6 @@
 							<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.objcopy.symbolsrec.1225465962" name="MCU Output Converter Motorola S-rec with symbols" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.objcopy.symbolsrec"/>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.951428540.125066082" name="air780e_tls.cpp" rcbsApplicability="disable" resourcePath="Core/Src/air780e_tls.cpp" toolsToInvoke="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.684676008.1594628859">
-						<tool id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.684676008.1594628859" name="MCU G++ Compiler" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.cpp.compiler.684676008"/>
-					</fileInfo>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.951428540.1359132428" name="air780e_tls.hpp" rcbsApplicability="disable" resourcePath="Core/Inc/air780e_tls.hpp" toolsToInvoke=""/>
 					<sourceEntries>
 						<entry excluding="Src/air780e_tls.cpp|Inc/air780e_tls.hpp|Src/sim7020c.cpp|Src/sim7020c_tls.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>

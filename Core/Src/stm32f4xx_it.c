@@ -33,13 +33,20 @@ void NMI_Handler(void)
   while (1) {}
 }
 
-void HardFault_Handler(void)
-{
-  /* USER CODE BEGIN HardFault_IRQn 0 */
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1) {}
-}
+#include "dbg_cwrap.h"
+#include "stm32f4xx_hal.h"
+#include <stdio.h>
 
+void HardFault_Handler(void) {
+    char buf[80];
+    snprintf(buf, sizeof(buf),
+             "!!! HARDFAULT CFSR=0x%08lX HFSR=0x%08lX\r\n",
+             (unsigned long)SCB->CFSR,
+             (unsigned long)SCB->HFSR);
+    dbg_puts(buf);
+    HAL_Delay(50);
+    while (1) {}
+}
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
