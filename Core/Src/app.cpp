@@ -451,11 +451,19 @@ void App::init() {
 
 void App::initChannelManager() {
     m_channelMgr.init(&m_sdBackup);
-    if(Cfg().eth_enabled)     m_channelMgr.registerChannel(Channel::ETHERNET,sendViaEth,    this);
+    // FIX: ETH-канал для телеметрии отключаем если используется HTTPS.
+    // mbedtls_ssl_setup() на W5500 занимает ~40 сек => watchdog reset.
+    // Web-сервер при этом остаётся рабочим (он живёт в eth.tick()).
+    // При HTTP (не HTTPS) ETH-телеметрия работает без ограничений.
+    const bool ethHttps = Cfg().eth_enabled && startsWith(Cfg().server_url, "https://");
+    if (Cfg().eth_enabled && !ethHttps)
+        m_channelMgr.registerChannel(Channel::ETHERNET, sendViaEth, this);
+    if (ethHttps)
+        DBG.warn("ChMgr: ETH HTTPS disabled (TLS too slow for IWDG), using GSM");
     if(Cfg().gsm_enabled)     m_channelMgr.registerChannel(Channel::GSM,     sendViaGsm,    this);
     if(Cfg().wifi_enabled)    m_channelMgr.registerChannel(Channel::WIFI,    sendViaWifi,   this);
     if(Cfg().iridium_enabled) m_channelMgr.registerChannel(Channel::IRIDIUM, sendViaIridium,this);
-    if(Cfg().eth_enabled&&eth.ready()) m_channelMgr.markAlive(Channel::ETHERNET);
+    if(Cfg().eth_enabled && !ethHttps && eth.ready()) m_channelMgr.markAlive(Channel::ETHERNET);
 }
 
 bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
@@ -574,7 +582,9 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
         checkWebTimeout();
 
         // Backup retransmit
-        if (m_sdOk && m_sdBackup.exists()) {
+        // FIX: не привязываем к m_sdOk — backup мог накопиться
+        // до ошибки, exists() проверяет m_mounted внутри
+        if (m_sdBackup.exists()) {
             uint32_t now = HAL_GetTick();
             if ((now - m_lastBackupSendTick) >= (Cfg().backup_send_interval_sec * 1000UL)) {
                 m_lastBackupSendTick = now;
@@ -636,18 +646,28 @@ void App::transmitSingle(float value,const DateTime& dt) {
     m_channelMgr.sendData(j,(uint16_t)len);
 }
 
-void App::transmitBuffer() { if(!g_sd_disabled) retransmitBackup(); }
+void App::transmitBuffer() { retransmitBackup(); }
 
 void App::retransmitBackup() {
-    while(m_sdBackup.exists()){
-        uint32_t lines=0; FSIZE_t used=0;
-        const uint32_t maxPayload=(Config::HTTP_CHUNK_MAX<Config::JSON_BUFFER_SIZE)
-                                   ?Config::HTTP_CHUNK_MAX:(Config::JSON_BUFFER_SIZE-1);
-        bool ok=m_sdBackup.readChunkAsJsonArray(m_json,sizeof(m_json),maxPayload,lines,used);
-        if(!ok||lines==0||used==0) return;
-        SendResult result=m_channelMgr.sendData(m_json,(uint16_t)std::strlen(m_json));
-        if(result==SendResult::Ok){ m_sdBackup.consumePrefix(used); }
-        else { DBG.error("Backup retransmit failed"); return; }
+    // FIX: отправляем ОДИН чанк за вызов — не блокируем веб-сервер.
+    // Следующий чанк пойдёт при следующем backup_send_interval.
+    if (m_webActive) return;
+    if (!m_sdBackup.exists()) return;
+
+    uint32_t lines = 0; FSIZE_t used = 0;
+    const uint32_t maxPayload = (Config::HTTP_CHUNK_MAX < Config::JSON_BUFFER_SIZE)
+                                 ? Config::HTTP_CHUNK_MAX : (Config::JSON_BUFFER_SIZE - 1);
+    bool ok = m_sdBackup.readChunkAsJsonArray(m_json, sizeof(m_json), maxPayload, lines, used);
+    if (!ok || lines == 0 || used == 0) return;
+
+    SendResult result = m_channelMgr.sendData(m_json, (uint16_t)std::strlen(m_json));
+    if (result == SendResult::Ok) {
+        if (!m_sdBackup.consumePrefix(used))
+            DBG.error("Backup consumePrefix failed");
+        else
+            DBG.info("Backup chunk sent: lines=%lu bytes=%lu",
+                     (unsigned long)lines, (unsigned long)used);
+    } else {
+        DBG.error("Backup retransmit failed");
     }
-    DBG.info("Backup fully transmitted");
 }

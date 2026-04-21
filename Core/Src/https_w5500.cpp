@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <cctype>
 
-
 extern "C" {
 #include "socket.h"
 #include "dns.h"
@@ -23,11 +22,6 @@ volatile bool g_web_exclusive = false;
 
 #define IWDG_FEED()  do { IWDG->KR = 0xAAAAu; } while(0)
 
-// ================================================================
-// ДИАГНОСТИЧЕСКИЙ МАКРОС
-// Печатает шаг и ждёт завершения UART TX, чтобы сообщение дошло
-// ДАЖЕ если следующая строка вызовет Hard Fault.
-// ================================================================
 #define TLS_STEP(n, msg)  do { \
     DBG.info("TLS_STEP %d: " msg, (int)(n)); \
     HAL_Delay(5); \
@@ -38,22 +32,23 @@ static const char* s_caPem = nullptr;
 void HttpsW5500::setCaPem(const char* caPem) { s_caPem = caPem; }
 
 // ================================================================
-// ВСЕ структуры static — в .bss, не на стеке.
-// Флаги init_done — не вызываем free на нулевой struct (может краш).
+// Все TLS-структуры static — в .bss, не на стеке.
+//
+// ИСПРАВЛЕНИЕ watchdog reset на TLS_STEP 12 (ssl_setup):
+//   mbedtls_ssl_setup() инициализирует ECC-таблицы (~40 сек на STM32F407).
+//   Решение: ssl_config + ssl_setup выполняются ОДИН РАЗ за uptime,
+//   флаг s_tls_ready = true после первого успешного вызова.
+//   При повторных вызовах postJson — только быстрый ssl_session_reset().
 // ================================================================
 static mbedtls_ssl_context       s_ssl;
 static mbedtls_ssl_config        s_conf;
 static mbedtls_entropy_context   s_entropy;
 static mbedtls_ctr_drbg_context  s_ctr;
-static mbedtls_x509_crt          s_cacert;
 
-static bool s_drbg_seeded   = false;
-static bool s_ssl_init_done = false;   // FIX: не вызываем free до первого init
+static bool s_tls_ready = false;   // true = ssl_setup уже выполнен однажды
 
-// Буферы запроса/ответа — тоже static
 static char s_hdr[512];
 static char s_rx[512];
-
 
 struct TlsSockCtx { uint8_t sn; uint32_t deadline; };
 static TlsSockCtx s_bio;
@@ -65,7 +60,6 @@ static void logMbedtlsErr(const char* tag, int rc) {
 }
 
 static bool resolveHost(const char* host, uint8_t outIp[4]) {
-    // try as IP literal first
     bool isNum = true;
     for (const char* p = host; *p; ++p)
         if (!std::isdigit((unsigned char)*p) && *p != '.') { isNum = false; break; }
@@ -100,12 +94,14 @@ static int w5500_send_cb(void* ctx, const unsigned char* buf, size_t len) {
     if (r == 0) return MBEDTLS_ERR_SSL_WANT_WRITE;
     return (int)r;
 }
+
 static int w5500_recv_cb(void* ctx, unsigned char* buf, size_t len) {
     auto* c = (TlsSockCtx*)ctx;
     if (len == 0) return 0;
     uint16_t rsr = getSn_RX_RSR(c->sn);
     if (rsr == 0) {
         if (HAL_GetTick() > c->deadline) return MBEDTLS_ERR_SSL_TIMEOUT;
+        IWDG_FEED();   // FIX: кормим watchdog пока ждём байты от сервера
         return MBEDTLS_ERR_SSL_WANT_READ;
     }
     uint16_t toRead = (len > rsr) ? rsr : (uint16_t)len;
@@ -141,12 +137,75 @@ bool HttpsW5500::parseHttpsUrl(const char* url, UrlParts& out) {
     return true;
 }
 
+// ================================================================
+// Однократная инициализация TLS: DRBG + ssl_config + ssl_setup.
+// Вызывается один раз при первом postJson().
+// ssl_setup здесь — тяжёлая ECC-инициализация (~40 сек на STM32F407).
+// После этого вызова s_tls_ready = true.
+// ================================================================
+static bool tlsOneTimeInit() {
+    DBG.info("TLS_INIT: psa_crypto_init");
+    IWDG_FEED();
+    psa_status_t psa_st = psa_crypto_init();
+    if (psa_st != PSA_SUCCESS)
+        DBG.error("PSA: init failed %d", (int)psa_st);
+    else
+        DBG.info("PSA: init OK");
+    IWDG_FEED();
+
+    DBG.info("TLS_INIT: entropy + ctr_drbg_init");
+    mbedtls_entropy_init(&s_entropy);
+    mbedtls_ctr_drbg_init(&s_ctr);
+    IWDG_FEED();
+
+    DBG.info("TLS_INIT: ctr_drbg_seed START");
+    IWDG_FEED();
+    const char* pers = "w5500";
+    int rc = mbedtls_ctr_drbg_seed(&s_ctr, mbedtls_entropy_func, &s_entropy,
+                                    (const unsigned char*)pers, 5);
+    IWDG_FEED();
+    if (rc != 0) { logMbedtlsErr("TLS_INIT: seed", rc); return false; }
+    DBG.info("TLS_INIT: ctr_drbg_seed OK");
+    IWDG_FEED();
+
+    DBG.info("TLS_INIT: ssl_config_defaults");
+    mbedtls_ssl_config_init(&s_conf);
+    rc = mbedtls_ssl_config_defaults(&s_conf,
+                                      MBEDTLS_SSL_IS_CLIENT,
+                                      MBEDTLS_SSL_TRANSPORT_STREAM,
+                                      MBEDTLS_SSL_PRESET_DEFAULT);
+    IWDG_FEED();
+    if (rc != 0) { logMbedtlsErr("TLS_INIT: config_defaults", rc); return false; }
+
+    mbedtls_ssl_conf_rng(&s_conf, mbedtls_ctr_drbg_random, &s_ctr);
+    mbedtls_ssl_conf_authmode(&s_conf, MBEDTLS_SSL_VERIFY_NONE);
+    IWDG_FEED();
+
+    // ============================================================
+    // ssl_setup — САМОЕ ТЯЖЁЛОЕ место (~40 сек без IWDG_FEED).
+    // Выполняется ОДИН РАЗ. Кормим watchdog до и сразу после.
+    // ============================================================
+    DBG.info("TLS_INIT: ssl_init");
+    mbedtls_ssl_init(&s_ssl);
+    IWDG_FEED();
+
+    DBG.info("TLS_INIT: ssl_setup START");
+    IWDG_FEED();
+    rc = mbedtls_ssl_setup(&s_ssl, &s_conf);
+    IWDG_FEED();
+    if (rc != 0) { logMbedtlsErr("TLS_INIT: ssl_setup", rc); return false; }
+    DBG.info("TLS_INIT: ssl_setup DONE — one-time init complete");
+    IWDG_FEED();
+
+    s_tls_ready = true;
+    return true;
+}
+
 int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
                          const char* json, uint16_t jsonLen, uint32_t timeoutMs)
 {
     if (g_web_exclusive) { DBG.warn("HTTPS: skip (web)"); return -99; }
 
-    // UrlParts — 194 bytes на стеке, это ОК (TLS контексты уже в .bss)
     UrlParts u{};
 
     TLS_STEP(1, "parse URL");
@@ -181,98 +240,49 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
         DBG.warn("HTTPS: abort after connect"); disconnect(sn); close(sn); return -99;
     }
 
-    // ================================================================
-    // DRBG seed — выполняется ОДИН РАЗ за всё время работы устройства
-    // ================================================================
-    if (!s_drbg_seeded) {
-
-    	TLS_STEP(4, "psa_crypto_init");
-    	{
-    	    psa_status_t psa_st = psa_crypto_init();
-    	    if (psa_st != PSA_SUCCESS) {
-    	        DBG.error("PSA: init failed %d", (int)psa_st);
-    	        // не фатально для TLS 1.2 без PSA шифров, но логируем
-    	    } else {
-    	        DBG.info("PSA: init OK");
-    	    }
-    	}
-
-    	TLS_STEP(5, "entropy_init");
-        mbedtls_entropy_init(&s_entropy);
-
-        TLS_STEP(6, "ctr_drbg_init");
-        mbedtls_ctr_drbg_init(&s_ctr);
-
-        TLS_STEP(7, "ctr_drbg_seed START");
-        IWDG_FEED();
-        const char* pers = "w5500";
-        int rc = mbedtls_ctr_drbg_seed(&s_ctr, mbedtls_entropy_func, &s_entropy,
-                                        (const unsigned char*)pers, 5);
-        IWDG_FEED();
-        TLS_STEP(8, "ctr_drbg_seed DONE");
-        if (rc != 0) {
-            logMbedtlsErr("TLS: seed", rc);
+    // ============================================================
+    // FIX: Однократная инициализация TLS при первом вызове.
+    // При повторных — только быстрый ssl_session_reset() (~1 мс).
+    // ============================================================
+    if (!s_tls_ready) {
+        TLS_STEP(4, "TLS one-time init START");
+        if (!tlsOneTimeInit()) {
+            DBG.error("TLS: init failed");
             disconnect(sn); close(sn); return -30;
         }
-        s_drbg_seeded = true;
-        DBG.info("TLS: RNG seeded OK (once)");
-    } else {
-        DBG.info("TLS: RNG reuse (already seeded)");
+        DBG.info("TLS_STEP 5: TLS one-time init DONE");
         IWDG_FEED();
+    } else {
+        TLS_STEP(4, "ssl_session_reset (reuse context)");
+        IWDG_FEED();
+        int sres = mbedtls_ssl_session_reset(&s_ssl);
+        IWDG_FEED();
+        if (sres != 0) {
+            logMbedtlsErr("TLS: session_reset", sres);
+            // Инвалидируем — следующий вызов сделает full init заново
+            s_tls_ready = false;
+            disconnect(sn); close(sn); return -31;
+        }
+        DBG.info("TLS: session_reset OK");
     }
 
-    // ================================================================
-    // SSL context setup — каждый раз заново, но static структуры
-    // FIX: не вызываем mbedtls_ssl_free на нулевой static (первый вызов)
-    // ================================================================
-    TLS_STEP(9, "ssl context reset");
-    if (s_ssl_init_done) {
-        mbedtls_ssl_free(&s_ssl);
-        mbedtls_ssl_config_free(&s_conf);
-        mbedtls_x509_crt_free(&s_cacert);
-    }
-    mbedtls_ssl_init(&s_ssl);
-    mbedtls_ssl_config_init(&s_conf);
-    mbedtls_x509_crt_init(&s_cacert);
-    s_ssl_init_done = true;
-    IWDG_FEED();
-
-    TLS_STEP(10, "ssl_config_defaults");
-    int rc = mbedtls_ssl_config_defaults(&s_conf,
-                                          MBEDTLS_SSL_IS_CLIENT,
-                                          MBEDTLS_SSL_TRANSPORT_STREAM,
-                                          MBEDTLS_SSL_PRESET_DEFAULT);
-    IWDG_FEED();
-    if (rc != 0) {
-        logMbedtlsErr("TLS: config_defaults", rc);
-        disconnect(sn); close(sn); return -32;
-    }
-
-    TLS_STEP(11, "ssl_conf_rng + authmode");
-    mbedtls_ssl_conf_rng(&s_conf, mbedtls_ctr_drbg_random, &s_ctr);
-    mbedtls_ssl_conf_authmode(&s_conf, MBEDTLS_SSL_VERIFY_NONE);
-    IWDG_FEED();
-
-    TLS_STEP(12, "ssl_setup");
-    rc = mbedtls_ssl_setup(&s_ssl, &s_conf);
-    IWDG_FEED();
-    if (rc != 0) {
-        logMbedtlsErr("TLS: ssl_setup", rc);
-        disconnect(sn); close(sn); return -33;
-    }
-
-    TLS_STEP(13, "ssl_set_hostname + set_bio");
+    TLS_STEP(6, "ssl_set_hostname + set_bio");
     (void)mbedtls_ssl_set_hostname(&s_ssl, u.host);
     s_bio.sn       = sn;
     s_bio.deadline = HAL_GetTick() + timeoutMs;
     mbedtls_ssl_set_bio(&s_ssl, &s_bio, w5500_send_cb, w5500_recv_cb, nullptr);
     IWDG_FEED();
 
-    TLS_STEP(14, "handshake loop START");
+    // ============================================================
+    // TLS handshake — IWDG_FEED в каждой итерации (может идти 5-15 сек)
+    // ============================================================
+    TLS_STEP(7, "handshake loop START");
+    int rc = 0;
     while (true) {
         if (g_web_exclusive) {
             DBG.warn("HTTPS: handshake abort (web)"); rc = MBEDTLS_ERR_SSL_TIMEOUT; break;
         }
+        IWDG_FEED();
         rc = mbedtls_ssl_handshake(&s_ssl);
         if (rc == 0) { DBG.info("TLS: handshake OK"); break; }
         if (rc == MBEDTLS_ERR_SSL_WANT_READ || rc == MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -288,7 +298,7 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
     }
     if (rc != 0) { disconnect(sn); close(sn); return -40; }
 
-    TLS_STEP(15, "HTTP write");
+    TLS_STEP(8, "HTTP write");
     int hdrLen = std::snprintf(s_hdr, sizeof(s_hdr),
         "POST %s HTTP/1.1\r\nHost: %s\r\n"
         "Authorization: Basic %s\r\n"
@@ -301,6 +311,7 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
         uint32_t off = 0;
         while (off < n) {
             if (g_web_exclusive) return -1;
+            IWDG_FEED();
             int w = mbedtls_ssl_write(&s_ssl, p + off, (size_t)(n - off));
             if (w > 0) { off += (uint32_t)w; continue; }
             if (w == MBEDTLS_ERR_SSL_WANT_READ || w == MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -313,21 +324,22 @@ int HttpsW5500::postJson(const char* httpsUrl, const char* authB64,
     if (hdrLen > 0 && sslWriteAll((const uint8_t*)s_hdr,  (uint32_t)hdrLen) != 0) return -51;
     if (             sslWriteAll((const uint8_t*)json,     (uint32_t)jsonLen) != 0) return -52;
 
-    TLS_STEP(16, "HTTP read");
+    TLS_STEP(9, "HTTP read");
     int used = 0; int httpCode = -1;
     uint32_t t0 = HAL_GetTick();
     while ((HAL_GetTick() - t0) < timeoutMs) {
         if (g_web_exclusive) { DBG.warn("HTTPS: rx abort (web)"); break; }
+        IWDG_FEED();
         int r = mbedtls_ssl_read(&s_ssl,
                                   (unsigned char*)s_rx + used,
                                   sizeof(s_rx) - 1 - (size_t)used);
         if (r > 0) {
             used += r; s_rx[used] = 0;
-            const char* p = std::strstr(s_rx, "HTTP/1.1 ");
-            if (!p) p = std::strstr(s_rx, "HTTP/1.0 ");
-            if (p) {
+            const char* p2 = std::strstr(s_rx, "HTTP/1.1 ");
+            if (!p2) p2 = std::strstr(s_rx, "HTTP/1.0 ");
+            if (p2) {
                 int code = 0;
-                if (std::sscanf(p, "HTTP/%*s %d", &code) == 1 && code > 0) {
+                if (std::sscanf(p2, "HTTP/%*s %d", &code) == 1 && code > 0) {
                     httpCode = code; break;
                 }
             }
