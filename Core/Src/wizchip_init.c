@@ -15,9 +15,13 @@ void WIZCHIPInitialize(void)
   uint8_t tmp = 0;
 
 #if _WIZCHIP_SOCK_NUM_ == 8
+  /* TX/RX buffer allocation (total must be <= 16 KB each):
+   * sn0=NTP/DNS 1KB | sn1=HTTPS/TLS 2KB | sn2=HTTP-plain 2KB
+   * sn3=spare  1KB  | sn4=spare      1KB | sn5=WebServer  8KB
+   * sn6=spare  1KB  | sn7=unused     0KB  => total 16KB        */
   uint8_t memsize[2][8] = {
-      {2,2,2,2,2,2,2,2},
-      {2,2,2,2,2,2,2,2}
+      {1,2,2,1,1,8,1,0},   /* TX */
+      {1,2,2,1,1,8,1,0}    /* RX */
   };
 #else
   uint8_t memsize[2][4] = {
