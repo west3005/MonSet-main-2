@@ -1,4 +1,5 @@
 #include "w5500_port.h"
+#include <string.h>
 
 // --- W5500 pins (оставляем #define как у вас для HAL) ---
 #define PIN_W5500_CS_PORT GPIOA
@@ -34,8 +35,16 @@ uint8_t wizchip_read(void) {
 void wizchip_write(uint8_t wb) { HAL_SPI_Transmit(s_hspi, &wb, 1, 100); }
 
 void wizchip_readburst(uint8_t *pBuf, uint16_t len) {
-  uint8_t tx = 0xFF;
-  for (uint16_t i = 0; i < len; i++) HAL_SPI_TransmitReceive(s_hspi, &tx, &pBuf[i], 1, 200);
+  /* Fast burst read — single SPI transaction instead of byte-by-byte loop */
+  static uint8_t s_txbuf[1024];
+  uint16_t chunk = (len <= sizeof(s_txbuf)) ? len : sizeof(s_txbuf);
+  uint16_t done  = 0;
+  while (done < len) {
+    uint16_t n = ((len - done) < chunk) ? (len - done) : chunk;
+    memset(s_txbuf, 0xFF, n);
+    HAL_SPI_TransmitReceive(s_hspi, s_txbuf, pBuf + done, n, 500);
+    done += n;
+  }
 }
 void wizchip_writeburst(uint8_t *pBuf, uint16_t len) {
   HAL_SPI_Transmit(s_hspi, pBuf, len, 200);
