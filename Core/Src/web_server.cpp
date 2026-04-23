@@ -888,6 +888,12 @@ void WebServer::tick(){
                 if(len>REQ_BUF_SIZE-1) len=REQ_BUF_SIZE-1;
                 int32_t rx=recv(HTTP_SOCKET,(uint8_t*)m_reqBuf,(uint16_t)len);
                 if(rx>0){m_reqBuf[rx]=0;handleRequest(HTTP_SOCKET,m_reqBuf,(uint16_t)rx);}
+                // Wait for TX buffer to drain before closing socket
+                { uint32_t t0=HAL_GetTick();
+                  uint16_t txmax=getSn_TxMAX(HTTP_SOCKET);
+                  while(getSn_TX_FSR(HTTP_SOCKET)<txmax &&
+                        (HAL_GetTick()-t0)<3000){ IWDG->KR=0xAAAA; HAL_Delay(2); }
+                }
                 disconnect(HTTP_SOCKET);
             }
             break;
