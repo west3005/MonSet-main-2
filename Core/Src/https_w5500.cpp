@@ -10,6 +10,7 @@ extern "C" {
 #include "w5500.h"
 #include "wizchip_conf.h"
 #include "mbedtls/ssl.h"
+#include "mbedtls/ssl_ciphersuites.h"
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/x509_crt.h"
@@ -171,6 +172,19 @@ static bool tlsOneTimeInit() {
 
     mbedtls_ssl_conf_rng(&s_conf, mbedtls_ctr_drbg_random, &s_ctr);
     mbedtls_ssl_conf_authmode(&s_conf, MBEDTLS_SSL_VERIFY_NONE);
+
+    // Явный список cipher suites — только RSA/AES без PSA/ECC зависимостей
+    // Убирает HardFault в ssl_setup при широком mbedtls_config.h
+    static const int s_ciphersuites[] = {
+        MBEDTLS_TLS_RSA_WITH_AES_128_CBC_SHA,
+        MBEDTLS_TLS_RSA_WITH_AES_256_CBC_SHA,
+        MBEDTLS_TLS_RSA_WITH_AES_128_CBC_SHA256,
+        MBEDTLS_TLS_RSA_WITH_AES_256_CBC_SHA256,
+        MBEDTLS_TLS_RSA_WITH_AES_128_GCM_SHA256,
+        MBEDTLS_TLS_RSA_WITH_AES_256_GCM_SHA384,
+        0
+    };
+    mbedtls_ssl_conf_ciphersuites(&s_conf, s_ciphersuites);
     IWDG_FEED();
 
     DBG.info("TLS_INIT: ssl_init");
