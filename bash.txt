@@ -1,3 +1,14 @@
+Проверка состояния (всегда сначала)
+bash
+cd ~/STM32CubeIDE/workspace_1.13.2/monset-main-2
+sh push.sh
+
+https://github.com/settings/tokens/
+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
+
+
+
+
 …или создайте новый репозиторий в командной строке
 
 echo "# MonSet" >> README.md 
@@ -36,9 +47,6 @@ gcp () { git add -A && git commit -m "$*" && git push; }
 Ты уже в нормальном репозитории ((main) и git status работает), просто у тебя сейчас очень много локальных изменений (включая артефакты сборки в Debug/).
 ​
 
-Проверка состояния (всегда сначала)
-bash
-cd ~/STM32CubeIDE/workspace_1.13.2/monset
 
 git status
 git branch -vv
