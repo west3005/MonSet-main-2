@@ -45,7 +45,7 @@
  *
  * This module provides networking routines.
  */
-#define MBEDTLS_NET_C
+//#define MBEDTLS_NET_C  /* disabled: POSIX only, W5500 uses custom BIO */
 
 /**
  * \def MBEDTLS_TIMING_ALT
@@ -69,7 +69,7 @@
  *
  * Module:  library/timing.c
  */
-#define MBEDTLS_TIMING_C
+//#define MBEDTLS_TIMING_C  /* disabled: not needed */
 
 /** \} name SECTION: Platform abstraction layer */
 
@@ -227,7 +227,7 @@
  *      MBEDTLS_TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256
  *      MBEDTLS_TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256
  */
-#define MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+//#define MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED  /* disabled: requires PSA ECC */
 
 /**
  * \def MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
@@ -245,7 +245,7 @@
  *      MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA
  *      MBEDTLS_TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256
  */
-#define MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
+//#define MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED   /* disabled: requires PSA ECC */
 
 /**
  * \def MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
@@ -269,7 +269,7 @@
  *      MBEDTLS_TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256
  *      MBEDTLS_TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256
  */
-#define MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
+//#define MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED   /* disabled: requires PSA ECC */
 
 /**
  * \def MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED
@@ -400,7 +400,7 @@
  *
  * Comment to disable the context serialization APIs.
  */
-#define MBEDTLS_SSL_CONTEXT_SERIALIZATION
+//#define MBEDTLS_SSL_CONTEXT_SERIALIZATION  /* disabled: requires PSA GCM */
 
 /**
  * \def MBEDTLS_SSL_COOKIE_C
@@ -410,7 +410,7 @@
  * Module:  library/ssl_cookie.c
  * Caller:
  */
-#define MBEDTLS_SSL_COOKIE_C
+//#define MBEDTLS_SSL_COOKIE_C  /* disabled: DTLS not used */
 
 /**
  * \def MBEDTLS_SSL_DEBUG_ALL
@@ -441,7 +441,7 @@
  *
  * Comment this to disable anti-replay in DTLS.
  */
-#define MBEDTLS_SSL_DTLS_ANTI_REPLAY
+//#define MBEDTLS_SSL_DTLS_ANTI_REPLAY  /* disabled: DTLS not used */
 
 /**
  * \def MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
@@ -457,7 +457,7 @@
  *
  * Comment this to disable support for clients reusing the source port.
  */
-#define MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE
+//#define MBEDTLS_SSL_DTLS_CLIENT_PORT_REUSE  /* disabled: DTLS not used */
 
 /**
  * \def MBEDTLS_SSL_DTLS_CONNECTION_ID
@@ -499,7 +499,7 @@
  *
  * Comment this to disable support for HelloVerifyRequest.
  */
-#define MBEDTLS_SSL_DTLS_HELLO_VERIFY
+//#define MBEDTLS_SSL_DTLS_HELLO_VERIFY  /* disabled: DTLS not used */
 
 /**
  * \def MBEDTLS_SSL_DTLS_SRTP
@@ -626,7 +626,7 @@
  *
  * Comment this macro to disable support for DTLS
  */
-#define MBEDTLS_SSL_PROTO_DTLS
+//#define MBEDTLS_SSL_PROTO_DTLS  /* disabled: DTLS not used */
 
 /**
  * \def MBEDTLS_SSL_PROTO_TLS1_2
@@ -652,7 +652,7 @@
  *
  * Uncomment this macro to enable the support for TLS 1.3.
  */
-#define MBEDTLS_SSL_PROTO_TLS1_3
+//#define MBEDTLS_SSL_PROTO_TLS1_3  /* disabled: use TLS1.2 only */
 
 /**
  * \def MBEDTLS_SSL_RECORD_SIZE_LIMIT
@@ -742,7 +742,7 @@
  *
  * This module is required for SSL/TLS server support.
  */
-#define MBEDTLS_SSL_SRV_C
+//#define MBEDTLS_SSL_SRV_C  /* disabled: HTTPS client only */
 
 /**
  * \def MBEDTLS_SSL_TICKET_C
@@ -754,7 +754,7 @@
  *
  * Requires: PSA_WANT_ALG_GCM or PSA_WANT_ALG_CCM or PSA_WANT_ALG_CHACHA20_POLY1305
  */
-#define MBEDTLS_SSL_TICKET_C
+//#define MBEDTLS_SSL_TICKET_C  /* disabled: requires PSA GCM */
 
 /**
  * \def MBEDTLS_SSL_TLS1_3_COMPATIBILITY_MODE
@@ -776,7 +776,7 @@
  * effect on the build.
  *
  */
-#define MBEDTLS_SSL_TLS1_3_COMPATIBILITY_MODE
+//#define MBEDTLS_SSL_TLS1_3_COMPATIBILITY_MODE  /* disabled: TLS1.3 off */
 
 /**
  * \def MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED
@@ -794,7 +794,7 @@
  * effect on the build.
  *
  */
-#define MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED
+//#define MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_EPHEMERAL_ENABLED  /* disabled */
 
 /**
  * \def MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ENABLED
@@ -806,7 +806,7 @@
  * effect on the build.
  *
  */
-#define MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ENABLED
+//#define MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ENABLED  /* disabled */
 
 /**
  * \def MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED
@@ -820,7 +820,7 @@
  * have any effect on the build.
  *
  */
-#define MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED
+//#define MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_EPHEMERAL_ENABLED  /* disabled */
 
 /**
  * \def MBEDTLS_SSL_TLS_C
@@ -1188,10 +1188,17 @@
 
 /** \} name SECTION: X.509 feature selection */
 
-#undef MBEDTLS_SSL_PROTO_TLS1_3
+/* MBEDTLS_SSL_PROTO_TLS1_3 already disabled above */
 
 /* STM32 bare-metal/RTOS: нет /dev/urandom и WinAPI */
 #define MBEDTLS_NO_PLATFORM_ENTROPY
 
 /* Дальше обязательно нужен какой-то источник энтропии */
 #define MBEDTLS_ENTROPY_HARDWARE_ALT
+/* ================================================================
+ * MonSet TLS fix: RSA-only key exchange + reduced buffers
+ * Eliminates HardFault in mbedtls_ssl_setup() caused by PSA/ECC
+ * ================================================================ */
+#define MBEDTLS_KEY_EXCHANGE_RSA_ENABLED
+#define MBEDTLS_SSL_IN_CONTENT_LEN   4096
+#define MBEDTLS_SSL_OUT_CONTENT_LEN  4096

@@ -4,7 +4,16 @@
 /* Загружаем базовый конфиг */
 #include "mbedtls/mbedtls_config.h"
 
-/* ── Отключаем TLS 1.3 полностью ─────────────────────────────── */
+/* ================================================================
+ * СТРАТЕГИЯ:
+ *   - TLS 1.3 отключён (оставляем только TLS 1.2)
+ *   - DTLS отключён (не нужен для HTTPS)
+ *   - LMS отключён (не нужен, но требует PSA_CRYPTO_C)
+ *   - PSA Crypto ОСТАЁТСЯ (нужен для ECDHE и нормальной работы 3.x)
+ *   - Память и таймеры адаптированы под STM32F4 без файловой системы
+ * ================================================================ */
+
+/* ── Отключаем TLS 1.3 и его фичи ─────────────────────────────── */
 #ifdef MBEDTLS_SSL_PROTO_TLS1_3
 #undef MBEDTLS_SSL_PROTO_TLS1_3
 #endif
@@ -26,31 +35,8 @@
 #ifdef MBEDTLS_SSL_RECORD_SIZE_LIMIT
 #undef MBEDTLS_SSL_RECORD_SIZE_LIMIT
 #endif
-#ifdef MBEDTLS_SSL_KEYING_MATERIAL_EXPORT
-#undef MBEDTLS_SSL_KEYING_MATERIAL_EXPORT
-#endif
 
-/* ── Отключаем PSA crypto и все зависимости ──────────────────── */
-#ifdef MBEDTLS_PSA_CRYPTO_C
-#undef MBEDTLS_PSA_CRYPTO_C
-#endif
-#ifdef MBEDTLS_PSA_CRYPTO_CLIENT
-#undef MBEDTLS_PSA_CRYPTO_CLIENT
-#endif
-#ifdef MBEDTLS_PSA_CRYPTO_CONFIG
-#undef MBEDTLS_PSA_CRYPTO_CONFIG
-#endif
-#ifdef MBEDTLS_PSA_CRYPTO_STORAGE_C
-#undef MBEDTLS_PSA_CRYPTO_STORAGE_C
-#endif
-#ifdef MBEDTLS_PSA_ITS_FILE_C
-#undef MBEDTLS_PSA_ITS_FILE_C
-#endif
-#ifdef MBEDTLS_USE_PSA_CRYPTO
-#undef MBEDTLS_USE_PSA_CRYPTO
-#endif
-
-/* LMS/LMOTS требуют PSA_CRYPTO_C */
+/* ── LMS требует PSA + SHA256 PSA_WANT — отключаем ───────────── */
 #ifdef MBEDTLS_LMS_C
 #undef MBEDTLS_LMS_C
 #endif
@@ -58,7 +44,7 @@
 #undef MBEDTLS_LMS_PRIVATE
 #endif
 
-/* ── Отключаем DTLS (не нужен для HTTPS) ─────────────────────── */
+/* ── Отключаем DTLS (нам не нужен UDP/DTLS) ───────────────────── */
 #ifdef MBEDTLS_SSL_PROTO_DTLS
 #undef MBEDTLS_SSL_PROTO_DTLS
 #endif
@@ -81,27 +67,24 @@
 #undef MBEDTLS_SSL_DTLS_SRTP
 #endif
 
-/* ── Отключаем ECDHE/ECC key exchange ────────────────────────── */
-#ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
-#undef MBEDTLS_KEY_EXCHANGE_ECDHE_RSA_ENABLED
+/* ── PSA Crypto оставляем ─────────────────────────────────────── */
+/* ВАЖНО: НЕ трогаем:
+ *   MBEDTLS_PSA_CRYPTO_C
+ *   MBEDTLS_PSA_CRYPTO_CLIENT
+ *   MBEDTLS_PSA_CRYPTO_CONFIG
+ *   MBEDTLS_USE_PSA_CRYPTO
+ * Они нужны mbedTLS 3.x для ECDHE и X.509.
+ */
+
+/* ── Отключаем PSA storage (у нас нет файловой ITS) ───────────── */
+#ifdef MBEDTLS_PSA_CRYPTO_STORAGE_C
+#undef MBEDTLS_PSA_CRYPTO_STORAGE_C
 #endif
-#ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
-#undef MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
-#endif
-#ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
-#undef MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
-#endif
-#ifdef MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED
-#undef MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED
-#endif
-#ifdef MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
-#undef MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
-#endif
-#ifdef MBEDTLS_KEY_EXCHANGE_ECDH_RSA_ENABLED
-#undef MBEDTLS_KEY_EXCHANGE_ECDH_RSA_ENABLED
+#ifdef MBEDTLS_PSA_ITS_FILE_C
+#undef MBEDTLS_PSA_ITS_FILE_C
 #endif
 
-/* ── Уменьшаем буферы SSL ────────────────────────────────────── */
+/* ── Размеры буферов SSL ──────────────────────────────────────── */
 #ifdef MBEDTLS_SSL_IN_CONTENT_LEN
 #undef MBEDTLS_SSL_IN_CONTENT_LEN
 #endif
@@ -112,19 +95,22 @@
 #endif
 #define MBEDTLS_SSL_OUT_CONTENT_LEN 4096
 
-/* ── Embedded-специфичные опции ──────────────────────────────── */
+/* ── Embedded-опции для STM32 ─────────────────────────────────── */
+/* Нет /dev/urandom и WinAPI — используем свой источник энтропии  */
 #ifndef MBEDTLS_NO_PLATFORM_ENTROPY
 #define MBEDTLS_NO_PLATFORM_ENTROPY
 #endif
+
 #ifndef MBEDTLS_ENTROPY_HARDWARE_ALT
 #define MBEDTLS_ENTROPY_HARDWARE_ALT
 #endif
 
-/* platform_util.c требует MS_TIME_ALT на платформах без POSIX/Win */
+/* mbedtls/platform_util.c требует ms_time на embedded без POSIX/Win */
 #ifndef MBEDTLS_PLATFORM_MS_TIME_ALT
 #define MBEDTLS_PLATFORM_MS_TIME_ALT
 #endif
 
+/* Не используем mbedtls_net_xxx, timing, FS I/O */
 #ifdef MBEDTLS_NET_C
 #undef MBEDTLS_NET_C
 #endif

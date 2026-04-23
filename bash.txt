@@ -1,0 +1,128 @@
+…или создайте новый репозиторий в командной строке
+
+echo "# MonSet" >> README.md 
+git init 
+git add README.md 
+git commit -m "first commit" 
+git branch -M main 
+git remote add origin https://github.com/west3005/MonSet.git
+ git push -u origin main
+
+…или отправить изменения в существующий репозиторий из командной строки
+
+git remote add origin https://github.com/west3005/MonSet.git
+git branch -M main 
+git push -u origin main
+
+
+
+
+
+git status
+
+git pull --rebase
+
+git add -A
+
+git commit -m "Describe what changed"
+git push
+
+git push -u origin main
+
+
+
+gcp () { git add -A && git commit -m "$*" && git push; }
+
+Ты уже в нормальном репозитории ((main) и git status работает), просто у тебя сейчас очень много локальных изменений (включая артефакты сборки в Debug/).
+​
+
+Проверка состояния (всегда сначала)
+bash
+cd ~/STM32CubeIDE/workspace_1.13.2/monset
+
+git status
+git branch -vv
+git remote -v
+git log --oneline --decorate -5
+1) Один раз: убрать артефакты сборки из Git
+Debug/ и Release/ — это build-артефакты CubeIDE, они меняются при каждой сборке и обычно не должны версионироваться.
+​
+
+Добавь правила в .gitignore:
+
+bash
+printf "\n# STM32CubeIDE build outputs\nDebug/\nRelease/\n*.o\n*.d\n*.elf\n*.hex\n*.bin\n*.map\n*.list\n*.su\n*.cyclo\n" >> .gitignore
+Если Debug/ уже был добавлен в репозиторий раньше (по твоему git status похоже, что да), то нужно убрать его из индекса, но оставить на диске:
+
+bash
+git rm -r --cached Debug Release 2>/dev/null || true
+Удалить “мусор”, который теперь игнорируется (опционально): git clean -X удаляет только игнорируемые файлы (удобно для полной пересборки).
+​
+
+bash
+git clean -n -d -X   # предпросмотр
+git clean -f -d -X   # удалить только ignored (build products)
+Зафиксировать это отдельным коммитом:
+
+bash
+git add .gitignore
+git commit -m "gitignore: exclude CubeIDE build outputs"
+2) Обычная синхронизация “вверх” (твои правки -> GitHub)
+Идея: коммитишь свои изменения, потом подтягиваешь remote и пушишь (чтобы не получить reject).
+​
+
+
+# Добавить и закоммитить правки
+git add -A
+git commit -m "Update MonSet sources"
+
+# Подтянуть изменения с GitHub и применить поверх (rebase)
+git pull --rebase origin main
+
+# Отправить на GitHub
+git push origin main
+Если сейчас не хочешь коммитить, но нужно срочно сделать pull: временно спрячь изменения и верни обратно:
+
+bash
+git stash push -u -m "WIP"
+git pull --rebase origin main
+git stash pop
+(Поведение git pull и опция --rebase описаны в документации.)
+​
+
+3) Синхронизация “вниз” (просто обновиться с GitHub)
+bash
+git fetch origin
+git status -sb
+git pull --rebase origin main
+4) Отменить локальные изменения (аккуратно)
+git restore восстанавливает файлы рабочего дерева из указанного источника (обычно HEAD).
+​
+
+Отменить изменения в файлах (tracked) и вернуть как в последнем коммите:
+
+bash
+git restore .
+Если ты уже делал git add и надо ещё “разстейджить”:
+
+bash
+git restore --staged .
+git restore .
+Удалить неотслеживаемые файлы/папки (например, у тебя есть untracked MonSet/):
+
+bash
+git clean -n -d    # предпросмотр
+git clean -f -d    # удалить untracked
+(Опции -n/-f/-d/-x/-X у git clean — в документации.)
+​
+
+5) Полная замена локального состояния на origin/main (жёстко)
+git reset --hard разрушительно сбрасывает рабочее дерево/индекс к указанному коммиту.
+​
+
+bash
+git fetch origin
+git reset --hard origin/main
+git clean -f -d -x    # удалить вообще всё untracked + ignored (максимально “чисто”) [web:91]
+Сейчас у тебя в “Untracked files” есть MonSet/ (папка). Напиши, пожалуйста, что это: вложенный второй клон/копия проекта или что-то для CubeIDE?
+От этого зависит: её лучше удалить (rm -rf MonSet/) или добавить в .gitignore, чтобы она не мешала.
