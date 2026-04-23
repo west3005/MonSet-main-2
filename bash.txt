@@ -4,7 +4,7 @@ cd ~/STM32CubeIDE/workspace_1.13.2/monset-main-2
 sh push.sh
 
 https://github.com/settings/tokens/
-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
+
 
 
 
