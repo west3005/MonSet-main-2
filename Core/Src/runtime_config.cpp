@@ -606,6 +606,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
 
     (void)jsonGetString(json, "web_user", tmp.web.web_user, sizeof(tmp.web.web_user));
     (void)jsonGetString(json, "web_pass", tmp.web.web_pass, sizeof(tmp.web.web_pass));
+    (void)jsonGetBool  (json, "web_auth_enabled", tmp.web.web_auth_enabled);
 
     (void)jsonGetString(json, "wifi_ssid", tmp.wifi_ssid, sizeof(tmp.wifi_ssid));
     (void)jsonGetString(json, "wifi_pass", tmp.wifi_pass, sizeof(tmp.wifi_pass));
@@ -833,6 +834,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         (unsigned long)backup_send_interval_sec,
         (unsigned)battery_low_pct,
         web.web_user, web.web_pass,
+web.web_auth_enabled?"true":"false",
         wifi_ssid, wifi_pass);
 
     if (n <= 0 || n >= (int)sizeof(json)) goto overflow;
