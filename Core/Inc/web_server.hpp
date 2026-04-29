@@ -25,6 +25,11 @@ public:
     bool isRunning() const { return m_running; }
     void setActivityCallback(void (*cb)(void*), void* ctx);
 
+    /** Inform the WebServer whether the SD card (FATFS) is available.
+     *  Call after App::init() once m_sdOk is known.
+     *  When false, POST /api/config applies changes in RAM only. */
+    void setSdOk(bool ok) { m_sdOk = ok; }
+
     /**
      * sendResponse — public.
      * Sends HTTP response with chunked TX to work around W5500
@@ -41,6 +46,7 @@ private:
     BatteryMonitor* m_battery = nullptr;
     App*            m_app     = nullptr;
     bool            m_running = false;
+    bool            m_sdOk    = false;  ///< SD card available (set via setSdOk)
 
     void (*m_activityCb)(void*) = nullptr;
     void*  m_activityCtx        = nullptr;
