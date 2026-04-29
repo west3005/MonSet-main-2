@@ -38,6 +38,11 @@ public:
   // Максимальный размер файла с бэкапами (ring-buffer по размеру)
   static constexpr FSIZE_t MAX_BACKUP_FILE_SIZE = 10 * 1024 * 1024; // 10 МБ
 
+    /** @brief Returns full FATFS path to the backup file. */
+    void getFilePath(char* out, size_t outSz) const {
+        make_full_path(out, outSz, Config::BACKUP_FILENAME);
+    }
+
 private:
   bool m_mounted = false;
   bool m_broken  = false;
