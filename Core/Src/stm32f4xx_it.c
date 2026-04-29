@@ -38,14 +38,20 @@ void NMI_Handler(void)
 #include <stdio.h>
 
 void HardFault_Handler(void) {
-    char buf[80];
+    /* Freeze write buffer so IMPRECISERR address is captured */
+    __DSB();
+    char buf[96];
     snprintf(buf, sizeof(buf),
-             "!!! HARDFAULT CFSR=0x%08lX HFSR=0x%08lX\r\n",
+             "!!! HARDFAULT CFSR=0x%08lX HFSR=0x%08lX SP=0x%08lX\r\n",
              (unsigned long)SCB->CFSR,
-             (unsigned long)SCB->HFSR);
+             (unsigned long)SCB->HFSR,
+             (unsigned long)__get_MSP());
+    /* Clear fault status registers before reset */
+    SCB->CFSR = SCB->CFSR;
+    SCB->HFSR = SCB->HFSR;
     dbg_puts(buf);
-    HAL_Delay(50);
-    while (1) {}
+    HAL_Delay(20);
+    NVIC_SystemReset();  /* recovers cleanly; IWDG won't fire on top */
 }
 void MemManage_Handler(void)
 {
