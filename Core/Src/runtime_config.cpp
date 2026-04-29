@@ -473,7 +473,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
 
     // ThingsBoard host + token from UI
     (void)jsonGetString(json, "tb_host",  tmp.proto.tb_host,  sizeof(tmp.proto.tb_host));
-    (void)jsonGetString(json, "tb_token", tmp.tb_token,       sizeof(tmp.tb_token));
+    (void)jsonGetString(json, "tb_token", tmp.proto.tb_token, sizeof(tmp.proto.tb_token));
     { uint16_t v16 = 0;
       if (jsonGetU16(json, "tb_port", v16) && v16 > 0) tmp.proto.tb_port = v16;
     }
