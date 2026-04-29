@@ -20,7 +20,7 @@
 
 SD_HandleTypeDef hsd;
 
-void MX_SDIO_SD_Init(void)
+bool MX_SDIO_SD_Init(void)
 {
     hsd.Instance             = SDIO;
     hsd.Init.ClockEdge       = SDIO_CLOCK_EDGE_RISING;
@@ -44,19 +44,19 @@ void MX_SDIO_SD_Init(void)
      */
     hsd.Init.ClockDiv = 118U;
 
+    /* Attempt 1: straight init */
     if (HAL_SD_Init(&hsd) != HAL_OK) {
-        /* Принудительно гарантируем DISABLE после MspInit,
-         * на случай если конфликт в hal_msp.c ещё не исправлен */
+        /* Errata ES0182 §2.7.1 — force HWFC=DISABLE and retry once */
         hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
         SDIO->CLKCR &= ~SDIO_CLKCR_HWFC_EN;
-        /* Повторная попытка после сброса HWFC */
         if (HAL_SD_Init(&hsd) != HAL_OK) {
-            Error_Handler();
+            return false;  /* No card / wiring issue — caller sets g_sd_disabled */
         }
     }
 
-    /* Зафиксировать 1-bit шину (D1..D3 не разведены на плате) */
+    /* Lock bus width to 1-bit (D1..D3 not routed on this board) */
     if (HAL_SD_ConfigWideBusOperation(&hsd, SDIO_BUS_WIDE_1B) != HAL_OK) {
-        Error_Handler();
+        return false;
     }
+    return true;
 }
