@@ -98,6 +98,7 @@ private:
     void handleApiLogs(uint8_t sn, const char* queryStr);
     void handleApiLogsExport(uint8_t sn);   // ← ДОЛЖЕН БЫТЬ ОПРЕДЕЛЁН В CPP
     void handleApiLogsClear(uint8_t sn);
+    void handleApiBackupDownload(uint8_t sn);
 
     // POST
     void handlePostConfig(uint8_t sn, const char* body);
