@@ -152,7 +152,8 @@ static void closeDataSockets(uint8_t httpSock){
 }
 bool WebServer::checkAuth(const char* req){
     const RuntimeConfig& c=Cfg();
-    if(c.web_user[0]==0&&c.web_pass[0]==0) return true;
+    if(!c.web.web_auth_enabled) return true;
+    if(c.web.web_user[0]==0&&c.web.web_pass[0]==0) return true;
     const char* auth=std::strstr(req,"Authorization: Basic ");
     if(!auth) return false;
     auth+=21;
@@ -161,7 +162,7 @@ bool WebServer::checkAuth(const char* req){
     uint8_t dec[96]; int dLen=base64Decode(b64,dec,sizeof(dec)-1);
     if(dLen<=0) return false;
     dec[dLen]=0;
-    char exp[72]; std::snprintf(exp,sizeof(exp),"%s:%s",c.web_user,c.web_pass);
+    char exp[72]; std::snprintf(exp,sizeof(exp),"%s:%s",c.web.web_user,c.web.web_pass);
     return std::strcmp((const char*)dec,exp)==0;
 }
 void WebServer::sendResponse(uint8_t sn, int code, const char* ct,
@@ -3374,7 +3375,7 @@ void WebServer::handleApiConfig(uint8_t sn){
         (c.protocol==ProtocolMode::MQTT_GENERIC)     ?"mqtt_gen":
         (c.protocol==ProtocolMode::WEBHOOK_HTTP)     ?"webhook" :"https_tb";
 
-    const char* web_user = c.web.web_user[0] ? c.web.web_user : c.web_user;
+    const char* web_user = c.web.web_user;
     const char* ntp_srv  = c.time_cfg.ntp_server[0] ? c.time_cfg.ntp_server : c.ntp_host;
     bool  ch_eth  = c.channels.eth_enabled      || c.eth_enabled;
     bool  ch_gsm  = c.channels.gsm_enabled      || c.gsm_enabled;
@@ -3599,10 +3600,13 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
     RuntimeConfig newCfg=Cfg();
     if(newCfg.loadFromJson(body,std::strlen(body))){
         Cfg()=newCfg;
-        Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
-        const char* r="{\"status\":\"ok\",\"message\":\"Saved. Reboot to apply.\"}";
+        bool sdSaved=false;
+        if(m_sdOk) sdSaved=Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
+        const char* r=sdSaved
+            ?"{\"status\":\"ok\",\"message\":\"Saved to SD. Reboot to apply.\"}"
+            :"{\"status\":\"ok_ram\",\"message\":\"Applied in RAM. SD unavailable — reboot loads defaults.\"}";
         sendResponse(sn,200,"application/json",r,(uint16_t)std::strlen(r));
-        DBG.info("WebServer: config updated via web");
+        DBG.info("WebServer: config updated, sd_saved=%d",(int)sdSaved);
     }else{
         const char* r="{\"error\":\"JSON parse failed\"}";
         sendResponse(sn,400,"application/json",r,(uint16_t)std::strlen(r));
