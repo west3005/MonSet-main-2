@@ -408,6 +408,26 @@ static uint8_t parseU8Array(const char* json, const char* key,
 // -----------------------------------------------------------------------------
 // loadFromJson
 // -----------------------------------------------------------------------------
+
+// Parse JSON boolean array: "key":[true,false,...] → out[0..maxLen-1]
+// Returns true if key found and at least one element parsed
+static bool parseBoolArray(const char* json, const char* key,
+                           bool* out, uint8_t maxLen) {
+    char needle[48];
+    std::snprintf(needle, sizeof(needle), "\"%s\":[", key);
+    const char* p = std::strstr(json, needle);
+    if (!p) return false;
+    p += std::strlen(needle);
+    uint8_t idx = 0;
+    while (*p && *p != ']' && idx < maxLen) {
+        while (*p == ' ' || *p == '\t' || *p == ',') ++p;
+        if (std::strncmp(p, "true",  4) == 0) { out[idx++] = true;  p += 4; }
+        else if (std::strncmp(p, "false", 5) == 0) { out[idx++] = false; p += 5; }
+        else ++p;
+    }
+    return idx > 0;
+}
+
 bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     if (!json || len < 2) return false;
 
@@ -418,6 +438,74 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     (void)jsonGetBool  (json, "complex_enabled", tmp.complex_enabled);
     (void)jsonGetString(json, "metric_id",       tmp.metric_id,   sizeof(tmp.metric_id));
     (void)jsonGetString(json, "complex_id",      tmp.complex_id,  sizeof(tmp.complex_id));
+
+    // --- UI field aliases (config_html sends these names) ---
+    // Channel flags: ch_eth / ch_gsm / ch_wifi / ch_iridium
+    (void)jsonGetBool(json, "ch_eth",      tmp.eth_enabled);
+    (void)jsonGetBool(json, "ch_gsm",      tmp.gsm_enabled);
+    (void)jsonGetBool(json, "ch_wifi",     tmp.wifi_enabled);
+    (void)jsonGetBool(json, "ch_iridium",  tmp.iridium_enabled);
+    (void)jsonGetBool(json, "chain_mode",  tmp.chain_enabled);
+
+    // Timing: UI sends _s suffix, legacy uses _sec / _polls
+    { uint32_t v = 0;
+      if (jsonGetU32(json, "poll_interval_s", v) && v > 0) tmp.poll_interval_sec = v;
+      if (jsonGetU32(json, "send_interval_s", v) && v > 0) {
+          tmp.send_interval_polls = (tmp.poll_interval_sec > 0)
+              ? (uint32_t)(v / tmp.poll_interval_sec) : 1;
+          if (tmp.send_interval_polls < 1) tmp.send_interval_polls = 1;
+      }
+      if (jsonGetU32(json, "backup_retry_s", v) && v > 0) tmp.backup_send_interval_sec = v;
+    }
+    { uint8_t v8 = 0;
+      if (jsonGetU8(json, "avg_count", v8) && v8 > 0) tmp.avg_count = v8;
+    }
+
+    // Protocol alias: "proto" → protocol enum (UI sends "proto" not "protocol")
+    { char pv[16]{};
+      if (jsonGetString(json, "proto", pv, sizeof(pv))) {
+          if (std::strcmp(pv,"https_tb")  == 0) tmp.protocol = ProtocolMode::HTTPS_THINGSBOARD;
+          else if (std::strcmp(pv,"mqtt_tb")  == 0) tmp.protocol = ProtocolMode::MQTT_THINGSBOARD;
+          else if (std::strcmp(pv,"mqtt_gen") == 0) tmp.protocol = ProtocolMode::MQTT_GENERIC;
+          else if (std::strcmp(pv,"webhook")  == 0) tmp.protocol = ProtocolMode::WEBHOOK_HTTP;
+      }
+    }
+
+    // ThingsBoard host + token from UI
+    (void)jsonGetString(json, "tb_host",  tmp.proto.tb_host,  sizeof(tmp.proto.tb_host));
+    (void)jsonGetString(json, "tb_token", tmp.tb_token,       sizeof(tmp.tb_token));
+    { uint16_t v16 = 0;
+      if (jsonGetU16(json, "tb_port", v16) && v16 > 0) tmp.proto.tb_port = v16;
+    }
+
+    // NTP alias: UI sends "ntp_server" / "ntp_enabled"
+    (void)jsonGetString(json, "ntp_server",  tmp.ntp_host,    sizeof(tmp.ntp_host));
+    (void)jsonGetBool  (json, "ntp_enabled", tmp.ntp_enabled);
+
+    // ETH mode alias: UI sends eth_dhcp=bool
+    { bool dhcp = false;
+      if (jsonGetBool(json, "eth_dhcp", dhcp))
+          tmp.eth_mode = dhcp ? EthMode::Dhcp : EthMode::Static;
+    }
+
+    // Chain order / enable arrays from UI
+    { uint8_t ord[MAX_CHAIN_ORDER]{};
+      uint8_t cnt = parseU8Array(json, "chain_order", ord, MAX_CHAIN_ORDER);
+      if (cnt > 0) {
+          std::memcpy(tmp.channels.chain_order, ord, cnt);
+          tmp.chain_count = cnt;
+          tmp.channels.chain_count = cnt;
+      }
+    }
+    // co_en: boolean array for chain enable — [true,false,...] → channels.eth/gsm/...
+    { bool en[4]{};
+      if (parseBoolArray(json, "co_en", en, 4)) {
+          tmp.channels.eth_enabled     = en[0];
+          tmp.channels.gsm_enabled     = en[1];
+          tmp.channels.wifi_enabled    = en[2];
+          tmp.channels.iridium_enabled = en[3];
+      }
+    }
 
     (void)jsonGetString(json, "server_url",      tmp.server_url,      sizeof(tmp.server_url));
     (void)jsonGetString(json, "server_auth_b64", tmp.server_auth_b64, sizeof(tmp.server_auth_b64));
