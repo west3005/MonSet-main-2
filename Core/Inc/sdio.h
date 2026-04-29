@@ -11,7 +11,7 @@ extern "C" {
 extern SD_HandleTypeDef   hsd;
 
 
-void MX_SDIO_SD_Init(void);
+bool MX_SDIO_SD_Init(void);
 
 #ifdef __cplusplus
 }
