@@ -3349,13 +3349,12 @@ void WebServer::handleApiSensors(uint8_t sn){
         n+=std::snprintf(m_respBuf+n,RESP_BUF_SIZE-n,
             "\"battery\":{\"voltage\":0,\"percent\":0,\"low\":false}");
     }
-    n+=std::snprintf(m_respBuf+n,RESP_BUF_SIZE-n,"}");
-    sendResponse(sn,200,"application/json",m_respBuf,(uint16_t)n);
-
     uint32_t tick = HAL_GetTick() / 1000;
     n+=std::snprintf(m_respBuf+n,RESP_BUF_SIZE-n,
-        ",\"uptime_s\":%lu,\"timestamp\":\"uptime %lu s\"",
+        ",\"uptime_s\":%lu,\"timestamp\":\"uptime %lu s\"}",
         (unsigned long)tick,(unsigned long)tick);
+    if(n<0||n>=(int)RESP_BUF_SIZE) n=RESP_BUF_SIZE-1;
+    sendResponse(sn,200,"application/json",m_respBuf,(uint16_t)n);
 }
 
 // ── GET /api/config (JSON) ────────────────────────────────────────────────────
@@ -3535,24 +3534,25 @@ void WebServer::handleApiLogs(uint8_t sn,const char* queryStr){
     }
     CircularLogBuffer& log=CircularLogBuffer::instance();
     uint16_t total=log.getCount();
-    char resp[RESP_BUF_SIZE]; int pos=0;
-    pos+=std::snprintf(resp+pos,sizeof(resp)-pos,
+    /* Use m_respBuf (heap-resident member) instead of 6 KB stack array */
+    char* resp=m_respBuf; const int rsz=RESP_BUF_SIZE; int pos=0;
+    pos+=std::snprintf(resp+pos,rsz-pos,
         "{\"total\":%lu,\"lines\":[",(unsigned long)log.getTotal());
     bool first=true;
     char line[CircularLogBuffer::LINE_SIZE];
     for(uint16_t i=0;i<count&&(offset+i)<total;++i){
         if(!log.getLine((uint16_t)(offset+i),line,sizeof(line))) continue;
-        if(!first&&pos<(int)sizeof(resp)-10) resp[pos++]=',';
-        if(pos<(int)sizeof(resp)-(int)CircularLogBuffer::LINE_SIZE-4){
+        if(!first&&pos<rsz-10) resp[pos++]=',';
+        if(pos<rsz-(int)CircularLogBuffer::LINE_SIZE-4){
             resp[pos++]='"';
-            for(char* c=line;*c&&pos<(int)sizeof(resp)-4;++c){
+            for(char* c=line;*c&&pos<rsz-4;++c){
                 if(*c=='"') resp[pos++]='\\';
                 resp[pos++]=*c;
             }
             resp[pos++]='"'; first=false;
         }
     }
-    if(pos<(int)sizeof(resp)-2){resp[pos++]=']';resp[pos++]='}';resp[pos]='\0';}
+    if(pos<rsz-2){resp[pos++]=']';resp[pos++]='}';resp[pos]='\0';}
     sendResponse(sn,200,"application/json",resp,(uint16_t)pos);
 }
 void WebServer::handleApiLogsExport(uint8_t sn)
