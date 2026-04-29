@@ -428,9 +428,6 @@ struct RuntimeConfig
     uint8_t battery_low_pct = 20; ///< Battery low % threshold (legacy; superseded by alerts.battery_low_threshold_pct)
 
     // --- Web auth (legacy flat fields) ---
-    char web_user[32] {}; ///< Web UI username (legacy; superseded by web.web_user)
-    char web_pass[32] {}; ///< Web UI password (legacy; superseded by web.web_pass)
-
     // --- WiFi (legacy flat fields) ---
     char wifi_ssid[64] {}; ///< Wi-Fi SSID
     char wifi_pass[64] {}; ///< Wi-Fi passphrase
