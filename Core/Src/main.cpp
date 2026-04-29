@@ -116,11 +116,15 @@ extern "C" int main(void)
     if (!g_sd_disabled) {
         DBG.info("MARK before SDIO");
         HAL_Delay(100);
-        MX_SDIO_SD_Init();
-        DBG.info("SDIO init done");
-        DBG.info("MARK before FATFS");
-        MX_FATFS_Init();
-        DBG.info("FATFS OK");
+        if (!MX_SDIO_SD_Init()) {
+            DBG.error("SDIO: init failed — SD disabled for this boot");
+            g_sd_disabled = true;
+        } else {
+            DBG.info("SDIO init done");
+            DBG.info("MARK before FATFS");
+            MX_FATFS_Init();
+            DBG.info("FATFS OK");
+        }
     } else {
         DBG.warn("SD disabled for this run");
     }
