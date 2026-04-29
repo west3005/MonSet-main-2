@@ -5,6 +5,7 @@
  * ================================================================
  */
 #include "debug_uart.hpp"
+#include "circular_log.hpp"
 
 DebugUart DBG(&huart1);
 
@@ -83,6 +84,10 @@ void DebugUart::send(LogLevel lvl, const char* fmt, va_list args) {
                           HAL_GetTick(), levelStr(lvl));
   if (hdr < 0) return;
 
+  /* va_copy so we can use args twice: once for UART, once for CircularLog */
+  va_list args2;
+  va_copy(args2, args);
+
   int body = std::vsnprintf(m_buf + hdr, sizeof(m_buf) - (size_t)hdr - 4, fmt, args);
   if (body < 0) body = 0;
 
@@ -94,6 +99,12 @@ void DebugUart::send(LogLevel lvl, const char* fmt, va_list args) {
   m_buf[total] = 0;
 
   transmit(m_buf, (uint16_t)total);
+
+  /* Mirror into CircularLogBuffer for web /logs page */
+  char logMsg[CircularLogBuffer::LINE_SIZE];
+  std::vsnprintf(logMsg, sizeof(logMsg), fmt, args2);
+  va_end(args2);
+  CircularLogBuffer::instance().write(levelStr(lvl), logMsg);
 }
 
 void DebugUart::transmit(const char* data, uint16_t len) {
