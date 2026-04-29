@@ -116,8 +116,6 @@ void RuntimeConfig::setDefaultsFromConfig() {
     backup_send_interval_sec = 600;
     battery_low_pct = 20;
 
-    web_user[0] = 0;
-    web_pass[0] = 0;
 
     wifi_ssid[0] = 0;
     wifi_pass[0] = 0;
@@ -518,8 +516,8 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     (void)jsonGetU32(json, "backup_send_interval_sec", tmp.backup_send_interval_sec);
     (void)jsonGetU8 (json, "battery_low_pct",          tmp.battery_low_pct);
 
-    (void)jsonGetString(json, "web_user", tmp.web_user, sizeof(tmp.web_user));
-    (void)jsonGetString(json, "web_pass", tmp.web_pass, sizeof(tmp.web_pass));
+    (void)jsonGetString(json, "web_user", tmp.web.web_user, sizeof(tmp.web.web_user));
+    (void)jsonGetString(json, "web_pass", tmp.web.web_pass, sizeof(tmp.web.web_pass));
 
     (void)jsonGetString(json, "wifi_ssid", tmp.wifi_ssid, sizeof(tmp.wifi_ssid));
     (void)jsonGetString(json, "wifi_pass", tmp.wifi_pass, sizeof(tmp.wifi_pass));
@@ -746,7 +744,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         (unsigned)avg_count,
         (unsigned long)backup_send_interval_sec,
         (unsigned)battery_low_pct,
-        web_user, web_pass,
+        web.web_user, web.web_pass,
         wifi_ssid, wifi_pass);
 
     if (n <= 0 || n >= (int)sizeof(json)) goto overflow;
