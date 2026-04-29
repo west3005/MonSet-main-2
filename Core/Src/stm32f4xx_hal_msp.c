@@ -43,13 +43,13 @@ void HAL_SD_MspInit(SD_HandleTypeDef *hsd)
         GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
         HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-        /*
-         * SDIO global interrupt.
-         * Priority 5 (lower than SysTick=0, higher than app tasks).
-         * HardwareFlowControl ЗАПРЕЩЁН на STM32F4 — errata ES0182 §2.7.1.
+        /* SDIO IRQ intentionally NOT enabled here.
+         * FATFS uses polling mode (sd_diskio.c R/W blocks are blocking).
+         * Enabling SDIO_IRQn during HAL_SD_Init() causes CTIMEOUT interrupt
+         * to fire while HAL is in its voltage-window polling loop, which
+         * escalates to Error_Handler() via HAL state-machine error path.
+         * IRQ is only needed for DMA-mode transfers; we don't use DMA here.
          */
-        HAL_NVIC_SetPriority(SDIO_IRQn, 5, 0);
-        HAL_NVIC_EnableIRQ(SDIO_IRQn);
     }
 }
 
@@ -57,7 +57,7 @@ void HAL_SD_MspDeInit(SD_HandleTypeDef *hsd)
 {
     if (hsd->Instance == SDIO)
     {
-        HAL_NVIC_DisableIRQ(SDIO_IRQn);
+        /* SDIO_IRQn not enabled — nothing to disable */
         __HAL_RCC_SDIO_CLK_DISABLE();
         HAL_GPIO_DeInit(GPIOC, GPIO_PIN_8 | GPIO_PIN_12);
         HAL_GPIO_DeInit(GPIOD, GPIO_PIN_2);
