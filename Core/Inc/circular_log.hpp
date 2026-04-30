@@ -27,9 +27,6 @@ public:
 
     static CircularLogBuffer& instance();
 
-    /** @brief Must be called once early in main() to clear CCMRAM pointers. */
-    static void init_ccmram();
-
     /** @brief Interrupt-safe write. Truncates at LINE_SIZE-1. */
     void write(const char* level, const char* msg);
 
