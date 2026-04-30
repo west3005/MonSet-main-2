@@ -54,7 +54,7 @@ private:
     static constexpr uint8_t  HTTP_SOCKET = 5;
     static constexpr uint16_t HTTP_PORT   = 80;
 
-    static constexpr uint16_t REQ_BUF_SIZE  = 1024;
+    static constexpr uint16_t REQ_BUF_SIZE  = 4096;
     char m_reqBuf[REQ_BUF_SIZE];
 
     /**
