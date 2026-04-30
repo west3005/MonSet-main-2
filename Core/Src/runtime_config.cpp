@@ -573,24 +573,12 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     if (cnt > 0) tmp.chain_count = cnt;
 
     // --- NEW: MQTT ---
-    { char s[128]; if(jsonGetString(json, "mqtt_host", s, sizeof(s))){
-        std::strncpy(tmp.mqtt_host, s, sizeof(tmp.mqtt_host));
-        std::strncpy(tmp.proto.mqtt_host, s, sizeof(tmp.proto.mqtt_host));
-    }}
-    { uint16_t v; if(jsonGetU16(json, "mqtt_port", v)){ tmp.mqtt_port = v; tmp.proto.mqtt_port = v; } }
-    { char s[32]; if(jsonGetString(json, "mqtt_user", s, sizeof(s))){
-        std::strncpy(tmp.mqtt_user, s, sizeof(tmp.mqtt_user));
-        std::strncpy(tmp.proto.mqtt_user, s, sizeof(tmp.proto.mqtt_user));
-    }}
-    { char s[32]; if(jsonGetString(json, "mqtt_pass", s, sizeof(s))){
-        std::strncpy(tmp.mqtt_pass, s, sizeof(tmp.mqtt_pass));
-        std::strncpy(tmp.proto.mqtt_pass, s, sizeof(tmp.proto.mqtt_pass));
-    }}
-    { char s[64]; if(jsonGetString(json, "mqtt_topic", s, sizeof(s))){
-        std::strncpy(tmp.mqtt_topic, s, sizeof(tmp.mqtt_topic));
-        std::strncpy(tmp.proto.mqtt_topic, s, sizeof(tmp.proto.mqtt_topic));
-    }}
-    { uint8_t v; if(jsonGetU8(json, "mqtt_qos", v)){ tmp.mqtt_qos = v; tmp.proto.mqtt_qos = v; } }
+    (void)jsonGetString(json, "mqtt_host",  tmp.proto.mqtt_host,  sizeof(tmp.proto.mqtt_host));
+    (void)jsonGetU16   (json, "mqtt_port",  tmp.proto.mqtt_port);
+    (void)jsonGetString(json, "mqtt_user",  tmp.proto.mqtt_user,  sizeof(tmp.proto.mqtt_user));
+    (void)jsonGetString(json, "mqtt_pass",  tmp.proto.mqtt_pass,  sizeof(tmp.proto.mqtt_pass));
+    (void)jsonGetString(json, "mqtt_topic", tmp.proto.mqtt_topic, sizeof(tmp.proto.mqtt_topic));
+    (void)jsonGetU8    (json, "mqtt_qos",   tmp.proto.mqtt_qos);
     (void)jsonGetBool  (json, "mqtt_tls",   tmp.mqtt_tls);
 
     // --- NEW: Protocol ---
@@ -655,19 +643,8 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     tmp.channels.chain_mode = tmp.chain_enabled;
 
     tmp.proto.mode = tmp.protocol;
-    std::strncpy(tmp.proto.tb_host, tmp.tb_host, sizeof(tmp.proto.tb_host));
-    std::strncpy(tmp.proto.tb_token, tmp.tb_token, sizeof(tmp.proto.tb_token));
-
-    std::strncpy(tmp.proto.mqtt_host, tmp.mqtt_host, sizeof(tmp.proto.mqtt_host));
-    std::strncpy(tmp.proto.mqtt_user, tmp.mqtt_user, sizeof(tmp.proto.mqtt_user));
-    std::strncpy(tmp.proto.mqtt_pass, tmp.mqtt_pass, sizeof(tmp.proto.mqtt_pass));
-    std::strncpy(tmp.proto.mqtt_topic, tmp.mqtt_topic, sizeof(tmp.proto.mqtt_topic));
-    tmp.proto.mqtt_port = tmp.mqtt_port;
-    tmp.proto.mqtt_qos = tmp.mqtt_qos;
-    tmp.proto.mqtt_tls = tmp.mqtt_tls;
-
-    std::strncpy(tmp.proto.webhook_url, tmp.webhook_url, sizeof(tmp.proto.webhook_url));
-    std::strncpy(tmp.proto.webhook_method, tmp.webhook_method, sizeof(tmp.proto.webhook_method));
+    // Protocol fields (tb_host, mqtt_*, webhook_*) are already read into tmp.proto
+    // because they don't have legacy root equivalents. Nothing to sync here.
 
     tmp.time_cfg.ntp_enabled = tmp.ntp_enabled;
     std::strncpy(tmp.time_cfg.ntp_server, tmp.ntp_host, sizeof(tmp.time_cfg.ntp_server));
@@ -895,7 +872,6 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         (unsigned long)backup_send_interval_sec,
         (unsigned)battery_low_pct,
         web.web_user, web.web_pass,
-web.web_auth_enabled?"true":"false",
         wifi_ssid, wifi_pass);
 
     if (n <= 0 || n >= (int)sizeof(json)) goto overflow;
