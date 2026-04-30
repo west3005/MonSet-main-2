@@ -74,6 +74,9 @@ extern "C" int main(void)
 
     CheckResetReason();
 
+    // CircularLogBuffer lives in CCMRAM. Clear pointers before first UART/DBG print.
+    CircularLogBuffer::init_ccmram();
+
     DBG.setMirror(&huart6);
     DBG.init();
     DBG.info("BOOT OK");
