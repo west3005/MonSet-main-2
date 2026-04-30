@@ -643,8 +643,18 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     tmp.channels.chain_mode = tmp.chain_enabled;
 
     tmp.proto.mode = tmp.protocol;
-    // Protocol fields (tb_host, mqtt_*, webhook_*) are already read into tmp.proto
-    // because they don't have legacy root equivalents. Nothing to sync here.
+
+    // Sync nested protocol fields back to legacy root fields for saveToSd()
+    std::strncpy(tmp.mqtt_host, tmp.proto.mqtt_host, sizeof(tmp.mqtt_host));
+    tmp.mqtt_port = tmp.proto.mqtt_port;
+    std::strncpy(tmp.mqtt_user, tmp.proto.mqtt_user, sizeof(tmp.mqtt_user));
+    std::strncpy(tmp.mqtt_pass, tmp.proto.mqtt_pass, sizeof(tmp.mqtt_pass));
+    std::strncpy(tmp.mqtt_topic, tmp.proto.mqtt_topic, sizeof(tmp.mqtt_topic));
+    tmp.mqtt_qos = tmp.proto.mqtt_qos;
+    tmp.mqtt_tls = tmp.proto.mqtt_tls;
+
+    std::strncpy(tmp.webhook_url, tmp.proto.webhook_url, sizeof(tmp.webhook_url));
+    std::strncpy(tmp.webhook_method, tmp.proto.webhook_method, sizeof(tmp.webhook_method));
 
     tmp.time_cfg.ntp_enabled = tmp.ntp_enabled;
     std::strncpy(tmp.time_cfg.ntp_server, tmp.ntp_host, sizeof(tmp.time_cfg.ntp_server));
