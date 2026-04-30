@@ -431,8 +431,9 @@ static bool parseBoolArray(const char* json, const char* key,
 bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     if (!json || len < 2) return false;
 
-    RuntimeConfig tmp;
-    tmp.setDefaultsFromConfig();
+    RuntimeConfig tmp = *this;
+    // Do NOT setDefaultsFromConfig here, otherwise we overwrite current state
+    // with hardcoded defaults for keys missing in the JSON payload!
 
     // --- Legacy fields (backward compat) ---
     (void)jsonGetBool  (json, "complex_enabled", tmp.complex_enabled);
@@ -672,6 +673,9 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
 // loadFromSd
 // -----------------------------------------------------------------------------
 bool RuntimeConfig::loadFromSd(const char* filename) {
+    // Only set defaults if we completely fail to load anything,
+    // otherwise loadFromJson will merge JSON into current state.
+    // However, when booting up, we DO want a clean slate before parsing SD file.
     setDefaultsFromConfig();
 
     FIL f;
