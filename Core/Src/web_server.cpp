@@ -200,8 +200,8 @@ void WebServer::sendResponse(uint8_t sn, int code, const char* ct,
     }
 }
 void WebServer::send401(uint8_t sn){
-    const char* b="{\"error\":\"Unauthorized\"}";
-    sendResponse(sn,401,"application/json",b,(uint16_t)std::strlen(b));
+    const char* b="401 Unauthorized";
+    sendResponse(sn,401,"text/plain",b,(uint16_t)std::strlen(b));
 }
 void WebServer::send404(uint8_t sn){
     const char* b="{\"error\":\"Not Found\"}";
