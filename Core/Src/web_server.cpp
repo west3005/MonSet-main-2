@@ -3649,11 +3649,16 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
         Cfg()=newCfg;
         bool sdSaved=false;
         if(m_sdOk) sdSaved=Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
-        const char* r=sdSaved
-            ?"{\"status\":\"ok\",\"message\":\"Saved to SD. Reboot to apply.\"}"
-            :"{\"status\":\"ok_ram\",\"message\":\"Applied in RAM. SD unavailable — reboot loads defaults.\"}";
-        sendResponse(sn,200,"application/json",r,(uint16_t)std::strlen(r));
-        DBG.info("WebServer: config updated, sd_saved=%d",(int)sdSaved);
+
+        char resp[256];
+        if (sdSaved) {
+            std::snprintf(resp, sizeof(resp), "{\"status\":\"ok\",\"message\":\"Saved to %s & RAM.\"}", RUNTIME_CONFIG_FILENAME);
+        } else {
+            std::snprintf(resp, sizeof(resp), "{\"status\":\"ok_ram\",\"message\":\"Applied in RAM only. SD error!\"}");
+        }
+
+        sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
+        DBG.info("WebServer: config updated in RAM, sd_saved=%d", (int)sdSaved);
     }else{
         const char* r="{\"error\":\"JSON parse failed\"}";
         sendResponse(sn,400,"application/json",r,(uint16_t)std::strlen(r));
