@@ -158,7 +158,7 @@ bool WebServer::checkAuth(const char* req){
     if(!auth) return false;
     auth+=21;
     char b64[128]{}; int i=0;
-    while(auth[i]&&auth[i]!='\r'&&auth[i]!='\n'&&i<127) b64[i]=auth[i++];
+    while(auth[i]&&auth[i]!='\r'&&auth[i]!='\n'&&i<127) b64[i]=auth[i]; i++;
     uint8_t dec[96]; int dLen=base64Decode(b64,dec,sizeof(dec)-1);
     if(dLen<=0) return false;
     dec[dLen]=0;
@@ -3268,7 +3268,7 @@ void WebServer::handleLogs(uint8_t sn){
           "</script>"
           "<footer style='margin-top:10px'>RAM circular buffer</footer>"
           "</body></html>");
-    if(n>=bsz) n=bsz-1; buf[n]='\0';
+    if(n>=bsz) { n=bsz-1; } buf[n]='\0';
     sendResponse(sn,200,"text/html; charset=UTF-8",buf,(uint16_t)n);
 }
 
@@ -3308,7 +3308,7 @@ void WebServer::handleTestPage(uint8_t sn){
           "}).catch(()=>{});}"
           "</script>"
           "<footer>MonSet v1.0</footer></body></html>");
-    if(n>=bsz) n=bsz-1; buf[n]='\0';
+    if(n>=bsz) { n=bsz-1; } buf[n]='\0';
     sendResponse(sn,200,"text/html; charset=UTF-8",buf,(uint16_t)n);
 }
 
@@ -3504,12 +3504,12 @@ void WebServer::handleApiConfig(uint8_t sn){
             c.modbus_map[i].port_idx,
             c.modbus_map[i].slave_id,
             c.modbus_map[i].function,
-            c.modbus_map[i].reg_addr,
+            c.modbus_map[i].start_reg,
             c.modbus_map[i].count,
             c.modbus_map[i].data_type,
             c.modbus_map[i].multiplier,
             c.modbus_map[i].scale,
-            c.modbus_map[i].offset
+            c.modbus_map[i].zero_offset
         );
     }
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "}");
