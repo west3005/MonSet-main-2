@@ -841,9 +841,13 @@ web.web_auth_enabled?"true":"false",
 
     {
         FIL f;
-        FRESULT fr = f_open(&f, filename, FA_CREATE_ALWAYS | FA_WRITE);
+        char tmpName[64];
+        std::snprintf(tmpName, sizeof(tmpName), "%s.tmp", filename);
+
+        // Пишем во временный файл
+        FRESULT fr = f_open(&f, tmpName, FA_CREATE_ALWAYS | FA_WRITE);
         if (fr != FR_OK) {
-            DBG.error("CFG: open for write fail fr=%d", (int)fr);
+            DBG.error("CFG: open temp file for write fail fr=%d", (int)fr);
             return false;
         }
 
@@ -853,10 +857,19 @@ web.web_auth_enabled?"true":"false",
 
         if (fr != FR_OK || bw == 0) {
             DBG.error("CFG: write fail fr=%d bw=%u", (int)fr, (unsigned)bw);
+            f_unlink(tmpName);
             return false;
         }
 
-        DBG.info("CFG: saved %s (%u bytes)", filename, (unsigned)bw);
+        // Атомарная замена файла
+        f_unlink(filename);
+        fr = f_rename(tmpName, filename);
+        if (fr != FR_OK) {
+            DBG.error("CFG: failed to rename %s to %s, fr=%d", tmpName, filename, (int)fr);
+            return false;
+        }
+
+        DBG.info("CFG: saved %s (%u bytes) atomically", filename, (unsigned)bw);
         return true;
     }
 
