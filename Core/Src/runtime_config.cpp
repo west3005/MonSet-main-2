@@ -643,6 +643,35 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     (void)jsonGetString(json, "wifi_ssid", tmp.wifi_ssid, sizeof(tmp.wifi_ssid));
     (void)jsonGetString(json, "wifi_pass", tmp.wifi_pass, sizeof(tmp.wifi_pass));
 
+    // Synchronize legacy fields -> new nested structs (when loading from SD backup)
+    if (tmp.poll_interval_sec > 0) tmp.meas.poll_interval_s = tmp.poll_interval_sec;
+    if (tmp.send_interval_polls > 0) tmp.meas.send_interval_s = tmp.send_interval_polls * tmp.poll_interval_sec;
+    if (tmp.backup_send_interval_sec > 0) tmp.meas.backup_retry_s = tmp.backup_send_interval_sec;
+
+    tmp.channels.eth_enabled = tmp.eth_enabled;
+    tmp.channels.gsm_enabled = tmp.gsm_enabled;
+    tmp.channels.wifi_enabled = tmp.wifi_enabled;
+    tmp.channels.iridium_enabled = tmp.iridium_enabled;
+    tmp.channels.chain_mode = tmp.chain_enabled;
+
+    tmp.proto.mode = tmp.protocol;
+    std::strncpy(tmp.proto.tb_host, tmp.tb_host, sizeof(tmp.proto.tb_host));
+    std::strncpy(tmp.proto.tb_token, tmp.tb_token, sizeof(tmp.proto.tb_token));
+
+    std::strncpy(tmp.proto.mqtt_host, tmp.mqtt_host, sizeof(tmp.proto.mqtt_host));
+    std::strncpy(tmp.proto.mqtt_user, tmp.mqtt_user, sizeof(tmp.proto.mqtt_user));
+    std::strncpy(tmp.proto.mqtt_pass, tmp.mqtt_pass, sizeof(tmp.proto.mqtt_pass));
+    std::strncpy(tmp.proto.mqtt_topic, tmp.mqtt_topic, sizeof(tmp.proto.mqtt_topic));
+    tmp.proto.mqtt_port = tmp.mqtt_port;
+    tmp.proto.mqtt_qos = tmp.mqtt_qos;
+    tmp.proto.mqtt_tls = tmp.mqtt_tls;
+
+    std::strncpy(tmp.proto.webhook_url, tmp.webhook_url, sizeof(tmp.proto.webhook_url));
+    std::strncpy(tmp.proto.webhook_method, tmp.webhook_method, sizeof(tmp.proto.webhook_method));
+
+    tmp.time_cfg.ntp_enabled = tmp.ntp_enabled;
+    std::strncpy(tmp.time_cfg.ntp_server, tmp.ntp_host, sizeof(tmp.time_cfg.ntp_server));
+
     tmp.validateAndFix();
     *this = tmp;
     return true;
