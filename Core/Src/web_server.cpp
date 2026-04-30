@@ -3472,6 +3472,12 @@ void WebServer::handleApiConfig(uint8_t sn){
         c.alerts.alert_on_sensor_fail?"true":"false",
         c.alerts.alert_webhook_url
     );
+    if (n < 0 || n >= RESP_BUF_SIZE) {
+        DBG.error("WebServer: /api/config JSON overflow! n=%d", n);
+        const char* err = "{\"error\":\"json generation failed\"}";
+        sendResponse(sn, 500, "application/json", err, std::strlen(err));
+        return;
+    }
     sendResponse(sn,200,"application/json",m_respBuf,(uint16_t)n);
 }
 
@@ -3747,6 +3753,19 @@ void WebServer::tick(){
                         const char* clStr = std::strstr(m_reqBuf, "Content-Length: ");
                         if (clStr) {
                             int cl = std::atoi(clStr + 16);
+                            if (cl <= 0) {
+                                const char* r = "{\"error\":\"bad Content-Length\"}";
+                                sendResponse(HTTP_SOCKET, 400, "application/json", r, (uint16_t)std::strlen(r));
+                                disconnect(HTTP_SOCKET);
+                                return;
+                            }
+                            if (cl >= REQ_BUF_SIZE - 1024) {
+                                const char* r = "{\"error\":\"config payload too large\"}";
+                                sendResponse(HTTP_SOCKET, 413, "application/json", r, (uint16_t)std::strlen(r));
+                                DBG.error("WebServer: POST too large cl=%d", cl);
+                                disconnect(HTTP_SOCKET);
+                                return;
+                            }
                             const char* bodyStart = std::strstr(m_reqBuf, "\r\n\r\n");
                             if (bodyStart) {
                                 bodyStart += 4; // Skip CRLFCRLF

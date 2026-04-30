@@ -250,6 +250,13 @@ static bool jsonGetF32(const char* json, const char* key, float& out) {
     return true;
 }
 
+static bool jsonGetI32(const char* json, const char* key, int& out) {
+    const char* p = findKey(json, key);
+    if (!p) return false;
+    out = std::atoi(p);
+    return true;
+}
+
 static bool parseIpv4Str(const char* s, uint8_t out[4]) {
     if (!s) return false;
     unsigned a=0,b=0,c=0,d=0;
@@ -645,6 +652,47 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     { bool en; if(jsonGetBool(json, "ntp_enabled", en)){
         tmp.ntp_enabled = en;
         tmp.time_cfg.ntp_enabled = en;
+    }}
+
+    // UI aliases missing before: measurement/schedule
+    { bool en=false; if(jsonGetBool(json, "deep_sleep_enabled", en)) tmp.meas.deep_sleep_enabled = en; }
+    { uint32_t v=0; if(jsonGetU32(json, "deep_sleep_s", v)) tmp.meas.deep_sleep_s = (uint16_t)v; }
+
+    { bool en=false; if(jsonGetBool(json, "schedule_enabled", en)) tmp.meas.schedule_enabled = en; }
+    { char s[16]{}; if(jsonGetString(json, "schedule_start", s, sizeof(s))) {
+        std::strncpy(tmp.meas.schedule_start, s, sizeof(tmp.meas.schedule_start));
+        tmp.meas.schedule_start[sizeof(tmp.meas.schedule_start)-1] = 0;
+    }}
+    { char s[16]{}; if(jsonGetString(json, "schedule_stop", s, sizeof(s))) {
+        std::strncpy(tmp.meas.schedule_stop, s, sizeof(tmp.meas.schedule_stop));
+        tmp.meas.schedule_stop[sizeof(tmp.meas.schedule_stop)-1] = 0;
+    }}
+
+    // Timezone
+    { int iv = 0; if (jsonGetI32(json, "tz_off", iv)) tmp.time_cfg.timezone_offset = (int8_t)iv; }
+
+    // Web UI settings
+    { uint16_t v16 = 0; if (jsonGetU16(json, "web_port", v16) && v16 > 0) tmp.web.web_port = v16; }
+    { uint16_t v16 = 0; if (jsonGetU16(json, "web_idle_timeout_s", v16) && v16 > 0) tmp.web.web_idle_timeout_s = v16; }
+    { bool en=false; if(jsonGetBool(json, "web_exclusive_mode", en)) tmp.web.web_exclusive_mode = en; }
+
+    // TCP master/slave UI fields
+    { bool en=false; if(jsonGetBool(json, "mtcpm_en", en)) tmp.tcp_master.enabled = en; }
+    { bool en=false; if(jsonGetBool(json, "mtcps_en", en)) tmp.tcp_slave.enabled  = en; }
+
+    { uint16_t v16 = 0; if (jsonGetU16(json, "sl_port", v16) && v16 > 0) tmp.tcp_slave.listen_port = v16; }
+    { uint8_t  v8  = 0; if (jsonGetU8 (json, "sl_uid",  v8)) tmp.tcp_slave.unit_id = v8; }
+    { uint8_t  v8  = 0; if (jsonGetU8 (json, "sl_sock", v8)) tmp.tcp_slave.w5500_socket = v8; }
+    { uint16_t v16 = 0; if (jsonGetU16(json, "sl_ctms", v16)) tmp.tcp_slave.connection_timeout_ms = v16; }
+
+    // Alerts UI fields
+    { bool en=false; if(jsonGetBool(json, "alerts_enabled", en)) tmp.alerts.alerts_enabled = en; }
+    { float fv=0.0f; if(jsonGetF32(json, "batt_low", fv)) tmp.alerts.battery_low_threshold_pct = fv; }
+    { bool en=false; if(jsonGetBool(json, "alert_on_channel_fail", en)) tmp.alerts.alert_on_channel_fail = en; }
+    { bool en=false; if(jsonGetBool(json, "alert_on_sensor_fail", en)) tmp.alerts.alert_on_sensor_fail = en; }
+    { char s[160]{}; if(jsonGetString(json, "alert_webhook_url", s, sizeof(s))) {
+        std::strncpy(tmp.alerts.alert_webhook_url, s, sizeof(tmp.alerts.alert_webhook_url));
+        tmp.alerts.alert_webhook_url[sizeof(tmp.alerts.alert_webhook_url)-1] = 0;
     }}
 
     tmp.proto.mode = tmp.protocol;
