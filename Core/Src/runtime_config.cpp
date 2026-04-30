@@ -440,67 +440,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     (void)jsonGetString(json, "complex_id",      tmp.complex_id,  sizeof(tmp.complex_id));
 
     // --- UI field aliases (config_html sends these names) ---
-    // Channel flags: ch_eth / ch_gsm / ch_wifi / ch_iridium
-    { bool en=false; if(jsonGetBool(json, "ch_eth", en)){ tmp.eth_enabled = en; tmp.channels.eth_enabled = en; } }
-    { bool en=false; if(jsonGetBool(json, "ch_gsm", en)){ tmp.gsm_enabled = en; tmp.channels.gsm_enabled = en; } }
-    { bool en=false; if(jsonGetBool(json, "ch_wifi", en)){ tmp.wifi_enabled = en; tmp.channels.wifi_enabled = en; } }
-    { bool en=false; if(jsonGetBool(json, "ch_iridium", en)){ tmp.iridium_enabled = en; tmp.channels.iridium_enabled = en; } }
-    { bool en=false; if(jsonGetBool(json, "chain_mode", en)){ tmp.chain_enabled = en; tmp.channels.chain_mode = en; } }
-
-    // Timing: UI sends _s suffix. Update both legacy and new struct
-    { uint32_t v = 0;
-      if (jsonGetU32(json, "poll_interval_s", v) && v > 0) {
-          tmp.poll_interval_sec = v;
-          tmp.meas.poll_interval_s = (uint16_t)v;
-      }
-      if (jsonGetU32(json, "send_interval_s", v) && v > 0) {
-          tmp.meas.send_interval_s = (uint16_t)v;
-          tmp.send_interval_polls = (tmp.poll_interval_sec > 0)
-              ? (uint32_t)(v / tmp.poll_interval_sec) : 1;
-          if (tmp.send_interval_polls < 1) tmp.send_interval_polls = 1;
-      }
-      if (jsonGetU32(json, "backup_retry_s", v) && v > 0) {
-          tmp.backup_send_interval_sec = v;
-          tmp.meas.backup_retry_s = (uint16_t)v;
-      }
-    }
-    { uint8_t v8 = 0;
-      if (jsonGetU8(json, "avg_count", v8) && v8 > 0) {
-          tmp.avg_count = v8;
-          tmp.meas.avg_count = v8;
-      }
-    }
-
-    // Protocol alias: "proto" → protocol enum
-    { char pv[16]{};
-      if (jsonGetString(json, "proto", pv, sizeof(pv))) {
-          if (std::strcmp(pv,"https_tb")  == 0) { tmp.protocol = ProtocolMode::HTTPS_THINGSBOARD; tmp.proto.mode = ProtocolMode::HTTPS_THINGSBOARD; }
-          else if (std::strcmp(pv,"mqtt_tb")  == 0) { tmp.protocol = ProtocolMode::MQTT_THINGSBOARD; tmp.proto.mode = ProtocolMode::MQTT_THINGSBOARD; }
-          else if (std::strcmp(pv,"mqtt_gen") == 0) { tmp.protocol = ProtocolMode::MQTT_GENERIC; tmp.proto.mode = ProtocolMode::MQTT_GENERIC; }
-          else if (std::strcmp(pv,"webhook")  == 0) { tmp.protocol = ProtocolMode::WEBHOOK_HTTP; tmp.proto.mode = ProtocolMode::WEBHOOK_HTTP; }
-      }
-    }
-
-    // ThingsBoard host + token from UI
-    { char s[64]; if(jsonGetString(json, "tb_host", s, sizeof(s))){
-        std::strncpy(tmp.proto.tb_host, s, sizeof(tmp.proto.tb_host));
-    }}
-    { char s[64]; if(jsonGetString(json, "tb_token", s, sizeof(s))){
-        std::strncpy(tmp.proto.tb_token, s, sizeof(tmp.proto.tb_token));
-    }}
-    { uint16_t v16 = 0;
-      if (jsonGetU16(json, "tb_port", v16) && v16 > 0) tmp.proto.tb_port = v16;
-    }
-
-    // NTP alias: UI sends "ntp_server" / "ntp_enabled"
-    { char s[64]; if(jsonGetString(json, "ntp_server", s, sizeof(s))){
-        std::strncpy(tmp.ntp_host, s, sizeof(tmp.ntp_host));
-        std::strncpy(tmp.time_cfg.ntp_server, s, sizeof(tmp.time_cfg.ntp_server));
-    }}
-    { bool en; if(jsonGetBool(json, "ntp_enabled", en)){
-        tmp.ntp_enabled = en;
-        tmp.time_cfg.ntp_enabled = en;
-    }}
+    // Moved to the END of the function so they override legacy keys!
 
     // ETH mode alias: UI sends eth_dhcp=bool
     { bool dhcp = false;
@@ -641,6 +581,70 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     tmp.channels.wifi_enabled = tmp.wifi_enabled;
     tmp.channels.iridium_enabled = tmp.iridium_enabled;
     tmp.channels.chain_mode = tmp.chain_enabled;
+
+    // --- UI field aliases (config_html sends these names) ---
+    // Placed at the end so they OVERRIDE legacy keys (like poll_interval_sec)
+    // Channel flags: ch_eth / ch_gsm / ch_wifi / ch_iridium
+    { bool en=false; if(jsonGetBool(json, "ch_eth", en)){ tmp.eth_enabled = en; tmp.channels.eth_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "ch_gsm", en)){ tmp.gsm_enabled = en; tmp.channels.gsm_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "ch_wifi", en)){ tmp.wifi_enabled = en; tmp.channels.wifi_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "ch_iridium", en)){ tmp.iridium_enabled = en; tmp.channels.iridium_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "chain_mode", en)){ tmp.chain_enabled = en; tmp.channels.chain_mode = en; } }
+
+    // Timing: UI sends _s suffix. Update both legacy and new struct
+    { uint32_t v = 0;
+      if (jsonGetU32(json, "poll_interval_s", v) && v > 0) {
+          tmp.poll_interval_sec = v;
+          tmp.meas.poll_interval_s = (uint16_t)v;
+      }
+      if (jsonGetU32(json, "send_interval_s", v) && v > 0) {
+          tmp.meas.send_interval_s = (uint16_t)v;
+          tmp.send_interval_polls = (tmp.poll_interval_sec > 0)
+              ? (uint32_t)(v / tmp.poll_interval_sec) : 1;
+          if (tmp.send_interval_polls < 1) tmp.send_interval_polls = 1;
+      }
+      if (jsonGetU32(json, "backup_retry_s", v) && v > 0) {
+          tmp.backup_send_interval_sec = v;
+          tmp.meas.backup_retry_s = (uint16_t)v;
+      }
+    }
+    { uint8_t v8 = 0;
+      if (jsonGetU8(json, "avg_count", v8) && v8 > 0) {
+          tmp.avg_count = v8;
+          tmp.meas.avg_count = v8;
+      }
+    }
+
+    // Protocol alias: "proto" → protocol enum
+    { char pv[16]{};
+      if (jsonGetString(json, "proto", pv, sizeof(pv))) {
+          if (std::strcmp(pv,"https_tb")  == 0) { tmp.protocol = ProtocolMode::HTTPS_THINGSBOARD; tmp.proto.mode = ProtocolMode::HTTPS_THINGSBOARD; }
+          else if (std::strcmp(pv,"mqtt_tb")  == 0) { tmp.protocol = ProtocolMode::MQTT_THINGSBOARD; tmp.proto.mode = ProtocolMode::MQTT_THINGSBOARD; }
+          else if (std::strcmp(pv,"mqtt_gen") == 0) { tmp.protocol = ProtocolMode::MQTT_GENERIC; tmp.proto.mode = ProtocolMode::MQTT_GENERIC; }
+          else if (std::strcmp(pv,"webhook")  == 0) { tmp.protocol = ProtocolMode::WEBHOOK_HTTP; tmp.proto.mode = ProtocolMode::WEBHOOK_HTTP; }
+      }
+    }
+
+    // ThingsBoard host + token from UI
+    { char s[64]; if(jsonGetString(json, "tb_host", s, sizeof(s))){
+        std::strncpy(tmp.proto.tb_host, s, sizeof(tmp.proto.tb_host));
+    }}
+    { char s[64]; if(jsonGetString(json, "tb_token", s, sizeof(s))){
+        std::strncpy(tmp.proto.tb_token, s, sizeof(tmp.proto.tb_token));
+    }}
+    { uint16_t v16 = 0;
+      if (jsonGetU16(json, "tb_port", v16) && v16 > 0) tmp.proto.tb_port = v16;
+    }
+
+    // NTP alias: UI sends "ntp_server" / "ntp_enabled"
+    { char s[64]; if(jsonGetString(json, "ntp_server", s, sizeof(s))){
+        std::strncpy(tmp.ntp_host, s, sizeof(tmp.ntp_host));
+        std::strncpy(tmp.time_cfg.ntp_server, s, sizeof(tmp.time_cfg.ntp_server));
+    }}
+    { bool en; if(jsonGetBool(json, "ntp_enabled", en)){
+        tmp.ntp_enabled = en;
+        tmp.time_cfg.ntp_enabled = en;
+    }}
 
     tmp.proto.mode = tmp.protocol;
 
