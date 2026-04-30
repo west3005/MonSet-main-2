@@ -3472,6 +3472,47 @@ void WebServer::handleApiConfig(uint8_t sn){
         c.alerts.alert_on_sensor_fail?"true":"false",
         c.alerts.alert_webhook_url
     );
+
+    // Append co_en array
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
+        ",\"co_en\":[%s,%s,%s,%s]",
+        c.channels.eth_enabled?"true":"false",
+        c.channels.gsm_enabled?"true":"false",
+        c.channels.wifi_enabled?"true":"false",
+        c.channels.iridium_enabled?"true":"false");
+
+    // Append rtu array
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, ",\"rtu\":[");
+    for (int i = 0; i < MAX_UART_PORTS; i++) {
+        n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
+            "%s{\"baud\":%lu,\"sb\":%u,\"par\":\"%s\",\"rms\":%u,\"fms\":%u}",
+            i==0?"":",",
+            c.uart_ports[i].baud,
+            (unsigned)c.uart_ports[i].stopbits,
+            c.uart_ports[i].parity==1?"Odd":c.uart_ports[i].parity==2?"Even":"None",
+            500, 3 // dummy rms and fms since they don't exist in backend yet
+        );
+    }
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "]");
+
+    // Append regs array
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, ",\"regs\":[");
+    for (int i = 0; i < c.modbus_map_count; i++) {
+        n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
+            "%s{\"en\":true,\"p\":%u,\"id\":%u,\"f\":%u,\"r\":%u,\"c\":%u,\"t\":%u,\"mul\":%f,\"scl\":%f,\"off\":%f}",
+            i==0?"":",",
+            c.modbus_map[i].port_idx,
+            c.modbus_map[i].slave_id,
+            c.modbus_map[i].function,
+            c.modbus_map[i].reg_addr,
+            c.modbus_map[i].count,
+            c.modbus_map[i].data_type,
+            c.modbus_map[i].multiplier,
+            c.modbus_map[i].scale,
+            c.modbus_map[i].offset
+        );
+    }
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "}");
     if (n < 0 || n >= RESP_BUF_SIZE) {
         DBG.error("WebServer: /api/config JSON overflow! n=%d", n);
         const char* err = "{\"error\":\"json generation failed\"}";

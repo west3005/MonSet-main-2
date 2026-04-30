@@ -560,12 +560,24 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     uint8_t uartCnt = parseObjectArray(json, "uart_ports", parseUartCb,
                                         tmp.uart_ports, sizeof(UartPortCfg),
                                         MAX_UART_PORTS);
+    if (uartCnt == 0) {
+        // UI sends "rtu" instead of "uart_ports"
+        uartCnt = parseObjectArray(json, "rtu", parseUartCb,
+                                   tmp.uart_ports, sizeof(UartPortCfg),
+                                   MAX_UART_PORTS);
+    }
     (void)uartCnt;
 
     // --- NEW: Modbus map array ---
     tmp.modbus_map_count = parseObjectArray(json, "modbus_map", parseModbusCb,
                                              tmp.modbus_map, sizeof(ModbusRegEntry),
                                              MAX_MODBUS_ENTRIES);
+    if (tmp.modbus_map_count == 0) {
+        // UI sends "regs" instead of "modbus_map"
+        tmp.modbus_map_count = parseObjectArray(json, "regs", parseModbusCb,
+                                                tmp.modbus_map, sizeof(ModbusRegEntry),
+                                                MAX_MODBUS_ENTRIES);
+    }
 
     // --- NEW: Misc ---
     (void)jsonGetU8 (json, "avg_count", tmp.avg_count);
@@ -658,6 +670,10 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     { bool en=false; if(jsonGetBool(json, "deep_sleep_enabled", en)) tmp.meas.deep_sleep_enabled = en; }
     { uint32_t v=0; if(jsonGetU32(json, "deep_sleep_s", v)) tmp.meas.deep_sleep_s = (uint16_t)v; }
 
+    { uint32_t v=0; if(jsonGetU32(json, "channel_timeout_s", v)) tmp.channels.channel_timeout_s = (uint16_t)v; }
+    { uint32_t v=0; if(jsonGetU32(json, "channel_retry_s", v)) tmp.channels.channel_retry_s = (uint16_t)v; }
+    { uint32_t v=0; if(jsonGetU32(json, "channel_max_retries", v)) tmp.channels.channel_max_retries = (uint8_t)v; }
+
     { bool en=false; if(jsonGetBool(json, "schedule_enabled", en)) tmp.meas.schedule_enabled = en; }
     { char s[16]{}; if(jsonGetString(json, "schedule_start", s, sizeof(s))) {
         std::strncpy(tmp.meas.schedule_start, s, sizeof(tmp.meas.schedule_start));
@@ -687,7 +703,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
 
     // Alerts UI fields
     { bool en=false; if(jsonGetBool(json, "alerts_enabled", en)) tmp.alerts.alerts_enabled = en; }
-    { float fv=0.0f; if(jsonGetF32(json, "batt_low", fv)) tmp.alerts.battery_low_threshold_pct = fv; }
+    { float fv=0.0f; if(jsonGetF32(json, "battery_low_threshold_pct", fv)) tmp.alerts.battery_low_threshold_pct = fv; }
     { bool en=false; if(jsonGetBool(json, "alert_on_channel_fail", en)) tmp.alerts.alert_on_channel_fail = en; }
     { bool en=false; if(jsonGetBool(json, "alert_on_sensor_fail", en)) tmp.alerts.alert_on_sensor_fail = en; }
     { char s[160]{}; if(jsonGetString(json, "alert_webhook_url", s, sizeof(s))) {
