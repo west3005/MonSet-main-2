@@ -140,7 +140,7 @@ struct MeasurementConfig {
 struct WebConfig {
     char     web_user[32]         = "admin"; ///< HTTP Basic-Auth username
     char     web_pass[32]         = "monset"; ///< HTTP Basic-Auth password
-    bool     web_auth_enabled     = false;   ///< Require authentication to access web UI
+    bool     web_auth_enabled     = true;    ///< Require authentication to access web UI
     uint16_t web_port             = 80;      ///< TCP port the web server listens on
     uint16_t web_idle_timeout_s   = 30;      ///< Close idle connection after this many seconds
     bool     web_exclusive_mode   = true;    ///< Suspend telemetry while web session is active
