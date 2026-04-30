@@ -3734,9 +3734,53 @@ void WebServer::tick(){
                     DBG.info("WebServer: WEB EXCLUSIVE MODE ON");
                     closeDataSockets(HTTP_SOCKET);
                 }
-                if(len>REQ_BUF_SIZE-1) len=REQ_BUF_SIZE-1;
-                int32_t rx=recv(HTTP_SOCKET,(uint8_t*)m_reqBuf,(uint16_t)len);
-                if(rx>0){m_reqBuf[rx]=0;handleRequest(HTTP_SOCKET,m_reqBuf,(uint16_t)rx);}
+
+                // Limit first read to buffer size
+                if(len > REQ_BUF_SIZE - 1) len = REQ_BUF_SIZE - 1;
+                int32_t rx = recv(HTTP_SOCKET, (uint8_t*)m_reqBuf, (uint16_t)len);
+
+                if(rx > 0){
+                    m_reqBuf[rx] = 0;
+
+                    // If POST, check Content-Length and wait for the rest of the body
+                    if (std::strncmp(m_reqBuf, "POST", 4) == 0) {
+                        const char* clStr = std::strstr(m_reqBuf, "Content-Length: ");
+                        if (clStr) {
+                            int cl = std::atoi(clStr + 16);
+                            const char* bodyStart = std::strstr(m_reqBuf, "\r\n\r\n");
+                            if (bodyStart) {
+                                bodyStart += 4; // Skip CRLFCRLF
+                                int currentBodyLen = rx - (bodyStart - m_reqBuf);
+
+                                // Read the remaining bytes if any
+                                uint32_t startWait = HAL_GetTick();
+                                while (currentBodyLen < cl && (HAL_GetTick() - startWait) < 2000) {
+                                    int32_t avail = getSn_RX_RSR(HTTP_SOCKET);
+                                    if (avail > 0) {
+                                        int toRead = cl - currentBodyLen;
+                                        if (toRead > avail) toRead = avail;
+                                        if (rx + toRead > REQ_BUF_SIZE - 1) toRead = REQ_BUF_SIZE - 1 - rx;
+                                        if (toRead <= 0) break; // Safety against overflow
+
+                                        int32_t chunk = recv(HTTP_SOCKET, (uint8_t*)(m_reqBuf + rx), (uint16_t)toRead);
+                                        if (chunk > 0) {
+                                            rx += chunk;
+                                            m_reqBuf[rx] = 0;
+                                            currentBodyLen += chunk;
+                                            startWait = HAL_GetTick(); // Reset timeout
+                                        }
+                                    }
+                                    IWDG->KR = 0xAAAA;
+                                    HAL_Delay(1);
+                                }
+                            }
+                        }
+                    }
+
+                    // Now process the fully assembled request
+                    handleRequest(HTTP_SOCKET, m_reqBuf, (uint16_t)rx);
+                }
+
                 // Wait for TX buffer to drain before closing socket
                 { uint32_t t0=HAL_GetTick();
                   uint16_t txmax=getSn_TxMAX(HTTP_SOCKET);
