@@ -39,18 +39,11 @@ static inline void __enable_irq()  {}
 
 CircularLogBuffer& CircularLogBuffer::instance()
 {
+    // Placed in .bss — zero-initialised by the C runtime, no dynamic allocation.
+    // Placed in CCMRAM (64 KB) — frees RAM for TLS heap and dynamic allocs.
+    // CCMRAM is CPU-accessible only (no DMA), which is fine for log reads/writes.
     static CircularLogBuffer s_instance __attribute__((section(".ccmram")));
     return s_instance;
-}
-
-void CircularLogBuffer::init_ccmram()
-{
-    CircularLogBuffer& log = instance();
-    log.m_head = 0;
-    log.m_count = 0;
-    log.m_total = 0;
-    // We don't need to clear the full 64KB m_buf, just the pointers
-    memset(log.m_buf[0], 0, sizeof(log.m_buf[0]));
 }
 
 // ---------------------------------------------------------------------------
