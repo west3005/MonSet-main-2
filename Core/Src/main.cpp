@@ -209,9 +209,10 @@ extern "C" void SystemClock_Config(void)
 
     // RTC: LSE (32768 Гц)
     // SDIO: PLLQ = 48 МГц (PLLQ=7: 16/16*336/7 = 48 МГц — точное значение для SDIO)
-    periph.PeriphClockSelection = RCC_PERIPHCLK_RTC | RCC_PERIPHCLK_SDMMC1;
+    // SDIO на STM32F407 тактируется от PLLQ (CLK48) аппаратно.
+    // RCC_PERIPHCLK_SDIO не определён для F407 — настройки не нужны.
+    periph.PeriphClockSelection = RCC_PERIPHCLK_RTC;
     periph.RTCClockSelection    = RCC_RTCCLKSOURCE_LSE;
-    /* SDIO clock enabled via RCC_PERIPHCLK_SDMMC1 (alias SDIO on this HAL) */
 
     if (HAL_RCCEx_PeriphCLKConfig(&periph) != HAL_OK) {
         Error_Handler();
