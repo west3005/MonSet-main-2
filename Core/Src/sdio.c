@@ -50,10 +50,13 @@ bool MX_SDIO_SD_Init(void)
     return false;
 
 init_ok:
-    if (HAL_SD_ConfigWideBusOperation(&hsd, SDIO_BUS_WIDE_1B) != HAL_OK) {
-        uart_log_error("[SDIO] ConfigWideBus failed");
-        return false;
-    }
-    uart_log_info("[SDIO] init OK");
+    /*
+     * HAL_SD_ConfigWideBusOperation с SDIO_BUS_WIDE_1B на STM32F407
+     * посылает ACMD6 и ждёт карту в состоянии TRANSFER.
+     * После HAL_SD_Init() карта уже в 1-bit режиме — повторная команда
+     * лишняя и может давать timeout если карта не готова немедленно.
+     * Пропускаем — шина уже 1-bit после инициализации.
+     */
+    uart_log_info("[SDIO] init OK (1-bit, no ConfigWideBus needed)");
     return true;
 }
