@@ -413,12 +413,13 @@ void App::init() {
     DBG.info("[1/9] RTC init"); m_rtc.init();
     DBG.info("[2/9] Modbus init"); m_modbusPort0.init();
     DBG.info("[3/9] SD init");
-    if(!g_sd_disabled){
-        m_sdOk=m_sdBackup.init();
-        DBG.info("[3/9] SD init: %s",m_sdOk?"OK":"FAIL");
+    // SD инициализируется всегда — g_sd_disabled выставляется только
+    // если MX_SDIO_SD_Init() реально упал (см. main.cpp)
+    m_sdOk = !g_sd_disabled && m_sdBackup.init();
+    if (g_sd_disabled) {
+        DBG.warn("[3/9] SD skipped (SDIO hardware failure on boot)");
     } else {
-        m_sdOk=false;
-        DBG.warn("[3/9] SD skipped (watchdog reset)");
+        DBG.info("[3/9] SD init: %s", m_sdOk ? "OK" : "FAIL");
     }
     DBG.info("[4/9] Load runtime config");
     bool cfgLoaded=false;
