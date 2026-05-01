@@ -3512,7 +3512,7 @@ void WebServer::handleApiConfig(uint8_t sn){
             c.modbus_map[i].zero_offset
         );
     }
-    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "}");
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "],\"tcp_devs\":[]}");
     if (n < 0 || n >= RESP_BUF_SIZE) {
         DBG.error("WebServer: /api/config JSON overflow! n=%d", n);
         const char* err = "{\"error\":\"json generation failed\"}";
