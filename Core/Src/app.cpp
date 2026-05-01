@@ -535,6 +535,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
             if (l > 0 && l < (int)sizeof(line)) {
                 if (!m_sdBackup.appendLine(line)) {
                     DBG.error("SD: appendLine failed"); m_sdOk = false;
+                    m_webServer.setSdOk(false); // sync SD status to web
                 }
             }
         }
