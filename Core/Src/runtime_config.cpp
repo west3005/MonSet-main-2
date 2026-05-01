@@ -1056,6 +1056,11 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         char tmpName[64];
         std::snprintf(tmpName, sizeof(tmpName), "%s.tmp", filename);
 
+        // Удаляем stale .tmp если остался (FR_DENIED при FA_CREATE_ALWAYS
+        // возникает когда предыдущий .tmp существует с флагом read-only)
+        f_chmod(tmpName, 0, AM_RDO);   // снимаем read-only если есть
+        f_unlink(tmpName);              // удаляем безусловно; ошибка — не критична
+
         // Пишем во временный файл
         FRESULT fr = f_open(&f, tmpName, FA_CREATE_ALWAYS | FA_WRITE);
         if (fr != FR_OK) {
