@@ -22,6 +22,10 @@ extern "C" {
 /* ======== Глобальные флаги ======== */
 bool g_sd_disabled = false;
 
+// Причина последнего ресета — сохраняем до DBG.init()
+static const char* g_reset_reason_str = "power-on";
+static bool        g_reset_was_wdg    = false;
+
 /* ======== HAL-хэндлы (глобальные) ======== */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -81,9 +85,9 @@ extern "C" int main(void)
     DBG.init();
     DBG.info("BOOT OK");
 
-    if (g_sd_disabled) {
-        DBG.warn("Reset by watchdog -> SD disabled for this run");
-    }
+    // Логируем причину ресета — теперь DBG готов
+    if (g_reset_was_wdg) DBG.warn("Reset reason: %s", g_reset_reason_str);
+    else                 DBG.info("Reset reason: %s", g_reset_reason_str);
 
     DBG.info("HAL + Clock + GPIO + UART1/6 : OK");
 
@@ -116,20 +120,18 @@ extern "C" int main(void)
     MX_DMA_Init();
     DBG.info("DMA OK");
 
-    if (!g_sd_disabled) {
-        DBG.info("MARK before SDIO");
-        HAL_Delay(100);
-        if (!MX_SDIO_SD_Init()) {
-            DBG.error("SDIO: init failed — SD disabled for this boot");
-            g_sd_disabled = true;
-        } else {
-            DBG.info("SDIO init done");
-            DBG.info("MARK before FATFS");
-            MX_FATFS_Init();
-            DBG.info("FATFS OK");
-        }
+    // Всегда пробуем инициализировать SD (один раз).
+    // g_sd_disabled=true только при реальном сбое SDIO — не при типе ресета.
+    DBG.info("MARK before SDIO");
+    HAL_Delay(100);
+    if (!MX_SDIO_SD_Init()) {
+        DBG.error("SDIO: init failed — SD disabled for this boot");
+        g_sd_disabled = true;
     } else {
-        DBG.warn("SD disabled for this run");
+        DBG.info("SDIO init done");
+        DBG.info("MARK before FATFS");
+        MX_FATFS_Init();
+        DBG.info("FATFS OK");
     }
 
     MX_RTC_Init();
@@ -156,7 +158,12 @@ static void CheckResetReason(void)
     bool wwdg_rst = (flags & RCC_CSR_WWDGRSTF) != 0;
     bool soft_rst = (flags & RCC_CSR_SFTRSTF)  != 0;
 
-    g_sd_disabled = (iwdg_rst || wwdg_rst || soft_rst);
+    // Сохраняем строку — DBG ещё не инициализирован, вызов здесь вызовет HardFault.
+    // Логируем позже, после DBG.init().
+    if      (iwdg_rst) { g_reset_reason_str = "IWDG watchdog"; g_reset_was_wdg = true; }
+    else if (wwdg_rst) { g_reset_reason_str = "WWDG watchdog"; g_reset_was_wdg = true; }
+    else if (soft_rst) { g_reset_reason_str = "soft reset (flash/debug)"; }
+    else               { g_reset_reason_str = "power-on"; }
 
     __HAL_RCC_CLEAR_RESET_FLAGS();
 }
@@ -200,6 +207,10 @@ extern "C" void SystemClock_Config(void)
         Error_Handler();
     }
 
+    // RTC: LSE (32768 Гц)
+    // SDIO: PLLQ = 48 МГц (PLLQ=7: 16/16*336/7 = 48 МГц — точное значение для SDIO)
+    // SDIO на STM32F407 тактируется от PLLQ (CLK48) аппаратно.
+    // RCC_PERIPHCLK_SDIO не определён для F407 — настройки не нужны.
     periph.PeriphClockSelection = RCC_PERIPHCLK_RTC;
     periph.RTCClockSelection    = RCC_RTCCLKSOURCE_LSE;
 

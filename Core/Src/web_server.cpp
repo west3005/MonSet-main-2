@@ -158,7 +158,7 @@ bool WebServer::checkAuth(const char* req){
     if(!auth) return false;
     auth+=21;
     char b64[128]{}; int i=0;
-    while(auth[i]&&auth[i]!='\r'&&auth[i]!='\n'&&i<127) b64[i]=auth[i]; i++;
+    while(auth[i]&&auth[i]!='\r'&&auth[i]!='\n'&&i<127){ b64[i]=auth[i]; i++; }
     uint8_t dec[96]; int dLen=base64Decode(b64,dec,sizeof(dec)-1);
     if(dLen<=0) return false;
     dec[dLen]=0;
@@ -3508,7 +3508,8 @@ void WebServer::handleApiConfig(uint8_t sn){
             c.modbus_map[i].zero_offset
         );
     }
-    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "],\"tcp_devs\":[]}");
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "],\"tcp_devs\":[],\"sd_ok\":%s}",
+        m_sdOk ? "true" : "false");
     if (n < 0 || n >= RESP_BUF_SIZE) {
         DBG.error("WebServer: /api/config JSON overflow! n=%d", n);
         const char* err = "{\"error\":\"json generation failed\"}";
@@ -3695,9 +3696,12 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
 
         char resp[256];
         if (sdSaved) {
-            std::snprintf(resp, sizeof(resp), "{\"status\":\"ok\",\"message\":\"Saved to %s & RAM.\"}", RUNTIME_CONFIG_FILENAME);
+            std::snprintf(resp, sizeof(resp),
+                "{\"status\":\"ok\",\"saved_to_sd\":true,\"save_target\":\"sd\",\"message\":\"Saved to %s & RAM.\"}",
+                RUNTIME_CONFIG_FILENAME);
         } else {
-            std::snprintf(resp, sizeof(resp), "{\"status\":\"ok_ram\",\"message\":\"Applied in RAM only. SD error!\"}");
+            std::snprintf(resp, sizeof(resp),
+                "{\"status\":\"ok_ram\",\"saved_to_sd\":false,\"save_target\":\"ram\",\"message\":\"Applied in RAM only. SD error!\"}");
         }
 
         sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
@@ -3709,6 +3713,79 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
+
+// ── GET /api/sd-test — пошаговая диагностика записи на SD ────────────────────
+// Выполняет каждый шаг saveToSd() отдельно и возвращает FRESULT каждого шага.
+// Использовать: curl http://<ip>/api/sd-test  или открыть в браузере.
+void WebServer::handleApiSdTest(uint8_t sn) {
+    static const char* TEST_FILE  = "0:/sd_test_write.tmp";
+    static const char* TEST_FILE2 = "0:/sd_test_write.json";
+    static const char* TEST_DATA  = "{\"sd_test\":true}";
+
+    // --- шаг 1: stat — существование тестового файла ---
+    FILINFO fno1;
+    FRESULT fr1 = f_stat(TEST_FILE, &fno1);
+
+    // --- шаг 2: chmod — не используется (_USE_CHMOD=0), пропускаем ---
+    FRESULT fr2 = FR_OK;  // f_chmod недоступен в этой конфигурации FatFS
+
+    // --- шаг 3: unlink ---
+    FRESULT fr3 = f_unlink(TEST_FILE);
+
+    // --- шаг 4: f_open FA_CREATE_ALWAYS | FA_WRITE ---
+    FIL f4;
+    FRESULT fr4 = f_open(&f4, TEST_FILE, FA_CREATE_ALWAYS | FA_WRITE);
+
+    // --- шаг 5: f_write ---
+    UINT bw = 0;
+    FRESULT fr5 = FR_INT_ERR;
+    if (fr4 == FR_OK) {
+        fr5 = f_write(&f4, TEST_DATA, (UINT)std::strlen(TEST_DATA), &bw);
+        f_close(&f4);
+    }
+
+    // --- шаг 6: f_rename -> .json ---
+    FRESULT fr6 = FR_INT_ERR;
+    if (fr5 == FR_OK && bw > 0) {
+        f_unlink(TEST_FILE2);
+        fr6 = f_rename(TEST_FILE, TEST_FILE2);
+    }
+
+    // --- шаг 7: f_unlink .json (cleanup) ---
+    FRESULT fr7 = f_unlink(TEST_FILE2);
+
+    // --- stat реального config файла ---
+    FILINFO cfgInfo;
+    FRESULT frCfg = f_stat(RUNTIME_CONFIG_FILENAME, &cfgInfo);
+    char cfgTmpName[64];
+    std::snprintf(cfgTmpName, sizeof(cfgTmpName), "%s.tmp", RUNTIME_CONFIG_FILENAME);
+    FILINFO tmpInfo;
+    FRESULT frTmp = f_stat(cfgTmpName, &tmpInfo);
+
+    char resp[512];
+    std::snprintf(resp, sizeof(resp),
+        "{"
+        "\"step1_stat_tmp\":%d,"
+        "\"step2_chmod\":%d,"
+        "\"step3_unlink\":%d,"
+        "\"step4_open\":%d,"
+        "\"step5_write\":%d,\"bytes_written\":%u,"
+        "\"step6_rename\":%d,"
+        "\"step7_cleanup\":%d,"
+        "\"cfg_stat\":%d,"
+        "\"cfg_tmp_stat\":%d,"
+        "\"result\":\"%s\""
+        "}",
+        (int)fr1, (int)fr2, (int)fr3, (int)fr4,
+        (int)fr5, (unsigned)bw,
+        (int)fr6, (int)fr7,
+        (int)frCfg, (int)frTmp,
+        (fr4 == FR_OK && fr5 == FR_OK && fr6 == FR_OK) ? "PASS" : "FAIL"
+    );
+
+    sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
+}
+
 void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
     if(!checkAuth(request)){send401(sn);return;}
     if(m_activityCb) m_activityCb(m_activityCtx);
@@ -3739,6 +3816,7 @@ void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
         else if(std::strcmp(cleanPath,"/api/test_result")==0)handleApiTestResult(sn);
         else if(std::strcmp(cleanPath,"/api/logs/export")==0)handleApiLogsExport(sn);
         else if(std::strncmp(cleanPath,"/api/logs",9)==0) handleApiLogs(sn,queryStr);
+        else if(std::strcmp(cleanPath,"/api/sd-test")==0)  handleApiSdTest(sn);
         else{
             const char* ext=std::strrchr(cleanPath,'.');
             const char* ct="text/plain";

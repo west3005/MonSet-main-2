@@ -744,13 +744,23 @@ bool RuntimeConfig::loadFromSd(const char* filename) {
 
     FIL f;
     FRESULT fr = f_open(&f, filename, FA_READ);
+    if (fr == FR_NO_FILE) {
+        DBG.warn("CFG: %s not found, creating with defaults", filename);
+        validateAndFix();
+        if (saveToSd(filename)) {
+            DBG.info("CFG: %s created OK", filename);
+        } else {
+            DBG.error("CFG: failed to create %s on SD", filename);
+        }
+        return false;
+    }
     if (fr != FR_OK) {
-        DBG.warn("CFG: %s not found -> defaults", filename);
+        DBG.warn("CFG: f_open error %d -> defaults", (int)fr);
         validateAndFix();
         return false;
     }
 
-    static char buf[4096];
+    static char buf[6144];
     UINT br = 0;
     fr = f_read(&f, buf, sizeof(buf) - 1, &br);
     f_close(&f);
@@ -760,6 +770,7 @@ bool RuntimeConfig::loadFromSd(const char* filename) {
         validateAndFix();
         return false;
     }
+    DBG.info("CFG: read %u bytes from %s", (unsigned)br, filename);
 
     buf[br] = 0;
     if (!loadFromJson(buf, (size_t)br)) {
@@ -1044,6 +1055,10 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         FIL f;
         char tmpName[64];
         std::snprintf(tmpName, sizeof(tmpName), "%s.tmp", filename);
+
+        // Удаляем stale .tmp если остался
+        // f_chmod не используется (_USE_CHMOD=0 в ffconf.h)
+        f_unlink(tmpName);  // удаляем безусловно; ошибка — не критична
 
         // Пишем во временный файл
         FRESULT fr = f_open(&f, tmpName, FA_CREATE_ALWAYS | FA_WRITE);
