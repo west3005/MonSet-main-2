@@ -3694,8 +3694,8 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
     RuntimeConfig newCfg=Cfg();
     if(newCfg.loadFromJson(body,std::strlen(body))){
         Cfg()=newCfg;
-        bool sdSaved=false;
-        if(m_sdOk) sdSaved=Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
+        bool sdSaved = Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
+        if (sdSaved) m_sdOk = true;
 
         char resp[256];
         if (sdSaved) {
