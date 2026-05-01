@@ -207,8 +207,11 @@ extern "C" void SystemClock_Config(void)
         Error_Handler();
     }
 
-    periph.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+    // RTC: LSE (32768 Гц)
+    // SDIO: PLLQ = 48 МГц (PLLQ=7: 16/16*336/7 = 48 МГц — точное значение для SDIO)
+    periph.PeriphClockSelection = RCC_PERIPHCLK_RTC | RCC_PERIPHCLK_SDIO;
     periph.RTCClockSelection    = RCC_RTCCLKSOURCE_LSE;
+    periph.SdioClockSelection   = RCC_SDIOCLKSOURCE_CLK48;
 
     if (HAL_RCCEx_PeriphCLKConfig(&periph) != HAL_OK) {
         Error_Handler();
