@@ -3508,7 +3508,8 @@ void WebServer::handleApiConfig(uint8_t sn){
             c.modbus_map[i].zero_offset
         );
     }
-    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "],\"tcp_devs\":[]}");
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "],\"tcp_devs\":[],\"sd_ok\":%s}",
+        m_sdOk ? "true" : "false");
     if (n < 0 || n >= RESP_BUF_SIZE) {
         DBG.error("WebServer: /api/config JSON overflow! n=%d", n);
         const char* err = "{\"error\":\"json generation failed\"}";
@@ -3695,9 +3696,12 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
 
         char resp[256];
         if (sdSaved) {
-            std::snprintf(resp, sizeof(resp), "{\"status\":\"ok\",\"message\":\"Saved to %s & RAM.\"}", RUNTIME_CONFIG_FILENAME);
+            std::snprintf(resp, sizeof(resp),
+                "{\"status\":\"ok\",\"saved_to_sd\":true,\"save_target\":\"sd\",\"message\":\"Saved to %s & RAM.\"}",
+                RUNTIME_CONFIG_FILENAME);
         } else {
-            std::snprintf(resp, sizeof(resp), "{\"status\":\"ok_ram\",\"message\":\"Applied in RAM only. SD error!\"}");
+            std::snprintf(resp, sizeof(resp),
+                "{\"status\":\"ok_ram\",\"saved_to_sd\":false,\"save_target\":\"ram\",\"message\":\"Applied in RAM only. SD error!\"}");
         }
 
         sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
