@@ -750,7 +750,7 @@ bool RuntimeConfig::loadFromSd(const char* filename) {
         return false;
     }
 
-    static char buf[4096];
+    static char buf[6144];
     UINT br = 0;
     fr = f_read(&f, buf, sizeof(buf) - 1, &br);
     f_close(&f);
@@ -760,6 +760,7 @@ bool RuntimeConfig::loadFromSd(const char* filename) {
         validateAndFix();
         return false;
     }
+    DBG.info("CFG: read %u bytes from %s", (unsigned)br, filename);
 
     buf[br] = 0;
     if (!loadFromJson(buf, (size_t)br)) {
