@@ -3726,8 +3726,8 @@ void WebServer::handleApiSdTest(uint8_t sn) {
     FILINFO fno1;
     FRESULT fr1 = f_stat(TEST_FILE, &fno1);
 
-    // --- шаг 2: chmod — снять read-only ---
-    FRESULT fr2 = f_chmod(TEST_FILE, 0, AM_RDO);
+    // --- шаг 2: chmod — не используется (_USE_CHMOD=0), пропускаем ---
+    FRESULT fr2 = FR_OK;  // f_chmod недоступен в этой конфигурации FatFS
 
     // --- шаг 3: unlink ---
     FRESULT fr3 = f_unlink(TEST_FILE);
