@@ -22,6 +22,10 @@ extern "C" {
 /* ======== Глобальные флаги ======== */
 bool g_sd_disabled = false;
 
+// Причина последнего ресета — сохраняем до DBG.init()
+static const char* g_reset_reason_str = "power-on";
+static bool        g_reset_was_wdg    = false;
+
 /* ======== HAL-хэндлы (глобальные) ======== */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -146,10 +150,6 @@ extern "C" int main(void)
 
     return 0;
 }
-
-// Причина последнего ресета — сохраняем до инициализации DBG
-static const char* g_reset_reason_str = "power-on";
-static bool        g_reset_was_wdg    = false;
 
 static void CheckResetReason(void)
 {
