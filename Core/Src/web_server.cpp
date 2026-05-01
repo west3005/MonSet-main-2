@@ -158,7 +158,7 @@ bool WebServer::checkAuth(const char* req){
     if(!auth) return false;
     auth+=21;
     char b64[128]{}; int i=0;
-    while(auth[i]&&auth[i]!='\r'&&auth[i]!='\n'&&i<127) b64[i]=auth[i]; i++;
+    while(auth[i]&&auth[i]!='\r'&&auth[i]!='\n'&&i<127){ b64[i]=auth[i]; i++; }
     uint8_t dec[96]; int dLen=base64Decode(b64,dec,sizeof(dec)-1);
     if(dLen<=0) return false;
     dec[dLen]=0;
