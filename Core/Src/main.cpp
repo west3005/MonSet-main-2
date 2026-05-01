@@ -81,7 +81,9 @@ extern "C" int main(void)
     DBG.init();
     DBG.info("BOOT OK");
 
-    // Reset reason будет выведен в CheckResetReason (вызывается перед main).
+    // Логируем причину ресета — теперь DBG готов
+    if (g_reset_was_wdg) DBG.warn("Reset reason: %s", g_reset_reason_str);
+    else                 DBG.info("Reset reason: %s", g_reset_reason_str);
 
     DBG.info("HAL + Clock + GPIO + UART1/6 : OK");
 
@@ -145,6 +147,10 @@ extern "C" int main(void)
     return 0;
 }
 
+// Причина последнего ресета — сохраняем до инициализации DBG
+static const char* g_reset_reason_str = "power-on";
+static bool        g_reset_was_wdg    = false;
+
 static void CheckResetReason(void)
 {
     uint32_t flags = RCC->CSR;
@@ -152,17 +158,12 @@ static void CheckResetReason(void)
     bool wwdg_rst = (flags & RCC_CSR_WWDGRSTF) != 0;
     bool soft_rst = (flags & RCC_CSR_SFTRSTF)  != 0;
 
-    // SD блокируется только если SDIO реально завис в прошлый раз
-    // (это выставляется ниже в блоке SDIO init при реальном сбое).
-    // Причина ресета только логируется — не блокирует SD.
-    if (iwdg_rst)  DBG.warn("Reset reason: IWDG watchdog");
-    else if (wwdg_rst) DBG.warn("Reset reason: WWDG watchdog");
-    else if (soft_rst) DBG.info("Reset reason: soft reset (flash/debug)");
-    else               DBG.info("Reset reason: power-on");
-
-    // g_sd_disabled не трогаем — он false по умолчанию.
-    // Выставляется только в блоке SDIO init если карта не отвечает.
-    (void)iwdg_rst; (void)wwdg_rst; (void)soft_rst;
+    // Сохраняем строку — DBG ещё не инициализирован, вызов здесь вызовет HardFault.
+    // Логируем позже, после DBG.init().
+    if      (iwdg_rst) { g_reset_reason_str = "IWDG watchdog"; g_reset_was_wdg = true; }
+    else if (wwdg_rst) { g_reset_reason_str = "WWDG watchdog"; g_reset_was_wdg = true; }
+    else if (soft_rst) { g_reset_reason_str = "soft reset (flash/debug)"; }
+    else               { g_reset_reason_str = "power-on"; }
 
     __HAL_RCC_CLEAR_RESET_FLAGS();
 }
