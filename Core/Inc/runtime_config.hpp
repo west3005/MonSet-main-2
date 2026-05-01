@@ -490,4 +490,4 @@ struct RuntimeConfig
 RuntimeConfig& Cfg();
 
 /// Default filename used for SD card persistence.
-constexpr const char* RUNTIME_CONFIG_FILENAME = "runtime_config.json";
+constexpr const char* RUNTIME_CONFIG_FILENAME = "0:/runtime_config.json";
