@@ -25,6 +25,11 @@ public:
     bool isRunning() const { return m_running; }
     void setActivityCallback(void (*cb)(void*), void* ctx);
 
+    /** Inform the WebServer whether the SD card (FATFS) is available.
+     *  Call after App::init() once m_sdOk is known.
+     *  When false, POST /api/config applies changes in RAM only. */
+    void setSdOk(bool ok) { m_sdOk = ok; }
+
     /**
      * sendResponse — public.
      * Sends HTTP response with chunked TX to work around W5500
@@ -41,6 +46,7 @@ private:
     BatteryMonitor* m_battery = nullptr;
     App*            m_app     = nullptr;
     bool            m_running = false;
+    bool            m_sdOk    = false;  ///< SD card available (set via setSdOk)
 
     void (*m_activityCb)(void*) = nullptr;
     void*  m_activityCtx        = nullptr;
@@ -48,7 +54,7 @@ private:
     static constexpr uint8_t  HTTP_SOCKET = 5;
     static constexpr uint16_t HTTP_PORT   = 80;
 
-    static constexpr uint16_t REQ_BUF_SIZE  = 1024;
+    static constexpr uint16_t REQ_BUF_SIZE  = 12288;
     char m_reqBuf[REQ_BUF_SIZE];
 
     /**
@@ -56,7 +62,7 @@ private:
      * TX отправка идёт чанками по TX_CHUNK_SIZE, поэтому буфер
      * может быть больше TX буфера W5500.
      */
-    static constexpr uint16_t RESP_BUF_SIZE = 6144;
+    static constexpr uint16_t RESP_BUF_SIZE = 12288;
 
     /**
      * TX_CHUNK_SIZE — размер одного вызова send() в sendResponse.
@@ -92,6 +98,7 @@ private:
     void handleApiLogs(uint8_t sn, const char* queryStr);
     void handleApiLogsExport(uint8_t sn);   // ← ДОЛЖЕН БЫТЬ ОПРЕДЕЛЁН В CPP
     void handleApiLogsClear(uint8_t sn);
+    void handleApiBackupDownload(uint8_t sn);
 
     // POST
     void handlePostConfig(uint8_t sn, const char* body);

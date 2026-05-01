@@ -5,6 +5,7 @@
  * ================================================================
  */
 #include "debug_uart.hpp"
+#include "circular_log.hpp"
 
 DebugUart DBG(&huart1);
 
@@ -88,6 +89,9 @@ void DebugUart::send(LogLevel lvl, const char* fmt, va_list args) {
 
   int total = hdr + body;
   if (total > (int)sizeof(m_buf) - 4) total = (int)sizeof(m_buf) - 4;
+
+  /* Mirror into CircularLogBuffer BEFORE adding \r\n to m_buf */
+  CircularLogBuffer::instance().write(levelStr(lvl), m_buf + hdr);
 
   m_buf[total++] = '\r';
   m_buf[total++] = '\n';

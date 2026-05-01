@@ -153,10 +153,10 @@ bool CaptivePortal::parseFormData(const char* body) {
         std::strncpy(c.mqtt_pass, tmp, sizeof(c.mqtt_pass) - 1);
 
     if (getFormField(body, "web_user", tmp, sizeof(tmp)))
-        std::strncpy(c.web_user, tmp, sizeof(c.web_user) - 1);
+        std::strncpy(c.web.web_user, tmp, sizeof(c.web.web_user) - 1);
 
     if (getFormField(body, "web_pass", tmp, sizeof(tmp)))
-        std::strncpy(c.web_pass, tmp, sizeof(c.web_pass) - 1);
+        std::strncpy(c.web.web_pass, tmp, sizeof(c.web.web_pass) - 1);
 
     // Protocol mode
     if (getFormField(body, "protocol", tmp, sizeof(tmp))) {
@@ -221,7 +221,7 @@ int CaptivePortal::generateSetupPage(char* out, size_t outSz) {
         c.mqtt_user,
         (c.protocol == ProtocolMode::MQTT_GENERIC || c.protocol == ProtocolMode::MQTT_THINGSBOARD) ? "mqtt" : "https",
         (unsigned long)c.poll_interval_sec,
-        c.web_user);
+        c.web.web_user);
 }
 
 // ================================================================

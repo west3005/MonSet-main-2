@@ -443,6 +443,7 @@ void App::init() {
     if(Cfg().eth_enabled&&m_mode==SystemMode::Debug){
         if(ensureEthReady()){
             m_webServer.init(&m_sensor,&m_sdBackup,&m_battery,this);
+            m_webServer.setSdOk(m_sdOk);
         }
     }
     if(m_mode==SystemMode::Debug) ledOn(); else ledBlink(3,200);

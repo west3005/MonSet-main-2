@@ -116,8 +116,6 @@ void RuntimeConfig::setDefaultsFromConfig() {
     backup_send_interval_sec = 600;
     battery_low_pct = 20;
 
-    web_user[0] = 0;
-    web_pass[0] = 0;
 
     wifi_ssid[0] = 0;
     wifi_pass[0] = 0;
@@ -249,6 +247,13 @@ static bool jsonGetF32(const char* json, const char* key, float& out) {
     const char* p = findKey(json, key);
     if (!p) return false;
     out = std::strtof(p, nullptr);
+    return true;
+}
+
+static bool jsonGetI32(const char* json, const char* key, int& out) {
+    const char* p = findKey(json, key);
+    if (!p) return false;
+    out = std::atoi(p);
     return true;
 }
 
@@ -410,16 +415,65 @@ static uint8_t parseU8Array(const char* json, const char* key,
 // -----------------------------------------------------------------------------
 // loadFromJson
 // -----------------------------------------------------------------------------
+
+// Parse JSON boolean array: "key":[true,false,...] → out[0..maxLen-1]
+// Returns true if key found and at least one element parsed
+static bool parseBoolArray(const char* json, const char* key,
+                           bool* out, uint8_t maxLen) {
+    char needle[48];
+    std::snprintf(needle, sizeof(needle), "\"%s\":[", key);
+    const char* p = std::strstr(json, needle);
+    if (!p) return false;
+    p += std::strlen(needle);
+    uint8_t idx = 0;
+    while (*p && *p != ']' && idx < maxLen) {
+        while (*p == ' ' || *p == '\t' || *p == ',') ++p;
+        if (std::strncmp(p, "true",  4) == 0) { out[idx++] = true;  p += 4; }
+        else if (std::strncmp(p, "false", 5) == 0) { out[idx++] = false; p += 5; }
+        else ++p;
+    }
+    return idx > 0;
+}
+
 bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     if (!json || len < 2) return false;
 
-    RuntimeConfig tmp;
-    tmp.setDefaultsFromConfig();
+    RuntimeConfig tmp = *this;
+    // Do NOT setDefaultsFromConfig here, otherwise we overwrite current state
+    // with hardcoded defaults for keys missing in the JSON payload!
 
     // --- Legacy fields (backward compat) ---
     (void)jsonGetBool  (json, "complex_enabled", tmp.complex_enabled);
     (void)jsonGetString(json, "metric_id",       tmp.metric_id,   sizeof(tmp.metric_id));
     (void)jsonGetString(json, "complex_id",      tmp.complex_id,  sizeof(tmp.complex_id));
+
+    // --- UI field aliases (config_html sends these names) ---
+    // Moved to the END of the function so they override legacy keys!
+
+    // ETH mode alias: UI sends eth_dhcp=bool
+    { bool dhcp = false;
+      if (jsonGetBool(json, "eth_dhcp", dhcp))
+          tmp.eth_mode = dhcp ? EthMode::Dhcp : EthMode::Static;
+    }
+
+    // Chain order / enable arrays from UI
+    { uint8_t ord[MAX_CHAIN_ORDER]{};
+      uint8_t cnt = parseU8Array(json, "chain_order", ord, MAX_CHAIN_ORDER);
+      if (cnt > 0) {
+          std::memcpy(tmp.channels.chain_order, ord, cnt);
+          tmp.chain_count = cnt;
+          tmp.channels.chain_count = cnt;
+      }
+    }
+    // co_en: boolean array for chain enable — [true,false,...] → channels.eth/gsm/...
+    { bool en[4]{};
+      if (parseBoolArray(json, "co_en", en, 4)) {
+          tmp.channels.eth_enabled     = en[0];
+          tmp.channels.gsm_enabled     = en[1];
+          tmp.channels.wifi_enabled    = en[2];
+          tmp.channels.iridium_enabled = en[3];
+      }
+    }
 
     (void)jsonGetString(json, "server_url",      tmp.server_url,      sizeof(tmp.server_url));
     (void)jsonGetString(json, "server_auth_b64", tmp.server_auth_b64, sizeof(tmp.server_auth_b64));
@@ -467,12 +521,12 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     if (cnt > 0) tmp.chain_count = cnt;
 
     // --- NEW: MQTT ---
-    (void)jsonGetString(json, "mqtt_host",  tmp.mqtt_host,  sizeof(tmp.mqtt_host));
-    (void)jsonGetU16   (json, "mqtt_port",  tmp.mqtt_port);
-    (void)jsonGetString(json, "mqtt_user",  tmp.mqtt_user,  sizeof(tmp.mqtt_user));
-    (void)jsonGetString(json, "mqtt_pass",  tmp.mqtt_pass,  sizeof(tmp.mqtt_pass));
-    (void)jsonGetString(json, "mqtt_topic", tmp.mqtt_topic, sizeof(tmp.mqtt_topic));
-    (void)jsonGetU8    (json, "mqtt_qos",   tmp.mqtt_qos);
+    (void)jsonGetString(json, "mqtt_host",  tmp.proto.mqtt_host,  sizeof(tmp.proto.mqtt_host));
+    (void)jsonGetU16   (json, "mqtt_port",  tmp.proto.mqtt_port);
+    (void)jsonGetString(json, "mqtt_user",  tmp.proto.mqtt_user,  sizeof(tmp.proto.mqtt_user));
+    (void)jsonGetString(json, "mqtt_pass",  tmp.proto.mqtt_pass,  sizeof(tmp.proto.mqtt_pass));
+    (void)jsonGetString(json, "mqtt_topic", tmp.proto.mqtt_topic, sizeof(tmp.proto.mqtt_topic));
+    (void)jsonGetU8    (json, "mqtt_qos",   tmp.proto.mqtt_qos);
     (void)jsonGetBool  (json, "mqtt_tls",   tmp.mqtt_tls);
 
     // --- NEW: Protocol ---
@@ -506,23 +560,173 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     uint8_t uartCnt = parseObjectArray(json, "uart_ports", parseUartCb,
                                         tmp.uart_ports, sizeof(UartPortCfg),
                                         MAX_UART_PORTS);
+    if (uartCnt == 0) {
+        // UI sends "rtu" instead of "uart_ports"
+        uartCnt = parseObjectArray(json, "rtu", parseUartCb,
+                                   tmp.uart_ports, sizeof(UartPortCfg),
+                                   MAX_UART_PORTS);
+    }
     (void)uartCnt;
 
     // --- NEW: Modbus map array ---
     tmp.modbus_map_count = parseObjectArray(json, "modbus_map", parseModbusCb,
                                              tmp.modbus_map, sizeof(ModbusRegEntry),
                                              MAX_MODBUS_ENTRIES);
+    if (tmp.modbus_map_count == 0) {
+        // UI sends "regs" instead of "modbus_map"
+        tmp.modbus_map_count = parseObjectArray(json, "regs", parseModbusCb,
+                                                tmp.modbus_map, sizeof(ModbusRegEntry),
+                                                MAX_MODBUS_ENTRIES);
+    }
 
     // --- NEW: Misc ---
     (void)jsonGetU8 (json, "avg_count", tmp.avg_count);
     (void)jsonGetU32(json, "backup_send_interval_sec", tmp.backup_send_interval_sec);
     (void)jsonGetU8 (json, "battery_low_pct",          tmp.battery_low_pct);
 
-    (void)jsonGetString(json, "web_user", tmp.web_user, sizeof(tmp.web_user));
-    (void)jsonGetString(json, "web_pass", tmp.web_pass, sizeof(tmp.web_pass));
+    (void)jsonGetString(json, "web_user", tmp.web.web_user, sizeof(tmp.web.web_user));
+    (void)jsonGetString(json, "web_pass", tmp.web.web_pass, sizeof(tmp.web.web_pass));
+    (void)jsonGetBool  (json, "web_auth_enabled", tmp.web.web_auth_enabled);
 
     (void)jsonGetString(json, "wifi_ssid", tmp.wifi_ssid, sizeof(tmp.wifi_ssid));
     (void)jsonGetString(json, "wifi_pass", tmp.wifi_pass, sizeof(tmp.wifi_pass));
+
+    // Synchronize legacy fields -> new nested structs (when loading from SD backup)
+    if (tmp.poll_interval_sec > 0) tmp.meas.poll_interval_s = tmp.poll_interval_sec;
+    if (tmp.send_interval_polls > 0) tmp.meas.send_interval_s = tmp.send_interval_polls * tmp.poll_interval_sec;
+    if (tmp.backup_send_interval_sec > 0) tmp.meas.backup_retry_s = tmp.backup_send_interval_sec;
+
+    tmp.channels.eth_enabled = tmp.eth_enabled;
+    tmp.channels.gsm_enabled = tmp.gsm_enabled;
+    tmp.channels.wifi_enabled = tmp.wifi_enabled;
+    tmp.channels.iridium_enabled = tmp.iridium_enabled;
+    tmp.channels.chain_mode = tmp.chain_enabled;
+
+    // --- UI field aliases (config_html sends these names) ---
+    // Placed at the end so they OVERRIDE legacy keys (like poll_interval_sec)
+    // Channel flags: ch_eth / ch_gsm / ch_wifi / ch_iridium
+    { bool en=false; if(jsonGetBool(json, "ch_eth", en)){ tmp.eth_enabled = en; tmp.channels.eth_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "ch_gsm", en)){ tmp.gsm_enabled = en; tmp.channels.gsm_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "ch_wifi", en)){ tmp.wifi_enabled = en; tmp.channels.wifi_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "ch_iridium", en)){ tmp.iridium_enabled = en; tmp.channels.iridium_enabled = en; } }
+    { bool en=false; if(jsonGetBool(json, "chain_mode", en)){ tmp.chain_enabled = en; tmp.channels.chain_mode = en; } }
+
+    // Timing: UI sends _s suffix. Update both legacy and new struct
+    { uint32_t v = 0;
+      if (jsonGetU32(json, "poll_interval_s", v) && v > 0) {
+          tmp.poll_interval_sec = v;
+          tmp.meas.poll_interval_s = (uint16_t)v;
+      }
+      if (jsonGetU32(json, "send_interval_s", v) && v > 0) {
+          tmp.meas.send_interval_s = (uint16_t)v;
+          tmp.send_interval_polls = (tmp.poll_interval_sec > 0)
+              ? (uint32_t)(v / tmp.poll_interval_sec) : 1;
+          if (tmp.send_interval_polls < 1) tmp.send_interval_polls = 1;
+      }
+      if (jsonGetU32(json, "backup_retry_s", v) && v > 0) {
+          tmp.backup_send_interval_sec = v;
+          tmp.meas.backup_retry_s = (uint16_t)v;
+      }
+    }
+    { uint8_t v8 = 0;
+      if (jsonGetU8(json, "avg_count", v8) && v8 > 0) {
+          tmp.avg_count = v8;
+          tmp.meas.avg_count = v8;
+      }
+    }
+
+    // Protocol alias: "proto" → protocol enum
+    { char pv[16]{};
+      if (jsonGetString(json, "proto", pv, sizeof(pv))) {
+          if (std::strcmp(pv,"https_tb")  == 0) { tmp.protocol = ProtocolMode::HTTPS_THINGSBOARD; tmp.proto.mode = ProtocolMode::HTTPS_THINGSBOARD; }
+          else if (std::strcmp(pv,"mqtt_tb")  == 0) { tmp.protocol = ProtocolMode::MQTT_THINGSBOARD; tmp.proto.mode = ProtocolMode::MQTT_THINGSBOARD; }
+          else if (std::strcmp(pv,"mqtt_gen") == 0) { tmp.protocol = ProtocolMode::MQTT_GENERIC; tmp.proto.mode = ProtocolMode::MQTT_GENERIC; }
+          else if (std::strcmp(pv,"webhook")  == 0) { tmp.protocol = ProtocolMode::WEBHOOK_HTTP; tmp.proto.mode = ProtocolMode::WEBHOOK_HTTP; }
+      }
+    }
+
+    // ThingsBoard host + token from UI
+    { char s[64]; if(jsonGetString(json, "tb_host", s, sizeof(s))){
+        std::strncpy(tmp.proto.tb_host, s, sizeof(tmp.proto.tb_host));
+    }}
+    { char s[64]; if(jsonGetString(json, "tb_token", s, sizeof(s))){
+        std::strncpy(tmp.proto.tb_token, s, sizeof(tmp.proto.tb_token));
+    }}
+    { uint16_t v16 = 0;
+      if (jsonGetU16(json, "tb_port", v16) && v16 > 0) tmp.proto.tb_port = v16;
+    }
+
+    // NTP alias: UI sends "ntp_server" / "ntp_enabled"
+    { char s[64]; if(jsonGetString(json, "ntp_server", s, sizeof(s))){
+        std::strncpy(tmp.ntp_host, s, sizeof(tmp.ntp_host));
+        std::strncpy(tmp.time_cfg.ntp_server, s, sizeof(tmp.time_cfg.ntp_server));
+    }}
+    { bool en; if(jsonGetBool(json, "ntp_enabled", en)){
+        tmp.ntp_enabled = en;
+        tmp.time_cfg.ntp_enabled = en;
+    }}
+
+    // UI aliases missing before: measurement/schedule
+    { bool en=false; if(jsonGetBool(json, "deep_sleep_enabled", en)) tmp.meas.deep_sleep_enabled = en; }
+    { uint32_t v=0; if(jsonGetU32(json, "deep_sleep_s", v)) tmp.meas.deep_sleep_s = (uint16_t)v; }
+
+    { uint32_t v=0; if(jsonGetU32(json, "channel_timeout_s", v)) tmp.channels.channel_timeout_s = (uint16_t)v; }
+    { uint32_t v=0; if(jsonGetU32(json, "channel_retry_s", v)) tmp.channels.channel_retry_s = (uint16_t)v; }
+    { uint32_t v=0; if(jsonGetU32(json, "channel_max_retries", v)) tmp.channels.channel_max_retries = (uint8_t)v; }
+
+    { bool en=false; if(jsonGetBool(json, "schedule_enabled", en)) tmp.meas.schedule_enabled = en; }
+    { char s[16]{}; if(jsonGetString(json, "schedule_start", s, sizeof(s))) {
+        std::strncpy(tmp.meas.schedule_start, s, sizeof(tmp.meas.schedule_start));
+        tmp.meas.schedule_start[sizeof(tmp.meas.schedule_start)-1] = 0;
+    }}
+    { char s[16]{}; if(jsonGetString(json, "schedule_stop", s, sizeof(s))) {
+        std::strncpy(tmp.meas.schedule_stop, s, sizeof(tmp.meas.schedule_stop));
+        tmp.meas.schedule_stop[sizeof(tmp.meas.schedule_stop)-1] = 0;
+    }}
+
+    // Timezone
+    { int iv = 0; if (jsonGetI32(json, "tz_off", iv)) tmp.time_cfg.timezone_offset = (int8_t)iv; }
+
+    // Web UI settings
+    { uint16_t v16 = 0; if (jsonGetU16(json, "web_port", v16) && v16 > 0) tmp.web.web_port = v16; }
+    { uint16_t v16 = 0; if (jsonGetU16(json, "web_idle_timeout_s", v16) && v16 > 0) tmp.web.web_idle_timeout_s = v16; }
+    { bool en=false; if(jsonGetBool(json, "web_exclusive_mode", en)) tmp.web.web_exclusive_mode = en; }
+
+    // TCP master/slave UI fields
+    { bool en=false; if(jsonGetBool(json, "mtcpm_en", en)) tmp.tcp_master.enabled = en; }
+    { bool en=false; if(jsonGetBool(json, "mtcps_en", en)) tmp.tcp_slave.enabled  = en; }
+
+    { uint16_t v16 = 0; if (jsonGetU16(json, "sl_port", v16) && v16 > 0) tmp.tcp_slave.listen_port = v16; }
+    { uint8_t  v8  = 0; if (jsonGetU8 (json, "sl_uid",  v8)) tmp.tcp_slave.unit_id = v8; }
+    { uint8_t  v8  = 0; if (jsonGetU8 (json, "sl_sock", v8)) tmp.tcp_slave.w5500_socket = v8; }
+    { uint16_t v16 = 0; if (jsonGetU16(json, "sl_ctms", v16)) tmp.tcp_slave.connection_timeout_ms = v16; }
+
+    // Alerts UI fields
+    { bool en=false; if(jsonGetBool(json, "alerts_enabled", en)) tmp.alerts.alerts_enabled = en; }
+    { float fv=0.0f; if(jsonGetF32(json, "battery_low_threshold_pct", fv)) tmp.alerts.battery_low_threshold_pct = fv; }
+    { bool en=false; if(jsonGetBool(json, "alert_on_channel_fail", en)) tmp.alerts.alert_on_channel_fail = en; }
+    { bool en=false; if(jsonGetBool(json, "alert_on_sensor_fail", en)) tmp.alerts.alert_on_sensor_fail = en; }
+    { char s[160]{}; if(jsonGetString(json, "alert_webhook_url", s, sizeof(s))) {
+        std::strncpy(tmp.alerts.alert_webhook_url, s, sizeof(tmp.alerts.alert_webhook_url));
+        tmp.alerts.alert_webhook_url[sizeof(tmp.alerts.alert_webhook_url)-1] = 0;
+    }}
+
+    tmp.proto.mode = tmp.protocol;
+
+    // Sync nested protocol fields back to legacy root fields for saveToSd()
+    std::strncpy(tmp.mqtt_host, tmp.proto.mqtt_host, sizeof(tmp.mqtt_host));
+    tmp.mqtt_port = tmp.proto.mqtt_port;
+    std::strncpy(tmp.mqtt_user, tmp.proto.mqtt_user, sizeof(tmp.mqtt_user));
+    std::strncpy(tmp.mqtt_pass, tmp.proto.mqtt_pass, sizeof(tmp.mqtt_pass));
+    std::strncpy(tmp.mqtt_topic, tmp.proto.mqtt_topic, sizeof(tmp.mqtt_topic));
+    tmp.mqtt_qos = tmp.proto.mqtt_qos;
+    tmp.mqtt_tls = tmp.proto.mqtt_tls;
+
+    std::strncpy(tmp.webhook_url, tmp.proto.webhook_url, sizeof(tmp.webhook_url));
+    std::strncpy(tmp.webhook_method, tmp.proto.webhook_method, sizeof(tmp.webhook_method));
+
+    tmp.time_cfg.ntp_enabled = tmp.ntp_enabled;
+    std::strncpy(tmp.time_cfg.ntp_server, tmp.ntp_host, sizeof(tmp.time_cfg.ntp_server));
 
     tmp.validateAndFix();
     *this = tmp;
@@ -533,6 +737,9 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
 // loadFromSd
 // -----------------------------------------------------------------------------
 bool RuntimeConfig::loadFromSd(const char* filename) {
+    // Only set defaults if we completely fail to load anything,
+    // otherwise loadFromJson will merge JSON into current state.
+    // However, when booting up, we DO want a clean slate before parsing SD file.
     setDefaultsFromConfig();
 
     FIL f;
@@ -746,16 +953,20 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         (unsigned)avg_count,
         (unsigned long)backup_send_interval_sec,
         (unsigned)battery_low_pct,
-        web_user, web_pass,
+        web.web_user, web.web_pass,
         wifi_ssid, wifi_pass);
 
     if (n <= 0 || n >= (int)sizeof(json)) goto overflow;
 
     {
         FIL f;
-        FRESULT fr = f_open(&f, filename, FA_CREATE_ALWAYS | FA_WRITE);
+        char tmpName[64];
+        std::snprintf(tmpName, sizeof(tmpName), "%s.tmp", filename);
+
+        // Пишем во временный файл
+        FRESULT fr = f_open(&f, tmpName, FA_CREATE_ALWAYS | FA_WRITE);
         if (fr != FR_OK) {
-            DBG.error("CFG: open for write fail fr=%d", (int)fr);
+            DBG.error("CFG: open temp file for write fail fr=%d", (int)fr);
             return false;
         }
 
@@ -765,10 +976,19 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
 
         if (fr != FR_OK || bw == 0) {
             DBG.error("CFG: write fail fr=%d bw=%u", (int)fr, (unsigned)bw);
+            f_unlink(tmpName);
             return false;
         }
 
-        DBG.info("CFG: saved %s (%u bytes)", filename, (unsigned)bw);
+        // Атомарная замена файла
+        f_unlink(filename);
+        fr = f_rename(tmpName, filename);
+        if (fr != FR_OK) {
+            DBG.error("CFG: failed to rename %s to %s, fr=%d", tmpName, filename, (int)fr);
+            return false;
+        }
+
+        DBG.info("CFG: saved %s (%u bytes) atomically", filename, (unsigned)bw);
         return true;
     }
 

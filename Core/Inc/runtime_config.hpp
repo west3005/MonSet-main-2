@@ -140,7 +140,7 @@ struct MeasurementConfig {
 struct WebConfig {
     char     web_user[32]         = "admin"; ///< HTTP Basic-Auth username
     char     web_pass[32]         = "monset"; ///< HTTP Basic-Auth password
-    bool     web_auth_enabled     = true;    ///< Require authentication to access web UI
+    bool     web_auth_enabled     = false;   ///< Require authentication to access web UI
     uint16_t web_port             = 80;      ///< TCP port the web server listens on
     uint16_t web_idle_timeout_s   = 30;      ///< Close idle connection after this many seconds
     bool     web_exclusive_mode   = true;    ///< Suspend telemetry while web session is active
@@ -428,9 +428,6 @@ struct RuntimeConfig
     uint8_t battery_low_pct = 20; ///< Battery low % threshold (legacy; superseded by alerts.battery_low_threshold_pct)
 
     // --- Web auth (legacy flat fields) ---
-    char web_user[32] {}; ///< Web UI username (legacy; superseded by web.web_user)
-    char web_pass[32] {}; ///< Web UI password (legacy; superseded by web.web_pass)
-
     // --- WiFi (legacy flat fields) ---
     char wifi_ssid[64] {}; ///< Wi-Fi SSID
     char wifi_pass[64] {}; ///< Wi-Fi passphrase
