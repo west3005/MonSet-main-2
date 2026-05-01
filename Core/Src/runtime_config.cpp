@@ -744,8 +744,18 @@ bool RuntimeConfig::loadFromSd(const char* filename) {
 
     FIL f;
     FRESULT fr = f_open(&f, filename, FA_READ);
+    if (fr == FR_NO_FILE) {
+        DBG.warn("CFG: %s not found, creating with defaults", filename);
+        validateAndFix();
+        if (saveToSd(filename)) {
+            DBG.info("CFG: %s created OK", filename);
+        } else {
+            DBG.error("CFG: failed to create %s on SD", filename);
+        }
+        return false;
+    }
     if (fr != FR_OK) {
-        DBG.warn("CFG: %s not found -> defaults", filename);
+        DBG.warn("CFG: f_open error %d -> defaults", (int)fr);
         validateAndFix();
         return false;
     }
