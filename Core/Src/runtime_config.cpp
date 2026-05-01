@@ -959,8 +959,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     // --- Extended: channel/meas/proto/time/alert/web/tcp fields ---
     {
         const char* protoStr = "https_tb";
-        if      (proto.mode == ProtocolMode::HTTPS_GENERIC)    protoStr = "https";
-        else if (proto.mode == ProtocolMode::MQTT_GENERIC)      protoStr = "mqtt";
+        if      (proto.mode == ProtocolMode::MQTT_GENERIC)      protoStr = "mqtt";
         else if (proto.mode == ProtocolMode::MQTT_THINGSBOARD)  protoStr = "mqtt_tb";
         else if (proto.mode == ProtocolMode::WEBHOOK_HTTP)      protoStr = "webhook";
 
