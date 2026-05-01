@@ -247,6 +247,7 @@ window.addEventListener('DOMContentLoaded',function(){
     if(d.chain_order){cord=d.chain_order;coen=d.co_en||coen;rndOrd()}
     if(d.tcp_devs){tcpd=d.tcp_devs;rndTD()}
     if(d.regs){regs=d.regs;rndRegs()}
+    if(d.rtu){d.rtu.forEach(function(r,p){if(rtu[p]){Object.assign(rtu[p],r);document.getElementById('tp'+p).innerHTML=rtuH(p);}})}
     sh('ds_f',!!d.deep_sleep_enabled);
     sh('eth_st',!d.eth_dhcp);
   }).catch(function(){});

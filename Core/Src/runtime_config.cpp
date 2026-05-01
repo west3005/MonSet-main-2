@@ -798,7 +798,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     ftoa6(sensor_zero_level, zStr, sizeof(zStr));
     ftoa6(sensor_divider,    dStr, sizeof(dStr));
 
-    static char json[3800];
+    static char json[6144];
     int n = 0;
 
     // --- Base fields ---
@@ -948,13 +948,95 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         "\"web_user\":\"%s\","
         "\"web_pass\":\"%s\","
         "\"wifi_ssid\":\"%s\","
-        "\"wifi_pass\":\"%s\""
-        "}\n",
+        "\"wifi_pass\":\"%s\",",
         (unsigned)avg_count,
         (unsigned long)backup_send_interval_sec,
         (unsigned)battery_low_pct,
         web.web_user, web.web_pass,
         wifi_ssid, wifi_pass);
+    if (n < 0 || n >= (int)sizeof(json)) goto overflow;
+
+    // --- Extended: channel/meas/proto/time/alert/web/tcp fields ---
+    {
+        const char* protoStr = "https_tb";
+        if      (proto.mode == ProtocolMode::MQTT_GENERIC)      protoStr = "mqtt";
+        else if (proto.mode == ProtocolMode::MQTT_THINGSBOARD)  protoStr = "mqtt_tb";
+        else if (proto.mode == ProtocolMode::WEBHOOK_HTTP)      protoStr = "webhook";
+
+        n += std::snprintf(json + n, sizeof(json) - n,
+            "\"proto\":\"%s\","
+            "\"tb_host\":\"%s\","
+            "\"tb_token\":\"%s\","
+            "\"tb_port\":%u,"
+            "\"poll_interval_s\":%u,"
+            "\"send_interval_s\":%u,"
+            "\"backup_retry_s\":%u,"
+            "\"deep_sleep_enabled\":%s,"
+            "\"deep_sleep_s\":%u,"
+            "\"schedule_enabled\":%s,"
+            "\"schedule_start\":\"%s\","
+            "\"schedule_stop\":\"%s\","
+            "\"chain_mode\":%s,"
+            "\"channel_timeout_s\":%u,"
+            "\"channel_retry_s\":%u,"
+            "\"channel_max_retries\":%u,"
+            "\"tz_off\":%d,"
+            "\"ntp_server\":\"%s\","
+            "\"web_auth_enabled\":%s,"
+            "\"web_port\":%u,"
+            "\"web_idle_timeout_s\":%u,"
+            "\"web_exclusive_mode\":%s,"
+            "\"alerts_enabled\":%s,"
+            "\"battery_low_threshold_pct\":%.2f,"
+            "\"alert_on_channel_fail\":%s,"
+            "\"alert_on_sensor_fail\":%s,"
+            "\"alert_webhook_url\":\"%s\","
+            "\"ch_eth\":%s,"
+            "\"ch_gsm\":%s,"
+            "\"ch_wifi\":%s,"
+            "\"ch_iridium\":%s,"
+            "\"mtcpm_en\":%s,"
+            "\"mtcps_en\":%s,"
+            "\"sl_port\":%u,"
+            "\"sl_uid\":%u,"
+            "\"sl_sock\":%u,"
+            "\"sl_ctms\":%u"
+            "}\n",
+            protoStr,
+            proto.tb_host, proto.tb_token, (unsigned)proto.tb_port,
+            (unsigned)meas.poll_interval_s,
+            (unsigned)meas.send_interval_s,
+            (unsigned)meas.backup_retry_s,
+            meas.deep_sleep_enabled  ? "true" : "false",
+            (unsigned)meas.deep_sleep_s,
+            meas.schedule_enabled    ? "true" : "false",
+            meas.schedule_start, meas.schedule_stop,
+            channels.chain_mode      ? "true" : "false",
+            (unsigned)channels.channel_timeout_s,
+            (unsigned)channels.channel_retry_s,
+            (unsigned)channels.channel_max_retries,
+            (int)time_cfg.timezone_offset,
+            time_cfg.ntp_server,
+            web.web_auth_enabled     ? "true" : "false",
+            (unsigned)web.web_port,
+            (unsigned)web.web_idle_timeout_s,
+            web.web_exclusive_mode   ? "true" : "false",
+            alerts.alerts_enabled          ? "true" : "false",
+            alerts.battery_low_threshold_pct,
+            alerts.alert_on_channel_fail   ? "true" : "false",
+            alerts.alert_on_sensor_fail    ? "true" : "false",
+            alerts.alert_webhook_url,
+            channels.eth_enabled     ? "true" : "false",
+            channels.gsm_enabled     ? "true" : "false",
+            channels.wifi_enabled    ? "true" : "false",
+            channels.iridium_enabled ? "true" : "false",
+            tcp_master.enabled       ? "true" : "false",
+            tcp_slave.enabled        ? "true" : "false",
+            (unsigned)tcp_slave.listen_port,
+            (unsigned)tcp_slave.unit_id,
+            (unsigned)tcp_slave.w5500_socket,
+            (unsigned)tcp_slave.connection_timeout_ms);
+    }
 
     if (n <= 0 || n >= (int)sizeof(json)) goto overflow;
 
