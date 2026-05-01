@@ -81,9 +81,7 @@ extern "C" int main(void)
     DBG.init();
     DBG.info("BOOT OK");
 
-    if (g_sd_disabled) {
-        DBG.warn("Reset by watchdog -> SD disabled for this run");
-    }
+    // Reset reason будет выведен в CheckResetReason (вызывается перед main).
 
     DBG.info("HAL + Clock + GPIO + UART1/6 : OK");
 
@@ -116,20 +114,18 @@ extern "C" int main(void)
     MX_DMA_Init();
     DBG.info("DMA OK");
 
-    if (!g_sd_disabled) {
-        DBG.info("MARK before SDIO");
-        HAL_Delay(100);
-        if (!MX_SDIO_SD_Init()) {
-            DBG.error("SDIO: init failed — SD disabled for this boot");
-            g_sd_disabled = true;
-        } else {
-            DBG.info("SDIO init done");
-            DBG.info("MARK before FATFS");
-            MX_FATFS_Init();
-            DBG.info("FATFS OK");
-        }
+    // Всегда пробуем инициализировать SD (один раз).
+    // g_sd_disabled=true только при реальном сбое SDIO — не при типе ресета.
+    DBG.info("MARK before SDIO");
+    HAL_Delay(100);
+    if (!MX_SDIO_SD_Init()) {
+        DBG.error("SDIO: init failed — SD disabled for this boot");
+        g_sd_disabled = true;
     } else {
-        DBG.warn("SD disabled for this run");
+        DBG.info("SDIO init done");
+        DBG.info("MARK before FATFS");
+        MX_FATFS_Init();
+        DBG.info("FATFS OK");
     }
 
     MX_RTC_Init();
@@ -156,7 +152,17 @@ static void CheckResetReason(void)
     bool wwdg_rst = (flags & RCC_CSR_WWDGRSTF) != 0;
     bool soft_rst = (flags & RCC_CSR_SFTRSTF)  != 0;
 
-    g_sd_disabled = (iwdg_rst || wwdg_rst || soft_rst);
+    // SD блокируется только если SDIO реально завис в прошлый раз
+    // (это выставляется ниже в блоке SDIO init при реальном сбое).
+    // Причина ресета только логируется — не блокирует SD.
+    if (iwdg_rst)  DBG.warn("Reset reason: IWDG watchdog");
+    else if (wwdg_rst) DBG.warn("Reset reason: WWDG watchdog");
+    else if (soft_rst) DBG.info("Reset reason: soft reset (flash/debug)");
+    else               DBG.info("Reset reason: power-on");
+
+    // g_sd_disabled не трогаем — он false по умолчанию.
+    // Выставляется только в блоке SDIO init если карта не отвечает.
+    (void)iwdg_rst; (void)wwdg_rst; (void)soft_rst;
 
     __HAL_RCC_CLEAR_RESET_FLAGS();
 }
