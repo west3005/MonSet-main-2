@@ -863,13 +863,29 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       return HAL_ERROR;
     }
 
-    /* Step 3: NOW enable DPSM — card is in rcv state, ready for data */
-    config.DPSM = SDIO_DPSM_ENABLE;
-    (void)SDIO_ConfigData(hsd->Instance, &config);
-
-    /* Write block(s) in polling mode */
+    /* Step 3: pre-fill TX FIFO before enabling DPSM.
+     * When DTEN=1 fires with empty FIFO, SDIO may clock zeros before polling
+     * loop gets to fill it, causing CRC mismatch. Pre-filling 16 words (64 bytes)
+     * ensures SDIO has data ready the moment it starts clocking. */
     dataremaining = config.DataLength;
     datacnt = 0U;
+    {
+        uint32_t prefill = (dataremaining >= 64U) ? 16U : (dataremaining / 4U);
+        uint8_t *pb = tempbuff;
+        for (uint32_t _i = 0U; _i < prefill; _i++) {
+            uint32_t wd = (uint32_t)pb[0] | ((uint32_t)pb[1] << 8U)
+                        | ((uint32_t)pb[2] << 16U) | ((uint32_t)pb[3] << 24U);
+            (void)SDIO_WriteFIFO(hsd->Instance, &wd);
+            pb += 4U;
+            datacnt += 4U;
+            dataremaining -= 4U;
+        }
+        tempbuff = pb;
+    }
+
+    /* Step 3: NOW enable DPSM — TX FIFO already has data, no underrun */
+    config.DPSM = SDIO_DPSM_ENABLE;
+    (void)SDIO_ConfigData(hsd->Instance, &config);
 
 #if defined(SDIO_STA_STBITERR)
     while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND | SDIO_FLAG_STBITERR))
@@ -959,6 +975,12 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     }
     else if(__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DCRCFAIL))
     {
+      extern void uart_log_error(const char *fmt, ...);
+      uart_log_error("[HAL_SD] WriteBlocks DCRCFAIL: STA=0x%08lX DCTRL=0x%08lX datacnt=%lu/%lu",
+                     (unsigned long)hsd->Instance->STA,
+                     (unsigned long)hsd->Instance->DCTRL,
+                     (unsigned long)datacnt,
+                     (unsigned long)(NumberOfBlocks * BLOCKSIZE));
       /* Clear all the static flags */
       __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
       hsd->ErrorCode |= HAL_SD_ERROR_DATA_CRC_FAIL;
@@ -968,6 +990,12 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     }
     else if(__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR))
     {
+      extern void uart_log_error(const char *fmt, ...);
+      uart_log_error("[HAL_SD] WriteBlocks TXUNDERR: STA=0x%08lX DCTRL=0x%08lX datacnt=%lu/%lu",
+                     (unsigned long)hsd->Instance->STA,
+                     (unsigned long)hsd->Instance->DCTRL,
+                     (unsigned long)datacnt,
+                     (unsigned long)(NumberOfBlocks * BLOCKSIZE));
       /* Clear all the static flags */
       __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
       hsd->ErrorCode |= HAL_SD_ERROR_TX_UNDERRUN;
