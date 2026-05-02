@@ -799,6 +799,8 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
   uint32_t count, data, dataremaining, datacnt;
   uint32_t add = BlockAdd;
   uint8_t *tempbuff = pData;
+  extern void uart_log_info(const char *fmt, ...);
+  uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v7 blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
 
   if(NULL == pData)
   {
