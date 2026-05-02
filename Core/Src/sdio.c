@@ -10,13 +10,7 @@ SD_HandleTypeDef hsd;
 
 bool MX_SDIO_SD_Init(void)
 {
-    /* Аппаратный сброс SDIO через RCC — чистое состояние после любого ресета */
-    __HAL_RCC_SDIO_FORCE_RESET();
-    HAL_Delay(5);
-    __HAL_RCC_SDIO_RELEASE_RESET();
-    HAL_Delay(5);
-
-    /* Дать карте время выйти из состояния после сброса (≥1 мс по спеку) */
+    /* Небольшая пауза для стабилизации питания карты (≥1 мс по спеку) */
     HAL_Delay(10);
 
     hsd.Instance             = SDIO;
