@@ -908,6 +908,13 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND))
 #endif
     {
+      /* TXUNDERR handling: SDIO Data Path STOPS when TXUNDERR fires.
+       * Must clear it via ICR to unblock the hardware and let transfer continue. */
+      if (__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR))
+      {
+        hsd->Instance->ICR = SDIO_FLAG_TXUNDERR; /* clear TXUNDERR → unblock SDIO */
+      }
+
       if((__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXFIFOHE) != RESET) &&
          (dataremaining > 0U) &&
          (datacnt < (NumberOfBlocks * BLOCKSIZE)))
