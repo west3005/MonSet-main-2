@@ -598,44 +598,33 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint3
       add *= 512U;
     }
 
-    /* Configure the SD DPSM (Data Path State Machine) */
+    /* FIX STM32F4 HAL polling: send CMD before enabling DPSM.
+     * Original HAL order: ConfigData(DPSM=EN) → CMD → read FIFO.
+     * This causes RX_OVERRUN: DPSM is active before card receives CMD,
+     * garbage on D0-D3 fills FIFO before real data arrives.
+     *
+     * Correct order (per SD spec & F7/H7 HAL): CMD → ConfigData(DPSM=EN) → read FIFO.
+     * Card receives CMD17/CMD18, prepares data block, then DPSM opens to receive it.
+     * Root cause confirmed: ErrorCode=0x20 (RX_OVERRUN), RXFIFOF=1, RXACT=1 in STA. */
+
+    /* Step 1: prepare config but do NOT enable DPSM yet */
     config.DataTimeOut   = SDMMC_DATATIMEOUT;
     config.DataLength    = NumberOfBlocks * BLOCKSIZE;
     config.DataBlockSize = SDIO_DATABLOCK_SIZE_512B;
     config.TransferDir   = SDIO_TRANSFER_DIR_TO_SDIO;
     config.TransferMode  = SDIO_TRANSFER_MODE_BLOCK;
-    config.DPSM          = SDIO_DPSM_ENABLE;
+    config.DPSM          = SDIO_DPSM_DISABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
-    /* STM32F407 errata ES0182 §2.7.3 workaround:
-     * Spurious CCRCFAIL when DPSM (DTEN=1) is enabled before command is sent.
-     * Minimum delay = 8 SDIO_CK cycles. At 400 kHz: 8 x 2.5us = 20us.
-     * At 84 MHz MCU: 20us x 84 = 1680 cycles. Use NOP loop (not HAL_Delay
-     * to avoid FreeRTOS tick dependency at this stage).
-     * v2: increased to 8400 (5x) + log to confirm this code runs. */
-    __DSB();
-    /* Log: confirm patched HAL is running */
-    extern void uart_log_info(const char *fmt, ...);
-    uart_log_info("[HAL_SD] ReadBlocks: DCTRL=0x%08lX NOP_delay_start",
-                  (unsigned long)hsd->Instance->DCTRL);
-    for (volatile uint32_t _dly = 0U; _dly < 8400U; _dly++) { __NOP(); }
-    uart_log_info("[HAL_SD] ReadBlocks: NOP_delay_done CMD%u add=0x%08lX",
-                  (NumberOfBlocks > 1U) ? 18U : 17U,
-                  (unsigned long)add);
-
-    /* Read block(s) in polling mode */
+    /* Step 2: send read command FIRST */
     if(NumberOfBlocks > 1U)
     {
       hsd->Context = SD_CONTEXT_READ_MULTIPLE_BLOCK;
-
-      /* Read Multi Block command */
       errorstate = SDMMC_CmdReadMultiBlock(hsd->Instance, add);
     }
     else
     {
       hsd->Context = SD_CONTEXT_READ_SINGLE_BLOCK;
-
-      /* Read Single Block command */
       errorstate = SDMMC_CmdReadSingleBlock(hsd->Instance, add);
     }
     if(errorstate != HAL_SD_ERROR_NONE)
@@ -647,6 +636,10 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint3
       hsd->Context = SD_CONTEXT_NONE;
       return HAL_ERROR;
     }
+
+    /* Step 3: NOW enable DPSM — card already knows to send data */
+    config.DPSM = SDIO_DPSM_ENABLE;
+    (void)SDIO_ConfigData(hsd->Instance, &config);
 
     /* Poll on SDIO flags */
     dataremaining = config.DataLength;
