@@ -607,6 +607,14 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint3
     config.DPSM          = SDIO_DPSM_ENABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
+    /* STM32F407 errata ES0182 §2.7.3 workaround:
+     * Spurious CCRCFAIL when DPSM (DTEN=1) is enabled before command is sent.
+     * Minimum delay = 8 SDIO_CK cycles. At 400 kHz: 8 x 2.5us = 20us.
+     * At 84 MHz MCU: 20us x 84 = 1680 cycles. Use NOP loop (not HAL_Delay
+     * to avoid FreeRTOS tick dependency at this stage). */
+    __DSB();
+    for (volatile uint32_t _dly = 0U; _dly < 1680U; _dly++) { __NOP(); }
+
     /* Read block(s) in polling mode */
     if(NumberOfBlocks > 1U)
     {
