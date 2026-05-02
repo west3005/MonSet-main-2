@@ -150,10 +150,17 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
                (118U) | SDIO_CLKCR_CLKEN);
     HAL_Delay(2);
 
-    uart_log_info("[DISKIO] read pre: CLKCR=0x%08lX CardState=%d RESP1=0x%08lX",
+    /* Сброс data path перед новой транзакцией */
+    SDIO->DCTRL = 0U;
+    __DSB(); __ISB();
+
+    HAL_SD_CardStateTypeDef cs = HAL_SD_GetCardState(&hsd);
+    uart_log_info("[DISKIO] read pre: CLKCR=0x%08lX CardState=%d RESP1=0x%08lX CardType=%lu RCA=0x%04lX",
                   (unsigned long)SDIO->CLKCR,
-                  (int)HAL_SD_GetCardState(&hsd),
-                  (unsigned long)SDIO->RESP1);
+                  (int)cs,
+                  (unsigned long)SDIO->RESP1,
+                  (unsigned long)hsd.SdCard.CardType,
+                  (unsigned long)hsd.SdCard.RelCardAdd);
 
     hs = HAL_SD_ReadBlocks(&hsd, (uint8_t *)buff,
                            (uint32_t)sector, (uint32_t)count, SD_TIMEOUT);
