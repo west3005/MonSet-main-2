@@ -912,8 +912,26 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     {
       /* TXUNDERR handling: SDIO Data Path STOPS when TXUNDERR fires.
        * Must clear it via ICR to unblock the hardware and let transfer continue. */
+      /* Periodic STA dump every 200ms for diagnosis */
+      {
+        static uint32_t _last_diag = 0U;
+        uint32_t _now = HAL_GetTick();
+        if ((_now - _last_diag) >= 200U) {
+          _last_diag = _now;
+          uint32_t _sta  = hsd->Instance->STA;
+          uint32_t _dcnt = hsd->Instance->DCOUNT;
+          uart_log_info("[HAL_SD] LOOP STA=0x%08lX DCOUNT=%lu datacnt=%lu TXFIFOHE=%d TXUNDERR=%d TXACT=%d",
+            (unsigned long)_sta, (unsigned long)_dcnt, (unsigned long)datacnt,
+            (_sta>>14)&1, (_sta>>4)&1, (_sta>>12)&1);
+        }
+      }
+
       if (__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR))
       {
+        uart_log_info("[HAL_SD] ICR: clear TXUNDERR STA=0x%08lX DCOUNT=%lu datacnt=%lu",
+          (unsigned long)hsd->Instance->STA,
+          (unsigned long)hsd->Instance->DCOUNT,
+          (unsigned long)datacnt);
         hsd->Instance->ICR = SDIO_FLAG_TXUNDERR; /* clear TXUNDERR → unblock SDIO */
       }
 
