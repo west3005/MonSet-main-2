@@ -142,13 +142,24 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
     uart_log_info("[DISKIO] read: sec=%lu cnt=%u", (unsigned long)sector, (unsigned)count);
 
     SD_ClearFlags();
+
+    /* Убеждаемся что CLK включён и скорость рабочая (ClockDiv=2 → 12 МГц, безопаснее 24) */
+    MODIFY_REG(SDIO->CLKCR,
+               SDIO_CLKCR_CLKDIV | SDIO_CLKCR_CLKEN,
+               (2U) | SDIO_CLKCR_CLKEN);
+    HAL_Delay(1);
+
+    uart_log_info("[DISKIO] read pre: CLKCR=0x%08lX CardState=%d",
+                  (unsigned long)SDIO->CLKCR, (int)HAL_SD_GetCardState(&hsd));
+
     hs = HAL_SD_ReadBlocks(&hsd, (uint8_t *)buff,
                            (uint32_t)sector, (uint32_t)count, SD_TIMEOUT);
     if (hs != HAL_OK) {
-        uart_log_error("[DISKIO] read: HAL=%d State=%d ErrorCode=0x%08lX STA=0x%08lX",
+        uart_log_error("[DISKIO] read: HAL=%d State=%d ErrorCode=0x%08lX STA=0x%08lX CLKCR=0x%08lX",
                        (int)hs, (int)hsd.State,
                        (unsigned long)hsd.ErrorCode,
-                       (unsigned long)SDIO->STA);
+                       (unsigned long)SDIO->STA,
+                       (unsigned long)SDIO->CLKCR);
         hsd.State = HAL_SD_STATE_READY;
         SD_ClearFlags();
         return RES_ERROR;
