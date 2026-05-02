@@ -826,28 +826,30 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       add *= 512U;
     }
 
-    /* Configure the SD DPSM (Data Path State Machine) */
+    /* FIX STM32F4 HAL polling write: send CMD before enabling DPSM.
+     * Same root cause as ReadBlocks fix: ConfigData(DPSM=EN) before CMD
+     * causes DATA_CRC_FAIL because card is not yet in rcv state when
+     * host starts clocking data out. Card responds with CRC_ERROR status token.
+     * Fix: CMD24/CMD25 first, then ConfigData(DPSM=EN), then write FIFO. */
+
+    /* Step 1: prepare config, DPSM disabled */
     config.DataTimeOut   = SDMMC_DATATIMEOUT;
     config.DataLength    = NumberOfBlocks * BLOCKSIZE;
     config.DataBlockSize = SDIO_DATABLOCK_SIZE_512B;
     config.TransferDir   = SDIO_TRANSFER_DIR_TO_CARD;
     config.TransferMode  = SDIO_TRANSFER_MODE_BLOCK;
-    config.DPSM          = SDIO_DPSM_ENABLE;
+    config.DPSM          = SDIO_DPSM_DISABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
-    /* Write Blocks in Polling mode */
+    /* Step 2: send write command FIRST */
     if(NumberOfBlocks > 1U)
     {
       hsd->Context = SD_CONTEXT_WRITE_MULTIPLE_BLOCK;
-
-      /* Write Multi Block command */
       errorstate = SDMMC_CmdWriteMultiBlock(hsd->Instance, add);
     }
     else
     {
       hsd->Context = SD_CONTEXT_WRITE_SINGLE_BLOCK;
-
-      /* Write Single Block command */
       errorstate = SDMMC_CmdWriteSingleBlock(hsd->Instance, add);
     }
 
@@ -860,6 +862,10 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       hsd->Context = SD_CONTEXT_NONE;
       return HAL_ERROR;
     }
+
+    /* Step 3: NOW enable DPSM — card is in rcv state, ready for data */
+    config.DPSM = SDIO_DPSM_ENABLE;
+    (void)SDIO_ConfigData(hsd->Instance, &config);
 
     /* Write block(s) in polling mode */
     dataremaining = config.DataLength;
