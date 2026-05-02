@@ -611,9 +611,17 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint3
      * Spurious CCRCFAIL when DPSM (DTEN=1) is enabled before command is sent.
      * Minimum delay = 8 SDIO_CK cycles. At 400 kHz: 8 x 2.5us = 20us.
      * At 84 MHz MCU: 20us x 84 = 1680 cycles. Use NOP loop (not HAL_Delay
-     * to avoid FreeRTOS tick dependency at this stage). */
+     * to avoid FreeRTOS tick dependency at this stage).
+     * v2: increased to 8400 (5x) + log to confirm this code runs. */
     __DSB();
-    for (volatile uint32_t _dly = 0U; _dly < 1680U; _dly++) { __NOP(); }
+    /* Log: confirm patched HAL is running */
+    extern void uart_log_info_c(const char *fmt, ...);
+    uart_log_info_c("[HAL_SD] ReadBlocks: DCTRL=0x%08lX NOP_delay_start",
+                    (unsigned long)hsd->Instance->DCTRL);
+    for (volatile uint32_t _dly = 0U; _dly < 8400U; _dly++) { __NOP(); }
+    uart_log_info_c("[HAL_SD] ReadBlocks: NOP_delay_done, sending CMD%u add=0x%08lX",
+                    (NumberOfBlocks > 1U) ? 18U : 17U,
+                    (unsigned long)add);
 
     /* Read block(s) in polling mode */
     if(NumberOfBlocks > 1U)
