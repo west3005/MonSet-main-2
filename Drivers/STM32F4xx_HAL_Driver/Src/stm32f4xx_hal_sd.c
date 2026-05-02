@@ -990,13 +990,35 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     }
     else if(__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR))
     {
+      extern void uart_log_info(const char *fmt, ...);
       extern void uart_log_error(const char *fmt, ...);
-      uart_log_error("[HAL_SD] WriteBlocks TXUNDERR: STA=0x%08lX DCTRL=0x%08lX datacnt=%lu/%lu",
-                     (unsigned long)hsd->Instance->STA,
-                     (unsigned long)hsd->Instance->DCTRL,
-                     (unsigned long)datacnt,
-                     (unsigned long)(NumberOfBlocks * BLOCKSIZE));
-      /* Clear all the static flags */
+      /* TXUNDERR при полной передаче — нормально для STM32F4:
+       * TX FIFO опустел чуть раньше чем пришёл DATAEND (карта ещё отвечает CRC token).
+       * Если все байты переданы — ждём DATAEND с коротким timeout. */
+      if (datacnt >= (NumberOfBlocks * BLOCKSIZE)) {
+        uint32_t _t = HAL_GetTick();
+        while ((HAL_GetTick() - _t) < 200U) {
+          if (__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DATAEND)) {
+            uart_log_info("[HAL_SD] WriteBlocks TXUNDERR+DATAEND: OK (datacnt=%lu)",
+                          (unsigned long)datacnt);
+            __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
+            hsd->State = HAL_SD_STATE_READY;
+            hsd->Context = SD_CONTEXT_NONE;
+            goto write_check_done;
+          }
+          if (__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DCRCFAIL) ||
+              __HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DTIMEOUT)) {
+            break;
+          }
+        }
+        uart_log_error("[HAL_SD] WriteBlocks TXUNDERR: no DATAEND after 200ms STA=0x%08lX",
+                       (unsigned long)hsd->Instance->STA);
+      } else {
+        uart_log_error("[HAL_SD] WriteBlocks TXUNDERR early: STA=0x%08lX datacnt=%lu/%lu",
+                       (unsigned long)hsd->Instance->STA,
+                       (unsigned long)datacnt,
+                       (unsigned long)(NumberOfBlocks * BLOCKSIZE));
+      }
       __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
       hsd->ErrorCode |= HAL_SD_ERROR_TX_UNDERRUN;
       hsd->State = HAL_SD_STATE_READY;
@@ -1008,6 +1030,7 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       /* Nothing to do */
     }
 
+write_check_done:
     /* Clear all the static flags */
     __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_DATA_FLAGS);
 
