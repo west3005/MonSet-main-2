@@ -912,11 +912,31 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     {
       /* TXUNDERR handling: SDIO Data Path STOPS when TXUNDERR fires.
        * Must clear it via ICR to unblock the hardware and let transfer continue. */
-      /* Clear TXUNDERR to unblock SDIO Data Path if it stalls mid-transfer.
-       * NO uart_log here — any UART blocking call lets SDIO drain the FIFO
-       * at 400kHz before the polling loop can refill it → deadlock. */
+      /* TXUNDERR: Data Path State Machine goes Idle — ICR alone does NOT restart it.
+       * Must toggle DTEN (0→1) to restart. Before that refill FIFO with remaining bytes,
+       * because DTEN=0 clears the FIFO. Use end of original buffer: pData+(512-DCOUNT). */
       if (__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR))
       {
+        uint32_t dcount = hsd->Instance->DCOUNT;
+        if (dcount > 0U)
+        {
+          /* Step 1: stop DPSM → FIFO cleared */
+          hsd->Instance->DCTRL &= ~SDIO_DCTRL_DTEN;
+          /* Step 2: refill FIFO with the remaining dcount bytes from original buffer */
+          {
+            const uint8_t *rewind = pData + (NumberOfBlocks * BLOCKSIZE) - dcount;
+            uint32_t words = dcount / 4U;
+            for (uint32_t _i = 0U; _i < words; _i++) {
+              uint32_t wd = (uint32_t)rewind[0] | ((uint32_t)rewind[1] << 8U)
+                          | ((uint32_t)rewind[2] << 16U) | ((uint32_t)rewind[3] << 24U);
+              (void)SDIO_WriteFIFO(hsd->Instance, &wd);
+              rewind += 4U;
+            }
+          }
+          /* Step 3: restart DPSM */
+          hsd->Instance->DCTRL |= SDIO_DCTRL_DTEN;
+        }
+        /* Step 4: clear TXUNDERR flag */
         hsd->Instance->ICR = SDIO_FLAG_TXUNDERR;
       }
 
