@@ -898,10 +898,14 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     config.DPSM = SDIO_DPSM_ENABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
+/* TXUNDERR removed from exit condition: it fires when TX FIFO drains mid-transfer.
+     * Exiting on TXUNDERR prevents the polling loop from refilling the FIFO and
+     * the card never gets all data → DATAEND never arrives → 500ms timeout.
+     * Let the loop continue: TXFIFOHE will fire again once SDIO reads from FIFO. */
 #if defined(SDIO_STA_STBITERR)
-    while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND | SDIO_FLAG_STBITERR))
+    while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND | SDIO_FLAG_STBITERR))
 #else
-    while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND))
+    while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND))
 #endif
     {
       if((__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXFIFOHE) != RESET) &&
@@ -1001,57 +1005,26 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     }
     else if(__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR))
     {
-      extern void uart_log_info(const char *fmt, ...);
+      /* TXUNDERR здесь = SDIO timeout сработал раньше DATAEND (аппаратная проблема).
+       * В норме этот branch недостижим: while-цикл теперь выходит только по DATAEND/DCRCFAIL/DTIMEOUT. */
       extern void uart_log_error(const char *fmt, ...);
-      /* TXUNDERR при полной передаче — нормально для STM32F4:
-       * TX FIFO опустел чуть раньше чем пришёл DATAEND.
-       * Ждём DATAEND до 500мс, логируем STA каждые 50мс. */
-      if (datacnt >= (NumberOfBlocks * BLOCKSIZE)) {
-        uint32_t _t = HAL_GetTick();
-        uint32_t _last_log = _t;
-        while ((HAL_GetTick() - _t) < 500U) {
-          uint32_t _sta_now = hsd->Instance->STA;
-          if (_sta_now & SDIO_STA_DATAEND) {
-            uart_log_info("[HAL_SD] Write OK: TXUNDERR+DATAEND datacnt=%lu elapsed=%lums",
-                          (unsigned long)datacnt,
-                          (unsigned long)(HAL_GetTick()-_t));
-            __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
-            hsd->State = HAL_SD_STATE_READY;
-            hsd->Context = SD_CONTEXT_NONE;
-            goto write_check_done;
-          }
-          if ((_sta_now & SDIO_STA_DCRCFAIL) || (_sta_now & SDIO_STA_DTIMEOUT)) {
-            uart_log_error("[HAL_SD] Write TXUNDERR: fatal flag STA=0x%08lX", (unsigned long)_sta_now);
-            break;
-          }
-          if ((HAL_GetTick() - _last_log) >= 50U) {
-            uart_log_info("[HAL_SD] Write TXUNDERR: waiting DATAEND STA=0x%08lX t+%lums",
-                          (unsigned long)_sta_now,
-                          (unsigned long)(HAL_GetTick()-_t));
-            _last_log = HAL_GetTick();
-          }
-        }
-        uart_log_error("[HAL_SD] Write TXUNDERR: no DATAEND after 500ms STA=0x%08lX RESP1=0x%08lX",
-                       (unsigned long)hsd->Instance->STA,
-                       (unsigned long)hsd->Instance->RESP1);
-      } else {
-        uart_log_error("[HAL_SD] Write TXUNDERR early: STA=0x%08lX datacnt=%lu/%lu",
-                       (unsigned long)hsd->Instance->STA,
-                       (unsigned long)datacnt,
-                       (unsigned long)(NumberOfBlocks * BLOCKSIZE));
-      }
+      uart_log_error("[HAL_SD] Write TXUNDERR (unexpected): STA=0x%08lX datacnt=%lu/%lu RESP1=0x%08lX",
+                     (unsigned long)hsd->Instance->STA,
+                     (unsigned long)datacnt,
+                     (unsigned long)(NumberOfBlocks * BLOCKSIZE),
+                     (unsigned long)hsd->Instance->RESP1);
       __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
       hsd->ErrorCode |= HAL_SD_ERROR_TX_UNDERRUN;
       hsd->State = HAL_SD_STATE_READY;
       hsd->Context = SD_CONTEXT_NONE;
       return HAL_ERROR;
     }
+
     else
     {
       /* Nothing to do */
     }
 
-write_check_done:
     /* Clear all the static flags */
     __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_DATA_FLAGS);
 
