@@ -826,22 +826,46 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       add *= 512U;
     }
 
-    /* STM32F4 HAL WriteBlocks: original order (ConfigData DPSM=EN → CMD → FIFO).
-     * For TX, DPSM must be enabled BEFORE cmd so SDIO is ready to clock data
-     * as soon as the card acknowledges CMD24/CMD25.
-     * TXUNDERR at datacnt==full is a false error (FIFO drained before card
-     * sends busy-end / DATAEND) — handled after the loop. */
+    /* FIX STM32F4 WriteBlocks: FIFO-first order.
+     * ROOT CAUSE confirmed from log: STA=0x00045000 after CMD24 shows TXACT=1 + TXFIFOE=1.
+     * DPSM=EN before CMD means SDIO is already clocking with EMPTY FIFO when CMD24 is sent.
+     * Card receives zeros (FIFO empty) → CRC mismatch → DCRCFAIL.
+     *
+     * CORRECT ORDER:
+     * 1. ConfigData(DPSM=DISABLE) — no clocking
+     * 2. Pre-fill TX FIFO with 32 words (full FIFO = 128 bytes)
+     * 3. Send CMD24/CMD25 — card enters rcv state
+     * 4. ConfigData(DPSM=ENABLE) — SDIO starts clocking FROM ALREADY-FULL FIFO
+     * 5. Polling loop fills remaining 384 bytes
+     */
 
-    /* Configure the SD DPSM (Data Path State Machine) */
+    /* Step 1: configure without enabling DPSM */
     config.DataTimeOut   = SDMMC_DATATIMEOUT;
     config.DataLength    = NumberOfBlocks * BLOCKSIZE;
     config.DataBlockSize = SDIO_DATABLOCK_SIZE_512B;
     config.TransferDir   = SDIO_TRANSFER_DIR_TO_CARD;
     config.TransferMode  = SDIO_TRANSFER_MODE_BLOCK;
-    config.DPSM          = SDIO_DPSM_ENABLE;
+    config.DPSM          = SDIO_DPSM_DISABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
-    /* Write Blocks in Polling mode */
+    /* Step 2: pre-fill TX FIFO (32 words = 128 bytes, full FIFO depth) */
+    dataremaining = config.DataLength;
+    datacnt = 0U;
+    {
+        /* SDIO TX FIFO depth = 32 words. Fill completely while DPSM is off. */
+        uint32_t prefill_words = (dataremaining / 4U);
+        if (prefill_words > 32U) prefill_words = 32U;
+        for (uint32_t _i = 0U; _i < prefill_words; _i++) {
+            uint32_t wd = (uint32_t)tempbuff[0]        | ((uint32_t)tempbuff[1] << 8U)
+                        | ((uint32_t)tempbuff[2] << 16U)| ((uint32_t)tempbuff[3] << 24U);
+            (void)SDIO_WriteFIFO(hsd->Instance, &wd);
+            tempbuff    += 4U;
+            datacnt     += 4U;
+            dataremaining -= 4U;
+        }
+    }
+
+    /* Step 3: send write command — card enters rcv state */
     if(NumberOfBlocks > 1U)
     {
       hsd->Context = SD_CONTEXT_WRITE_MULTIPLE_BLOCK;
@@ -852,19 +876,17 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       hsd->Context = SD_CONTEXT_WRITE_SINGLE_BLOCK;
       errorstate = SDMMC_CmdWriteSingleBlock(hsd->Instance, add);
     }
-    /* Log R1 response for CMD24/CMD25 */
     {
       extern void uart_log_info(const char *fmt, ...);
-      uart_log_info("[HAL_SD] Write CMD%u: errorstate=0x%08lX RESP1=0x%08lX STA=0x%08lX",
+      uart_log_info("[HAL_SD] Write CMD%u: err=0x%lX RESP1=0x%08lX STA=0x%08lX prefill=%lu",
                     (NumberOfBlocks > 1U) ? 25U : 24U,
                     (unsigned long)errorstate,
                     (unsigned long)hsd->Instance->RESP1,
-                    (unsigned long)hsd->Instance->STA);
+                    (unsigned long)hsd->Instance->STA,
+                    (unsigned long)datacnt);
     }
-
     if(errorstate != HAL_SD_ERROR_NONE)
     {
-      /* Clear all the static flags */
       __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
       hsd->ErrorCode |= errorstate;
       hsd->State = HAL_SD_STATE_READY;
@@ -872,9 +894,9 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       return HAL_ERROR;
     }
 
-    /* Write block(s) in polling mode */
-    dataremaining = config.DataLength;
-    datacnt = 0U;
+    /* Step 4: enable DPSM — TX FIFO is full, SDIO starts clocking real data immediately */
+    config.DPSM = SDIO_DPSM_ENABLE;
+    (void)SDIO_ConfigData(hsd->Instance, &config);
 
 #if defined(SDIO_STA_STBITERR)
     while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND | SDIO_FLAG_STBITERR))
