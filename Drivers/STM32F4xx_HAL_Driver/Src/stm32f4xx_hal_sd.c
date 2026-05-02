@@ -826,22 +826,22 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       add *= 512U;
     }
 
-    /* FIX STM32F4 HAL polling write: send CMD before enabling DPSM.
-     * Same root cause as ReadBlocks fix: ConfigData(DPSM=EN) before CMD
-     * causes DATA_CRC_FAIL because card is not yet in rcv state when
-     * host starts clocking data out. Card responds with CRC_ERROR status token.
-     * Fix: CMD24/CMD25 first, then ConfigData(DPSM=EN), then write FIFO. */
+    /* STM32F4 HAL WriteBlocks: original order (ConfigData DPSM=EN → CMD → FIFO).
+     * For TX, DPSM must be enabled BEFORE cmd so SDIO is ready to clock data
+     * as soon as the card acknowledges CMD24/CMD25.
+     * TXUNDERR at datacnt==full is a false error (FIFO drained before card
+     * sends busy-end / DATAEND) — handled after the loop. */
 
-    /* Step 1: prepare config, DPSM disabled */
+    /* Configure the SD DPSM (Data Path State Machine) */
     config.DataTimeOut   = SDMMC_DATATIMEOUT;
     config.DataLength    = NumberOfBlocks * BLOCKSIZE;
     config.DataBlockSize = SDIO_DATABLOCK_SIZE_512B;
     config.TransferDir   = SDIO_TRANSFER_DIR_TO_CARD;
     config.TransferMode  = SDIO_TRANSFER_MODE_BLOCK;
-    config.DPSM          = SDIO_DPSM_DISABLE;
+    config.DPSM          = SDIO_DPSM_ENABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
-    /* Step 2: send write command FIRST */
+    /* Write Blocks in Polling mode */
     if(NumberOfBlocks > 1U)
     {
       hsd->Context = SD_CONTEXT_WRITE_MULTIPLE_BLOCK;
@@ -851,6 +851,15 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     {
       hsd->Context = SD_CONTEXT_WRITE_SINGLE_BLOCK;
       errorstate = SDMMC_CmdWriteSingleBlock(hsd->Instance, add);
+    }
+    /* Log R1 response for CMD24/CMD25 */
+    {
+      extern void uart_log_info(const char *fmt, ...);
+      uart_log_info("[HAL_SD] Write CMD%u: errorstate=0x%08lX RESP1=0x%08lX STA=0x%08lX",
+                    (NumberOfBlocks > 1U) ? 25U : 24U,
+                    (unsigned long)errorstate,
+                    (unsigned long)hsd->Instance->RESP1,
+                    (unsigned long)hsd->Instance->STA);
     }
 
     if(errorstate != HAL_SD_ERROR_NONE)
@@ -863,29 +872,9 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       return HAL_ERROR;
     }
 
-    /* Step 3: pre-fill TX FIFO before enabling DPSM.
-     * When DTEN=1 fires with empty FIFO, SDIO may clock zeros before polling
-     * loop gets to fill it, causing CRC mismatch. Pre-filling 16 words (64 bytes)
-     * ensures SDIO has data ready the moment it starts clocking. */
+    /* Write block(s) in polling mode */
     dataremaining = config.DataLength;
     datacnt = 0U;
-    {
-        uint32_t prefill = (dataremaining >= 64U) ? 16U : (dataremaining / 4U);
-        uint8_t *pb = tempbuff;
-        for (uint32_t _i = 0U; _i < prefill; _i++) {
-            uint32_t wd = (uint32_t)pb[0] | ((uint32_t)pb[1] << 8U)
-                        | ((uint32_t)pb[2] << 16U) | ((uint32_t)pb[3] << 24U);
-            (void)SDIO_WriteFIFO(hsd->Instance, &wd);
-            pb += 4U;
-            datacnt += 4U;
-            dataremaining -= 4U;
-        }
-        tempbuff = pb;
-    }
-
-    /* Step 3: NOW enable DPSM — TX FIFO already has data, no underrun */
-    config.DPSM = SDIO_DPSM_ENABLE;
-    (void)SDIO_ConfigData(hsd->Instance, &config);
 
 #if defined(SDIO_STA_STBITERR)
     while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND | SDIO_FLAG_STBITERR))
@@ -993,28 +982,38 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       extern void uart_log_info(const char *fmt, ...);
       extern void uart_log_error(const char *fmt, ...);
       /* TXUNDERR при полной передаче — нормально для STM32F4:
-       * TX FIFO опустел чуть раньше чем пришёл DATAEND (карта ещё отвечает CRC token).
-       * Если все байты переданы — ждём DATAEND с коротким timeout. */
+       * TX FIFO опустел чуть раньше чем пришёл DATAEND.
+       * Ждём DATAEND до 500мс, логируем STA каждые 50мс. */
       if (datacnt >= (NumberOfBlocks * BLOCKSIZE)) {
         uint32_t _t = HAL_GetTick();
-        while ((HAL_GetTick() - _t) < 200U) {
-          if (__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DATAEND)) {
-            uart_log_info("[HAL_SD] WriteBlocks TXUNDERR+DATAEND: OK (datacnt=%lu)",
-                          (unsigned long)datacnt);
+        uint32_t _last_log = _t;
+        while ((HAL_GetTick() - _t) < 500U) {
+          uint32_t _sta_now = hsd->Instance->STA;
+          if (_sta_now & SDIO_STA_DATAEND) {
+            uart_log_info("[HAL_SD] Write OK: TXUNDERR+DATAEND datacnt=%lu elapsed=%lums",
+                          (unsigned long)datacnt,
+                          (unsigned long)(HAL_GetTick()-_t));
             __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
             hsd->State = HAL_SD_STATE_READY;
             hsd->Context = SD_CONTEXT_NONE;
             goto write_check_done;
           }
-          if (__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DCRCFAIL) ||
-              __HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DTIMEOUT)) {
+          if ((_sta_now & SDIO_STA_DCRCFAIL) || (_sta_now & SDIO_STA_DTIMEOUT)) {
+            uart_log_error("[HAL_SD] Write TXUNDERR: fatal flag STA=0x%08lX", (unsigned long)_sta_now);
             break;
           }
+          if ((HAL_GetTick() - _last_log) >= 50U) {
+            uart_log_info("[HAL_SD] Write TXUNDERR: waiting DATAEND STA=0x%08lX t+%lums",
+                          (unsigned long)_sta_now,
+                          (unsigned long)(HAL_GetTick()-_t));
+            _last_log = HAL_GetTick();
+          }
         }
-        uart_log_error("[HAL_SD] WriteBlocks TXUNDERR: no DATAEND after 200ms STA=0x%08lX",
-                       (unsigned long)hsd->Instance->STA);
+        uart_log_error("[HAL_SD] Write TXUNDERR: no DATAEND after 500ms STA=0x%08lX RESP1=0x%08lX",
+                       (unsigned long)hsd->Instance->STA,
+                       (unsigned long)hsd->Instance->RESP1);
       } else {
-        uart_log_error("[HAL_SD] WriteBlocks TXUNDERR early: STA=0x%08lX datacnt=%lu/%lu",
+        uart_log_error("[HAL_SD] Write TXUNDERR early: STA=0x%08lX datacnt=%lu/%lu",
                        (unsigned long)hsd->Instance->STA,
                        (unsigned long)datacnt,
                        (unsigned long)(NumberOfBlocks * BLOCKSIZE));
