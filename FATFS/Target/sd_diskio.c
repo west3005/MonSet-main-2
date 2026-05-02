@@ -193,7 +193,9 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     if (Stat & STA_NOINIT)               { return RES_NOTRDY; }
     if ((buff == NULL) || (count == 0U)) { return RES_PARERR; }
 
-    uart_log_info("[DISKIO] write: sec=%lu cnt=%u", (unsigned long)sector, (unsigned)count);
+    uart_log_info("[DISKIO] write: sec=%lu cnt=%u CardState=%d",
+                  (unsigned long)sector, (unsigned)count,
+                  (int)HAL_SD_GetCardState(&hsd));
 
     SD_ClearFlags();
     HAL_Delay(1);
@@ -201,10 +203,11 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
     hs = HAL_SD_WriteBlocks(&hsd, (uint8_t *)buff,
                             (uint32_t)sector, (uint32_t)count, SD_TIMEOUT);
     if (hs != HAL_OK) {
-        uart_log_error("[DISKIO] write: HAL=%d State=%d ErrorCode=0x%08lX STA=0x%08lX",
+        uart_log_error("[DISKIO] write: HAL=%d State=%d ErrorCode=0x%08lX STA=0x%08lX CardState=%d",
                        (int)hs, (int)hsd.State,
                        (unsigned long)hsd.ErrorCode,
-                       (unsigned long)SDIO->STA);
+                       (unsigned long)SDIO->STA,
+                       (int)HAL_SD_GetCardState(&hsd));
         hsd.State = HAL_SD_STATE_READY;
         SD_ClearFlags();
         return RES_ERROR;
