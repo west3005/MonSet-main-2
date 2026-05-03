@@ -897,6 +897,7 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
         /* Write data to SDIO Tx FIFO */
         for(count = 0U; count < 8U; count++)
         {
+          if(dataremaining < 4U) { break; } /* FIX: guard against buffer overread */
           data = (uint32_t)(*tempbuff);
           tempbuff++;
           dataremaining--;
