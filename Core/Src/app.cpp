@@ -440,12 +440,14 @@ void App::init() {
     DBG.info("Mode: %s",m_mode==SystemMode::Debug?"DEBUG":"SLEEP");
     DBG.info("Poll: %lu s | Send every: %lu polls",
              (unsigned long)Cfg().poll_interval_sec,(unsigned long)Cfg().send_interval_polls);
-    // FIX: передаём this — иначе m_app=nullptr и notifyWebActivity не работает
-    if(Cfg().eth_enabled&&m_mode==SystemMode::Debug){
-        if(ensureEthReady()){
-            m_webServer.init(&m_sensor,&m_sdBackup,&m_battery,this);
-            m_webServer.setSdOk(m_sdOk);
-        }
+    // Web-сервер стартует НЕЗАВИСИМО от mode и eth_enabled.
+    // Если W5500 ещё не поднят (DHCP не ответил) — init() выставит m_running=false
+    // и флаг m_webStartPending=true. Повторная попытка каждую итерацию run().
+    m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+    m_webServer.setSdOk(m_sdOk);
+    if (!m_webServer.isRunning() && Cfg().eth_enabled) {
+        DBG.info("[9/9] WebServer: deferred start pending (eth not ready)");
+        m_webStartPending = true;
     }
     if(m_mode==SystemMode::Debug) ledOn(); else ledBlink(3,200);
     m_lastBackupSendTick=HAL_GetTick();
@@ -492,6 +494,21 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
     bool firstCycle   = true;
 
     while (true) {
+        // ── Отложенный старт веб-сервера ──────────────────────────────────
+        // Если init() не смог открыть сокет (eth не поднят на boot),
+        // пробуем повторно каждую итерацию главного цикла.
+        if (m_webStartPending && Cfg().eth_enabled) {
+            if (ensureEthReady()) {
+                m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+                m_webServer.setSdOk(m_sdOk);
+                if (m_webServer.isRunning()) {
+                    m_webStartPending = false;
+                    DBG.info("WebServer: deferred start OK");
+                }
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         CfgUartBridge_Tick();
 
         if (eth.ready()) eth.tick();
@@ -505,13 +522,6 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
         m_channelMgr.tick();
         m_mode = readMode();
 
-        // FIX: если веб стал активен прямо сейчас (первый запрос пришёл в tick()),
-        // НЕ идём в Modbus/SD/send — они блокируют CPU на 1+ с и браузер
-        // не получит follow-up запросы (/api/config, /api/sensors).
-        // Сразу прыгаем в tight web loop.
-        if (m_webActive) goto web_service;
-
-        {  // begin non-web block
         const bool isWake = firstCycle || wokeFromStop;
         const char* tag   = firstCycle ? "BOOT" : (wokeFromStop ? "WAKE" : "RUN");
 
@@ -600,14 +610,11 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
             m_webhook.markScheduledSent();
         }
 
-        } // end non-web block
-
         // ================================================================
         // Sleep / wait
         // FIX: когда веб активен — TIGHT WEB LOOP вместо 5-секундного ожидания
         // tick() вызывается каждые 5мс → мгновенный отклик браузера
         // ================================================================
-        web_service:
         if (m_webActive) {
             // Tight web service loop — обслуживаем браузер без задержек
             uint32_t loopStart = HAL_GetTick();
@@ -635,22 +642,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
             DBG.info("...wake");
             wokeFromStop = true;
         } else {
-            // Обычное ожидание между опросами.
-            // tick() вызывается каждые 5 мс — браузер получает мгновенный
-            // отклик даже если открыл страницу в середине 60-секундного цикла.
-            uint32_t dlStart = HAL_GetTick();
-            const uint32_t dlMs = Cfg().poll_interval_sec * 1000UL;
-            while ((HAL_GetTick() - dlStart) < dlMs) {
-                CfgUartBridge_Tick();
-                if (eth.ready()) eth.tick();
-                if (m_webServer.isRunning()) m_webServer.tick();
-                if (m_webActive) {
-                    // Веб стал активен — выходим из ожидания и идём в tight loop
-                    break;
-                }
-                IWDG->KR = 0xAAAA;
-                HAL_Delay(5);
-            }
+            CfgUartBridge_DelayMs(Cfg().poll_interval_sec * 1000UL);
             wokeFromStop = false;
         }
 
