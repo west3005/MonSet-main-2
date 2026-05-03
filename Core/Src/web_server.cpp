@@ -3550,7 +3550,7 @@ void WebServer::handleApiConfig(uint8_t sn){
             i==0?"":",",
             td.enabled?"true":"false",
             td.ip, (unsigned)td.port, (unsigned)td.unit_id, td.name,
-            (unsigned)td.func_code,(unsigned)td.start_reg,(unsigned)td.reg_count,
+            (unsigned)td.func_code,(unsigned)td.reg_start,(unsigned)td.reg_count,
             (unsigned)td.data_type,(double)td.scale,(double)td.offset,
             td.unit,(unsigned)td.channel_idx,
             (unsigned)td.poll_timeout_ms,(unsigned)td.connect_timeout_ms,
