@@ -108,6 +108,7 @@ private:
     // ---- Web exclusive mode ----
     bool     m_webActive      = false;  ///< True while HTTP client is connected
     uint32_t m_webLastReqTick = 0;      ///< HAL_GetTick() of last HTTP request
+    bool     m_webStartPending = false; ///< Deferred web server start (eth not ready at boot)
 
     // ---- Test send state ----
     enum class TestSendState : uint8_t { Idle, Reading, Building, Sending, Success, Fail };
