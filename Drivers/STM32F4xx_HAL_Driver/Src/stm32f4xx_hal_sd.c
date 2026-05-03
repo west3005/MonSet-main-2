@@ -878,7 +878,7 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     config.DPSM = SDIO_DPSM_ENABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
-    uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v8-hwfc blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
+    uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v9-txfix blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
     uart_log_info("[HAL_SD] Write CMD24: err=0x%lX RESP1=0x%08lX STA=0x%08lX",
                   (unsigned long)errorstate,
                   (unsigned long)hsd->Instance->RESP1,
