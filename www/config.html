@@ -296,4 +296,59 @@ window.addEventListener('DOMContentLoaded',function(){
     sh('eth_st',!d.eth_dhcp);
   }).catch(function(){});
 });
-</script></body></html>
+</script>
+  <!-- ── Кнопки SD / файловый менеджер ──────────────────────────── -->
+  <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
+    <button type="button" onclick="dlCfg()"
+      style="padding:.45rem 1.1rem;background:#2a7a4a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">
+      ⬇ Скачать конфиг</button>
+    <button type="button" onclick="toggleFm()"
+      style="padding:.45rem 1.1rem;background:#4a6a99;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">
+      📂 Файлы SD</button>
+  </div>
+
+  <div id="fm" style="display:none;margin-top:1rem;border:1px solid #bbb;border-radius:8px;padding:1rem;background:#f8f9fa">
+    <div style="font-weight:600;margin-bottom:.5rem">
+      📂 SD: <span id="fm_path" style="font-family:monospace">/</span>
+    </div>
+    <div id="fm_list" style="font-family:monospace;font-size:.88rem;line-height:1.8"></div>
+  </div>
+
+  <script>
+  function dlCfg(){
+    var a=document.createElement('a');
+    a.href='/api/download?path=/runtime_config.json';
+    a.download='runtime_config.json';a.click();
+  }
+  var fmOpen=false;
+  function toggleFm(){
+    fmOpen=!fmOpen;
+    document.getElementById('fm').style.display=fmOpen?'block':'none';
+    if(fmOpen) loadDir('/');
+  }
+  function loadDir(p){
+    document.getElementById('fm_path').textContent=p;
+    fetch('/api/files?path='+encodeURIComponent(p))
+      .then(function(r){return r.json();})
+      .then(function(list){
+        var el=document.getElementById('fm_list');
+        var h='';
+        var parent=p.replace(/\/+$/,'').replace(/\/[^\/]*$/,'')||'/';
+        if(p!='/') h+='<div>⬆ <a href="#" onclick="loadDir(''+parent+'');return false">..</a></div>';
+        list.sort(function(a,b){return (b.dir-a.dir)||(a.name>b.name?1:-1);});
+        list.forEach(function(f){
+          var fp=(p.endsWith('/')?p:p+'/')+f.name;
+          if(f.dir){
+            h+='<div>📁 <a href="#" onclick="loadDir(''+fp+'/');return false">'+f.name+'/</a></div>';
+          } else {
+            h+='<div>📄 <a href="/api/download?path='+encodeURIComponent(fp)+'" download>'+
+              f.name+'</a> <span style="color:#888;font-size:.8em">('+f.size+' B)</span></div>';
+          }
+        });
+        el.innerHTML=h||'<i style="color:#888">Пусто</i>';
+      })
+      .catch(function(){document.getElementById('fm_list').innerHTML='<span style="color:red">Ошибка чтения SD</span>';});
+  }
+  </script>
+
+</body></html>
