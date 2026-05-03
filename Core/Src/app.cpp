@@ -505,6 +505,13 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
         m_channelMgr.tick();
         m_mode = readMode();
 
+        // FIX: если веб стал активен прямо сейчас (первый запрос пришёл в tick()),
+        // НЕ идём в Modbus/SD/send — они блокируют CPU на 1+ с и браузер
+        // не получит follow-up запросы (/api/config, /api/sensors).
+        // Сразу прыгаем в tight web loop.
+        if (m_webActive) goto web_service;
+
+        {  // begin non-web block
         const bool isWake = firstCycle || wokeFromStop;
         const char* tag   = firstCycle ? "BOOT" : (wokeFromStop ? "WAKE" : "RUN");
 
@@ -593,11 +600,14 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
             m_webhook.markScheduledSent();
         }
 
+        } // end non-web block
+
         // ================================================================
         // Sleep / wait
         // FIX: когда веб активен — TIGHT WEB LOOP вместо 5-секундного ожидания
         // tick() вызывается каждые 5мс → мгновенный отклик браузера
         // ================================================================
+        web_service:
         if (m_webActive) {
             // Tight web service loop — обслуживаем браузер без задержек
             uint32_t loopStart = HAL_GetTick();
