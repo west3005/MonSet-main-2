@@ -3843,6 +3843,21 @@ void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
 }
 
 // ── tick ──────────────────────────────────────────────────────────────────────
+// ── socketReset — disconnect + close + socket + listen ───────────────────────
+// Вызывается в конце каждого запроса и при ошибках вместо disconnect().
+// Без close() после disconnect() сокет зависает в TIME_WAIT (~60 с),
+// в течение которых новые соединения отклоняются и веб становится недоступен.
+void WebServer::socketReset(){
+    g_web_exclusive = false;
+    disconnect(HTTP_SOCKET);
+    uint32_t t0=HAL_GetTick();
+    while(getSn_SR(HTTP_SOCKET)!=SOCK_CLOSED && (HAL_GetTick()-t0)<200){
+        IWDG->KR=0xAAAA; HAL_Delay(2);
+    }
+    close(HTTP_SOCKET);
+    if(socket(HTTP_SOCKET,Sn_MR_TCP,HTTP_PORT,0)==HTTP_SOCKET) listen(HTTP_SOCKET);
+}
+
 void WebServer::tick(){
     if(!m_running) return;
     uint8_t status=getSn_SR(HTTP_SOCKET);
@@ -3871,14 +3886,14 @@ void WebServer::tick(){
                             if (cl <= 0) {
                                 const char* r = "{\"error\":\"bad Content-Length\"}";
                                 sendResponse(HTTP_SOCKET, 400, "application/json", r, (uint16_t)std::strlen(r));
-                                disconnect(HTTP_SOCKET);
+                                socketReset();
                                 return;
                             }
                             if (cl >= REQ_BUF_SIZE - 1024) {
                                 const char* r = "{\"error\":\"config payload too large\"}";
                                 sendResponse(HTTP_SOCKET, 413, "application/json", r, (uint16_t)std::strlen(r));
                                 DBG.error("WebServer: POST too large cl=%d", cl);
-                                disconnect(HTTP_SOCKET);
+                                socketReset();
                                 return;
                             }
                             const char* bodyStart = std::strstr(m_reqBuf, "\r\n\r\n");
@@ -3921,11 +3936,23 @@ void WebServer::tick(){
                   while(getSn_TX_FSR(HTTP_SOCKET)<txmax &&
                         (HAL_GetTick()-t0)<3000){ IWDG->KR=0xAAAA; HAL_Delay(2); }
                 }
-                disconnect(HTTP_SOCKET);
+                socketReset();   // disconnect + close + socket + listen
             }
             break;
         }
-        case SOCK_CLOSE_WAIT: disconnect(HTTP_SOCKET); break;
+        case SOCK_CLOSE_WAIT:
+            socketReset();
+            break;
+        // W5500 TIME_WAIT / FIN_WAIT / LAST_ACK / CLOSING — принудительный reset
+        // без ожидания TCP timeout (~60 c). close() переводит сокет в CLOSED немедленно.
+        case 0x18:   // SOCK_TIME_WAIT
+        case 0x1C:   // SOCK_FIN_WAIT
+        case 0x22:   // SOCK_CLOSING
+        case 0x1D:   // SOCK_LAST_ACK
+            close(HTTP_SOCKET);
+            if(socket(HTTP_SOCKET,Sn_MR_TCP,HTTP_PORT,0)==HTTP_SOCKET) listen(HTTP_SOCKET);
+            DBG.info("WebServer: socket reset from state 0x%02x", (unsigned)status);
+            break;
         case SOCK_CLOSED:
             if(socket(HTTP_SOCKET,Sn_MR_TCP,HTTP_PORT,0)==HTTP_SOCKET) listen(HTTP_SOCKET);
             break;
