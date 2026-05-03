@@ -172,6 +172,8 @@ void WebServer::sendResponse(uint8_t sn, int code, const char* ct,
     if (code == 400) status = "400 Bad Request";
     else if (code == 401) status = "401 Unauthorized";
     else if (code == 404) status = "404 Not Found";
+    else if (code == 500) status = "500 Internal Server Error";
+    else if (code == 503) status = "503 Service Unavailable";
 
     char hdr[320];
     int hlen;
@@ -183,6 +185,7 @@ void WebServer::sendResponse(uint8_t sn, int code, const char* ct,
     } else {
         hlen = std::snprintf(hdr, sizeof(hdr),
             "HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %u\r\n"
+            "Cache-Control: no-cache, no-store\r\n"
             "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
             status, ct, (unsigned)bodyLen);
     }
@@ -199,6 +202,7 @@ void WebServer::sendResponse(uint8_t sn, int code, const char* ct,
         IWDG->KR = 0xAAAA;   // кормим watchdog при больших страницах
     }
 }
+
 void WebServer::send401(uint8_t sn){
     const char* b="401 Unauthorized";
     sendResponse(sn,401,"text/plain",b,(uint16_t)std::strlen(b));
