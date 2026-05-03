@@ -334,12 +334,12 @@ window.addEventListener('DOMContentLoaded',function(){
         var el=document.getElementById('fm_list');
         var h='';
         var parent=p.replace(/\/+$/,'').replace(/\/[^\/]*$/,'')||'/';
-        if(p!='/') h+='<div>⬆ <a href="#" onclick="loadDir(''+parent+'');return false">..</a></div>';
+        if(p!='/') h+='<div>⬆ <a href="#" onclick="loadDir(\''+parent+'\');return false">..</a></div>';
         list.sort(function(a,b){return (b.dir-a.dir)||(a.name>b.name?1:-1);});
         list.forEach(function(f){
           var fp=(p.endsWith('/')?p:p+'/')+f.name;
           if(f.dir){
-            h+='<div>📁 <a href="#" onclick="loadDir(''+fp+'/');return false">'+f.name+'/</a></div>';
+            h+='<div>📁 <a href="#" onclick="loadDir(\''+fp+'/\');return false">'+f.name+'/</a></div>';
           } else {
             h+='<div>📄 <a href="/api/download?path='+encodeURIComponent(fp)+'" download>'+
               f.name+'</a> <span style="color:#888;font-size:.8em">('+f.size+' B)</span></div>';
