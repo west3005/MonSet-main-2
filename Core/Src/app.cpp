@@ -518,6 +518,8 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
 
         // FIX: синхронизируем глобальный флаг
         g_web_exclusive = m_webActive;
+        // SD статус синхронизируем в WebServer каждый цикл (SD может восстановиться)
+        m_webServer.setSdOk(m_sdOk);
 
         m_channelMgr.tick();
         m_mode = readMode();
