@@ -199,32 +199,44 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
 
     SD_ClearFlags();
     /*
-     * TXUNDERR fix: при write нужна РАБОЧАЯ частота (24 МГц, ClockDiv=0), а не 400 кГц.
-     * При 400 кГц DPSM опустошает FIFO быстрее чем CPU успевает его заполнить.
-     * При 24 МГц одно 32-битное слово уходит за ~2.7 мкс — CPU при 84 МГц
-     * записывает слово за ~10 нс, запас x270. HWFC_EN=0 (errata STM32F4).
+     * TXUNDERR fix: STM32F4 polling write не поддерживает CMD25 (multiblock).
+     * При CMD25 карта переходит в PRG после каждого блока — DPSM продолжает
+     * тактировать шину пока карта не принимает → TXUNDERR на блоке 2+.
+     * Решение: всегда писать одиночными CMD24, по одному блоку за раз.
+     * Частота 24 МГц (ClockDiv=0), HWFC=0 (errata STM32F4).
      */
     MODIFY_REG(SDIO->CLKCR,
                SDIO_CLKCR_CLKDIV | SDIO_CLKCR_CLKEN | SDIO_CLKCR_HWFC_EN | SDIO_CLKCR_BYPASS,
-               (0U) | SDIO_CLKCR_CLKEN);  /* ClockDiv=0 → 48/(0+2)=24 МГц */
+               (0U) | SDIO_CLKCR_CLKEN);  /* ClockDiv=0 → 24 МГц */
     HAL_Delay(2);
-    SDIO->DCTRL = 0U;
-    __DSB();
-    __ISB();
 
-    hs = HAL_SD_WriteBlocks(&hsd, (uint8_t *)buff,
-                            (uint32_t)sector, (uint32_t)count, SD_TIMEOUT);
-    if (hs != HAL_OK) {
-        uart_log_error("[DISKIO] write: HAL=%d State=%d ErrorCode=0x%08lX STA=0x%08lX CardState=%d",
-                       (int)hs, (int)hsd.State,
-                       (unsigned long)hsd.ErrorCode,
-                       (unsigned long)SDIO->STA,
-                       (int)HAL_SD_GetCardState(&hsd));
-        hsd.State = HAL_SD_STATE_READY;
-        SD_ClearFlags();
-        return RES_ERROR;
+    hs = HAL_OK;
+    for (UINT blk = 0U; blk < count; blk++) {
+        SDIO->DCTRL = 0U;
+        __DSB(); __ISB();
+        hs = HAL_SD_WriteBlocks(&hsd,
+                                (uint8_t *)buff + blk * 512U,
+                                (uint32_t)sector + blk,
+                                1U,
+                                SD_TIMEOUT);
+        if (hs != HAL_OK) {
+            uart_log_error("[DISKIO] write: blk=%u HAL=%d State=%d ErrorCode=0x%08lX STA=0x%08lX CardState=%d",
+                           (unsigned)blk, (int)hs, (int)hsd.State,
+                           (unsigned long)hsd.ErrorCode,
+                           (unsigned long)SDIO->STA,
+                           (int)HAL_SD_GetCardState(&hsd));
+            hsd.State = HAL_SD_STATE_READY;
+            SD_ClearFlags();
+            return RES_ERROR;
+        }
+        /* Ждём готовности карты перед следующим блоком */
+        if (blk + 1U < count) {
+            if (SD_WaitCardReady(SD_TIMEOUT) != HAL_OK) {
+                uart_log_error("[DISKIO] write: card not ready after blk=%u", (unsigned)blk);
+                return RES_ERROR;
+            }
+        }
     }
-
     if (SD_WaitCardReady(SD_TIMEOUT) != HAL_OK) {
         uart_log_error("[DISKIO] write: WaitReady timeout");
         SD_ClearFlags();
