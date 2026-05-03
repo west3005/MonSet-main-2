@@ -3370,76 +3370,97 @@ void WebServer::handleApiSensors(uint8_t sn){
 }
 
 // ── GET /api/config (JSON) ────────────────────────────────────────────────────
-// FIX: ProtocolMode::HTTPS → ProtocolMode::HTTPS_THINGSBOARD
 void WebServer::handleApiConfig(uint8_t sn){
     const RuntimeConfig& c = Cfg();
 
+    // IP strings
     char sip[16],ssn[16],sgw[16],sdns[16];
-    std::snprintf(sip,16,"%u.%u.%u.%u",c.eth_ip[0],c.eth_ip[1],c.eth_ip[2],c.eth_ip[3]);
-    std::snprintf(ssn,16,"%u.%u.%u.%u",c.eth_sn[0],c.eth_sn[1],c.eth_sn[2],c.eth_sn[3]);
-    std::snprintf(sgw,16,"%u.%u.%u.%u",c.eth_gw[0],c.eth_gw[1],c.eth_gw[2],c.eth_gw[3]);
+    std::snprintf(sip, 16,"%u.%u.%u.%u",c.eth_ip[0],c.eth_ip[1],c.eth_ip[2],c.eth_ip[3]);
+    std::snprintf(ssn, 16,"%u.%u.%u.%u",c.eth_sn[0],c.eth_sn[1],c.eth_sn[2],c.eth_sn[3]);
+    std::snprintf(sgw, 16,"%u.%u.%u.%u",c.eth_gw[0],c.eth_gw[1],c.eth_gw[2],c.eth_gw[3]);
     std::snprintf(sdns,16,"%u.%u.%u.%u",c.eth_dns[0],c.eth_dns[1],c.eth_dns[2],c.eth_dns[3]);
 
+    // Protocol string
     const char* protoStr =
         (c.protocol==ProtocolMode::HTTPS_THINGSBOARD)?"https_tb":
         (c.protocol==ProtocolMode::MQTT_THINGSBOARD) ?"mqtt_tb" :
         (c.protocol==ProtocolMode::MQTT_GENERIC)     ?"mqtt_gen":
         (c.protocol==ProtocolMode::WEBHOOK_HTTP)     ?"webhook" :"https_tb";
 
-    const char* web_user = c.web.web_user;
-    const char* ntp_srv  = c.time_cfg.ntp_server[0] ? c.time_cfg.ntp_server : c.ntp_host;
-    bool  ch_eth  = c.channels.eth_enabled      || c.eth_enabled;
-    bool  ch_gsm  = c.channels.gsm_enabled      || c.gsm_enabled;
-    bool  ch_wifi = c.channels.wifi_enabled     || c.wifi_enabled;
-    bool  ch_irid = c.channels.iridium_enabled  || c.iridium_enabled;
-    bool  chain   = c.channels.chain_mode       || c.chain_enabled;
+    // Channel flags (new sub-config takes priority, legacy as fallback)
+    bool ch_eth  = c.channels.eth_enabled     || c.eth_enabled;
+    bool ch_gsm  = c.channels.gsm_enabled     || c.gsm_enabled;
+    bool ch_wifi = c.channels.wifi_enabled    || c.wifi_enabled;
+    bool ch_irid = c.channels.iridium_enabled || c.iridium_enabled;
+    bool chain   = c.channels.chain_mode      || c.chain_enabled;
+
+    // Timing
     uint32_t poll_s = c.meas.poll_interval_s  ? (uint32_t)c.meas.poll_interval_s  : c.poll_interval_sec;
     uint32_t send_s = c.meas.send_interval_s  ? (uint32_t)c.meas.send_interval_s  : (c.send_interval_polls*c.poll_interval_sec);
     uint16_t bkup_s = c.meas.backup_retry_s   ? c.meas.backup_retry_s : (uint16_t)c.backup_send_interval_sec;
-    uint8_t  avg    = c.meas.avg_count ? c.meas.avg_count : c.avg_count;
-    const char* tb_host = c.proto.tb_host[0]   ? c.proto.tb_host   : "thingsboard.cloud";
-    const char* mq_host = c.proto.mqtt_host[0] ? c.proto.mqtt_host  : c.mqtt_host;
-    uint16_t mq_port    = c.proto.mqtt_port    ? c.proto.mqtt_port  : c.mqtt_port;
-    const char* mq_user = c.proto.mqtt_user[0]  ? c.proto.mqtt_user  : c.mqtt_user;
-    const char* mq_top  = c.proto.mqtt_topic[0] ? c.proto.mqtt_topic : c.mqtt_topic;
-    const char* wh_url  = c.proto.webhook_url[0]    ? c.proto.webhook_url    : c.webhook_url;
-    const char* wh_meth = c.proto.webhook_method[0] ? c.proto.webhook_method : c.webhook_method;
-    bool eth_dhcp = (c.eth_mode == RuntimeConfig::EthMode::Dhcp);
-    float bat_low = c.alerts.battery_low_threshold_pct>0 ?
-                    c.alerts.battery_low_threshold_pct : (float)c.battery_low_pct;
+    uint8_t  avg    = c.meas.avg_count        ? c.meas.avg_count       : c.avg_count;
 
+    // Protocol fields (new sub-config takes priority, legacy as fallback)
+    const char* tb_host  = c.proto.tb_host[0]       ? c.proto.tb_host       : "thingsboard.cloud";
+    const char* tb_token = c.proto.tb_token;
+    const char* mq_host  = c.proto.mqtt_host[0]     ? c.proto.mqtt_host     : c.mqtt_host;
+    uint16_t    mq_port  = c.proto.mqtt_port         ? c.proto.mqtt_port     : c.mqtt_port;
+    const char* mq_user  = c.proto.mqtt_user[0]      ? c.proto.mqtt_user     : c.mqtt_user;
+    const char* mq_pass  = c.proto.mqtt_pass[0]      ? c.proto.mqtt_pass     : c.mqtt_pass;
+    const char* mq_top   = c.proto.mqtt_topic[0]     ? c.proto.mqtt_topic    : c.mqtt_topic;
+    const char* wh_url   = c.proto.webhook_url[0]    ? c.proto.webhook_url   : c.webhook_url;
+    const char* wh_meth  = c.proto.webhook_method[0] ? c.proto.webhook_method: c.webhook_method;
+
+    // Network / auth
+    bool        eth_dhcp = (c.eth_mode == RuntimeConfig::EthMode::Dhcp);
+    const char* ntp_srv  = c.time_cfg.ntp_server[0] ? c.time_cfg.ntp_server : c.ntp_host;
+    float       bat_low  = c.alerts.battery_low_threshold_pct > 0.0f ?
+                           c.alerts.battery_low_threshold_pct : (float)c.battery_low_pct;
+
+    // chain_order JSON array
     char cord[32];
     std::snprintf(cord,sizeof(cord),"[%u,%u,%u,%u]",
         c.channels.chain_order[0],c.channels.chain_order[1],
         c.channels.chain_order[2],c.channels.chain_order[3]);
 
-    int n=0;
-    n+=std::snprintf(m_respBuf+n,RESP_BUF_SIZE-n,
+    int n = 0;
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
         "{"
         "\"server_url\":\"%s\","
         "\"poll_interval_sec\":%lu,\"send_interval_polls\":%lu,"
+        // channel enable flags
         "\"ch_eth\":%s,\"ch_gsm\":%s,\"ch_wifi\":%s,\"ch_iridium\":%s,"
         "\"eth_enabled\":%s,\"gsm_enabled\":%s,\"wifi_enabled\":%s,\"iridium_enabled\":%s,"
         "\"chain_mode\":%s,\"chain_order\":%s,"
         "\"channel_timeout_s\":%u,\"channel_retry_s\":%u,\"channel_max_retries\":%u,"
+        // protocol
         "\"proto\":\"%s\","
         "\"tb_host\":\"%s\",\"tb_token\":\"%s\",\"tb_port\":%u,"
-        "\"mqtt_host\":\"%s\",\"mqtt_port\":%u,\"mqtt_user\":\"%s\","
+        "\"mqtt_host\":\"%s\",\"mqtt_port\":%u,\"mqtt_user\":\"%s\",\"mqtt_pass\":\"%s\","
         "\"mqtt_topic\":\"%s\",\"mqtt_qos\":%u,\"mqtt_tls\":%s,"
         "\"webhook_url\":\"%s\",\"webhook_method\":\"%s\","
+        // measurement
         "\"poll_interval_s\":%lu,\"send_interval_s\":%lu,"
         "\"backup_retry_s\":%u,\"avg_count\":%u,"
         "\"deep_sleep_enabled\":%s,\"deep_sleep_s\":%u,"
         "\"schedule_enabled\":%s,\"schedule_start\":\"%s\",\"schedule_stop\":\"%s\","
+        // ethernet
         "\"eth_dhcp\":%s,"
         "\"eth_ip\":\"%s\",\"eth_sn\":\"%s\",\"eth_gw\":\"%s\",\"eth_dns\":\"%s\","
-        "\"gsm_apn\":\"%s\",\"gsm_user\":\"%s\","
-        "\"wifi_ssid\":\"%s\","
+        // GSM
+        "\"gsm_apn\":\"%s\",\"gsm_user\":\"%s\",\"gsm_pass\":\"%s\","
+        // WiFi
+        "\"wifi_ssid\":\"%s\",\"wifi_pass\":\"%s\","
+        // NTP / time
         "\"ntp_enabled\":%s,\"ntp_server\":\"%s\",\"tz_off\":%d,"
-        "\"web_user\":\"%s\",\"web_port\":%u,\"web_idle_timeout_s\":%u,"
+        // web / auth
+        "\"web_user\":\"%s\",\"web_pass\":\"%s\","
+        "\"web_port\":%u,\"web_idle_timeout_s\":%u,"
         "\"web_auth_enabled\":%s,\"web_exclusive_mode\":%s,"
+        // Modbus TCP
         "\"mtcpm_en\":%s,\"mtcps_en\":%s,"
         "\"sl_port\":%u,\"sl_uid\":%u,\"sl_sock\":%u,\"sl_ctms\":%u,"
+        // alerts
         "\"alerts_enabled\":%s,\"batt_low\":%.1f,"
         "\"alert_on_channel_fail\":%s,\"alert_on_sensor_fail\":%s,"
         "\"alert_webhook_url\":\"%s\""
@@ -3452,19 +3473,21 @@ void WebServer::handleApiConfig(uint8_t sn){
         (unsigned)c.channels.channel_timeout_s,(unsigned)c.channels.channel_retry_s,
         (unsigned)c.channels.channel_max_retries,
         protoStr,
-        tb_host,c.proto.tb_token,(unsigned)c.proto.tb_port,
-        mq_host,(unsigned)mq_port,mq_user,
-        mq_top,(unsigned)c.proto.mqtt_qos,(c.proto.mqtt_tls||c.mqtt_tls)?"true":"false",
-        wh_url,wh_meth,
+        tb_host, tb_token, (unsigned)c.proto.tb_port,
+        mq_host, (unsigned)mq_port, mq_user, mq_pass,
+        mq_top, (unsigned)c.proto.mqtt_qos, (c.proto.mqtt_tls||c.mqtt_tls)?"true":"false",
+        wh_url, wh_meth,
         (unsigned long)poll_s,(unsigned long)send_s,
         (unsigned)bkup_s,(unsigned)avg,
         c.meas.deep_sleep_enabled?"true":"false",(unsigned)c.meas.deep_sleep_s,
         c.meas.schedule_enabled?"true":"false",c.meas.schedule_start,c.meas.schedule_stop,
         eth_dhcp?"true":"false",
         sip,ssn,sgw,sdns,
-        c.gsm_apn,c.gsm_user,c.wifi_ssid,
+        c.gsm_apn, c.gsm_user, c.gsm_pass,
+        c.wifi_ssid, c.wifi_pass,
         c.time_cfg.ntp_enabled?"true":"false",ntp_srv,(int)c.time_cfg.timezone_offset,
-        web_user,(unsigned)c.web.web_port,(unsigned)c.web.web_idle_timeout_s,
+        c.web.web_user, c.web.web_pass,
+        (unsigned)c.web.web_port,(unsigned)c.web.web_idle_timeout_s,
         c.web.web_auth_enabled?"true":"false",c.web.web_exclusive_mode?"true":"false",
         c.tcp_master.enabled?"true":"false",c.tcp_slave.enabled?"true":"false",
         (unsigned)c.tcp_slave.listen_port,(unsigned)c.tcp_slave.unit_id,
@@ -3475,55 +3498,77 @@ void WebServer::handleApiConfig(uint8_t sn){
         c.alerts.alert_webhook_url
     );
 
-    // Append co_en array
+    // co_en array
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
         ",\"co_en\":[%s,%s,%s,%s]",
-        c.channels.eth_enabled?"true":"false",
-        c.channels.gsm_enabled?"true":"false",
+        c.channels.eth_enabled ?"true":"false",
+        c.channels.gsm_enabled ?"true":"false",
         c.channels.wifi_enabled?"true":"false",
         c.channels.iridium_enabled?"true":"false");
 
-    // Append rtu array
+    // rtu array — use rtu_ports[] (ModbusRtuPortConfig) not legacy uart_ports[]
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, ",\"rtu\":[");
-    for (int i = 0; i < MAX_UART_PORTS; i++) {
+    for (int i = 0; i < MAX_RTU_PORTS; i++) {
+        const ModbusRtuPortConfig& rp = c.rtu_ports[i];
+        const char* parStr = (rp.parity == 1) ? "Odd" :
+                             (rp.parity == 2) ? "Even" : "None";
         n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
-            "%s{\"baud\":%lu,\"sb\":%u,\"par\":\"%s\",\"rms\":%u,\"fms\":%u}",
+            "%s{\"en\":%s,\"baud\":%lu,\"sb\":%u,\"par\":\"%s\","
+            "\"rms\":%u,\"fms\":%u,\"devs\":[]}",
             i==0?"":",",
-            c.uart_ports[i].baud,
-            (unsigned)c.uart_ports[i].stopbits,
-            c.uart_ports[i].parity==1?"Odd":c.uart_ports[i].parity==2?"Even":"None",
-            500, 3 // dummy rms and fms since they don't exist in backend yet
+            rp.enabled?"true":"false",
+            (unsigned long)rp.baud,
+            (unsigned)rp.stop_bits,
+            parStr,
+            (unsigned)rp.response_timeout_ms,
+            (unsigned)rp.frame_gap_ms
         );
     }
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "]");
 
-    // Append regs array
+    // regs array (legacy flat map)
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, ",\"regs\":[");
-    for (int i = 0; i < c.modbus_map_count; i++) {
+    for (int i = 0; i < c.modbus_map_count && i < MAX_MODBUS_ENTRIES; i++) {
+        const ModbusRegEntry& me = c.modbus_map[i];
         n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
-            "%s{\"en\":true,\"p\":%u,\"id\":%u,\"f\":%u,\"r\":%u,\"c\":%u,\"t\":%u,\"mul\":%f,\"scl\":%f,\"off\":%f}",
+            "%s{\"ad\":%u,\"src\":%u,\"dt\":%u,\"sc\":%f,\"un\":\"%s\",\"nm\":\"%s\"}",
             i==0?"":",",
-            c.modbus_map[i].port_idx,
-            c.modbus_map[i].slave_id,
-            c.modbus_map[i].function,
-            c.modbus_map[i].start_reg,
-            c.modbus_map[i].count,
-            c.modbus_map[i].data_type,
-            c.modbus_map[i].multiplier,
-            c.modbus_map[i].scale,
-            c.modbus_map[i].zero_offset
-        );
+            (unsigned)me.start_reg,(unsigned)me.port_idx,
+            (unsigned)me.data_type,
+            (double)me.scale, me.unit, me.name);
     }
-    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "],\"tcp_devs\":[],\"sd_ok\":%s}",
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "]");
+
+    // tcp_devs array (ModbusTcpMasterConfig devices)
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, ",\"tcp_devs\":[");
+    for (int i = 0; i < c.tcp_master.device_count && i < ModbusTcpMasterConfig::MAX_DEVICES; i++) {
+        const ModbusTcpDeviceConfig& td = c.tcp_master.devices[i];
+        n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
+            "%s{\"en\":%s,\"ip\":\"%s\",\"port\":%u,\"uid\":%u,\"nm\":\"%s\","
+            "\"fc\":%u,\"rs\":%u,\"rc\":%u,\"dt\":%u,\"sc\":%f,\"of\":%f,"
+            "\"un\":\"%s\",\"ci\":%u,\"pms\":%u,\"cms\":%u,\"sk\":%u}",
+            i==0?"":",",
+            td.enabled?"true":"false",
+            td.ip, (unsigned)td.port, (unsigned)td.unit_id, td.name,
+            (unsigned)td.function_code,(unsigned)td.start_reg,(unsigned)td.reg_count,
+            (unsigned)td.data_type,(double)td.scale,(double)td.offset,
+            td.unit,(unsigned)td.channel_idx,
+            (unsigned)td.poll_timeout_ms,(unsigned)td.connect_timeout_ms,
+            (unsigned)td.w5500_socket);
+    }
+    n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "],\"sd_ok\":%s}",
         m_sdOk ? "true" : "false");
-    if (n < 0 || n >= RESP_BUF_SIZE) {
+
+    if (n >= RESP_BUF_SIZE) {
         DBG.error("WebServer: /api/config JSON overflow! n=%d", n);
-        const char* err = "{\"error\":\"json generation failed\"}";
-        sendResponse(sn, 500, "application/json", err, std::strlen(err));
+        const char* err = "{\"error\":\"json overflow\"}";
+        sendResponse(sn, 500, "application/json", err, (uint16_t)std::strlen(err));
         return;
     }
     sendResponse(sn,200,"application/json",m_respBuf,(uint16_t)n);
 }
+
+
 
 // ── GET /api/channels ─────────────────────────────────────────────────────────
 void WebServer::handleApiChannels(uint8_t sn){
