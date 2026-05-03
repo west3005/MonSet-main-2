@@ -208,7 +208,7 @@ void WebServer::send404(uint8_t sn){
     sendResponse(sn,404,"application/json",b,(uint16_t)std::strlen(b));
 }
 bool WebServer::serveFile(uint8_t sn,const char* path,const char* ct){
-    char fp[64]; std::snprintf(fp,sizeof(fp),"0:%s",path);
+    char fp[64]; std::snprintf(fp,sizeof(fp),"0:/www%s",path);
     FIL f;
     if(f_open(&f,fp,FA_READ)!=FR_OK) return false;
     FSIZE_t fsize=f_size(&f);
@@ -819,7 +819,7 @@ void WebServer::handleApiSdTest(uint8_t sn) {
 
 // ── GET /api/files?path=/  — листинг SD (JSON) ───────────────────────────────
 void WebServer::handleApiFiles(uint8_t sn, const char* /*path*/, const char* request) {
-    char dir[128] = "0:/";
+    char dir[128] = "0:/www";
     const char* q = std::strstr(request, "path=");
     if (q) {
         q += 5;
@@ -868,7 +868,7 @@ void WebServer::handleApiDownload(uint8_t sn, const char* /*path*/, const char* 
     std::memcpy(relpath, q, len); relpath[len] = 0;
 
     char fpath[128];
-    std::snprintf(fpath, sizeof(fpath), "0:%s", relpath);
+    std::snprintf(fpath, sizeof(fpath), "0:/www%s", relpath);
 
     FIL f;
     if (f_open(&f, fpath, FA_READ) != FR_OK) {
