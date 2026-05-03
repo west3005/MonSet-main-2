@@ -3,403 +3,291 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MonSet — Конфиг</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet">
+<title>MonSet — Config</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0d0f12;--s1:#131720;--s2:#181d28;--s3:#1e2435;
-  --border:rgba(255,255,255,.07);--divider:rgba(255,255,255,.04);
-  --text:#e8eaf0;--muted:#7b8499;--faint:#3d4357;
-  --accent:#c8963c;--accent-dim:rgba(200,150,60,.12);
-  --green:#4caf82;--green-dim:rgba(76,175,130,.12);
-  --red:#e05555;--red-dim:rgba(224,85,85,.12);
-  --yellow:#d4a017;--yellow-dim:rgba(212,160,23,.12);
-  --font-body:'Inter',system-ui,sans-serif;
-  --font-mono:'Geist Mono','Fira Code',monospace;
-  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
-  --t:160ms cubic-bezier(.16,1,.3,1);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-font-smoothing:antialiased}
-body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100dvh}
-button{cursor:pointer;font:inherit;border:none;background:none}
-a{color:inherit;text-decoration:none}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
 
-nav{position:sticky;top:0;z-index:100;height:48px;display:flex;align-items:center;background:rgba(13,15,18,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 20px}
-.nav-logo{display:flex;align-items:center;gap:8px;margin-right:auto}
-.logo-name{font-weight:700;font-size:15px;letter-spacing:.03em}
-.logo-dot{color:var(--accent)}
-.nav-links{display:flex;gap:2px}
-.nav-link{height:48px;padding:0 14px;display:flex;align-items:center;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:color var(--t),border-color var(--t);white-space:nowrap}
-.nav-link:hover{color:var(--text)}
-.nav-link.active{color:var(--accent);border-bottom-color:var(--accent)}
+  :root {
+    --bg:#0d0f12; --surface:#141720; --surface2:#1a1e2a;
+    --border:oklch(from #e0c97a 0.7 0.1 85 / 0.15);
+    --text:#e8e6e0; --muted:#8a8880; --faint:#4a4846;
+    --gold:#c8963c; --gold-h:#e0b060;
+    --green:#4a9460; --yellow:#b89030; --red:#9c4040;
+    --green-bg:oklch(from #4a9460 0.25 0.08 145 / 0.25);
+    --yellow-bg:oklch(from #b89030 0.3 0.1 85 / 0.25);
+    --red-bg:oklch(from #9c4040 0.25 0.1 25 / 0.25);
+    --radius:6px; --radius-lg:10px;
+    --mono:'Geist Mono','Courier New',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:14px;-webkit-font-smoothing:antialiased}
+  body{background:var(--bg);color:var(--text);font-family:'Inter','Helvetica Neue',sans-serif;min-height:100dvh;display:flex;flex-direction:column}
+  a{color:var(--gold);text-decoration:none} a:hover{color:var(--gold-h)}
+  button{cursor:pointer;border:none;font:inherit}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:52px;position:sticky;top:0;z-index:100}
+  .nav-logo{display:flex;align-items:center;gap:10px;margin-right:32px;color:var(--gold);font-weight:700;font-size:15px;letter-spacing:.03em}
+  nav a{color:var(--muted);font-size:13px;font-weight:500;padding:0 14px;height:52px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  nav a:hover{color:var(--text)} nav a.active{color:var(--gold);border-bottom-color:var(--gold)}
+  .nav-spacer{flex:1}
+  .nav-status{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  main{flex:1;padding:24px;max-width:960px;margin:0 auto;width:100%}
+  .page-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:20px;letter-spacing:-.01em}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+  .card+.card{margin-top:16px}
+  .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+  input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:8px 11px;background:var(--bg);border:1px solid oklch(from var(--text) 0.5 0 0 / 0.15);border-radius:var(--radius);color:var(--text);font:inherit;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-row.three{grid-template-columns:1fr 1fr 1fr}
+  .form-field{display:flex;flex-direction:column}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:background .15s,color .15s,border-color .15s}
+  .btn-primary{background:var(--gold);color:#0d0f12} .btn-primary:hover{background:var(--gold-h)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)} .btn-ghost:hover{color:var(--text)}
+  .btn-danger{background:var(--red-bg);color:#d06060;border:1px solid oklch(from #9c4040 0.5 0.1 25 / 0.3)} .btn-danger:hover{background:oklch(from #9c4040 0.3 0.1 25 / 0.35)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+  .badge-ok{background:var(--green-bg);color:#70c490} .badge-warn{background:var(--yellow-bg);color:#d0a840} .badge-err{background:var(--red-bg);color:#d07070}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:10px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .25s;opacity:0;pointer-events:none;z-index:9999;white-space:nowrap}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  #toast.ok{background:var(--green-bg);color:#70c490;border:1px solid oklch(from #4a9460 0.4 0.08 145 / 0.4)}
+  #toast.warn{background:var(--yellow-bg);color:#d0a840;border:1px solid oklch(from #b89030 0.4 0.1 85 / 0.4)}
+  #toast.err{background:var(--red-bg);color:#d07070;border:1px solid oklch(from #9c4040 0.4 0.1 25 / 0.4)}
+  .acc-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 20px;margin:-20px -20px 0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;user-select:none;transition:background .15s}
+  .acc-hdr:hover{background:oklch(from var(--text) 0.15 0 0 / 0.05)}
+  .acc-hdr h2{font-size:13px;font-weight:600;color:var(--text)}
+  .acc-arrow{color:var(--muted);transition:transform .2s;font-size:11px}
+  .acc-arrow.open{transform:rotate(90deg)}
+  .acc-body{margin-top:20px;display:none} .acc-body.open{display:block}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+  .kpi-value{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--gold);letter-spacing:-.02em;line-height:1}
+  .kpi-value.ok{color:#70c490} .kpi-value.warn{color:#d0a840} .kpi-value.err{color:#d07070}
+  .kpi-unit{font-size:12px;color:var(--muted);margin-top:4px}
+  #log-output{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;height:480px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .log-info{color:#7898b8} .log-warn{color:#c8a840} .log-error{color:#c06060} .log-data{color:#60a878} .log-debug{color:#888}
+  .file-table{width:100%;border-collapse:collapse}
+  .file-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .file-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+  .file-table tr:last-child td{border-bottom:none}
+  .file-table tr:hover td{background:oklch(from var(--text) 0.15 0 0 / 0.04)}
+  .file-icon{margin-right:6px;color:var(--gold)}
+  .file-size{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .drop-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;color:var(--muted);transition:border-color .15s,background .15s;cursor:pointer}
+  .drop-zone.drag-over{border-color:var(--gold);background:var(--yellow-bg)}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+  .progress-fill{height:100%;background:var(--gold);width:0;transition:width .1s;border-radius:2px}
+  @media(max-width:600px){main{padding:16px}.form-row,.form-row.three{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
 
-main{max-width:720px;margin:0 auto;padding:20px 20px 60px}
-.page-header{margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.page-title{font-size:15px;font-weight:600}
-.net-err{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,85,85,.2);padding:10px 14px;border-radius:var(--r-md);font-size:12px;font-family:var(--font-mono);display:none;margin-bottom:14px}
-.save-msg{display:none;padding:8px 14px;border-radius:var(--r-md);font-size:12px;font-family:var(--font-mono);margin-bottom:14px;transition:opacity .3s}
-.save-msg.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(76,175,130,.25)}
-.save-msg.warn{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(212,160,23,.25)}
-.save-msg.err{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,85,85,.25)}
-
-/* ACCORDION CARD */
-.acc{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:10px;overflow:hidden}
-.acc-head{
-  display:flex;align-items:center;gap:10px;
-  padding:13px 16px;cursor:pointer;
-  transition:background var(--t);user-select:none;
-}
-.acc-head:hover{background:var(--s2)}
-.acc-title{font-size:13px;font-weight:600;color:var(--text);flex:1}
-.acc-badge{font-family:var(--font-mono);font-size:10px;padding:1px 7px;border-radius:100px;background:var(--s3);color:var(--muted);flex-shrink:0}
-.acc-icon{color:var(--faint);transition:transform var(--t);flex-shrink:0}
-.acc-head[aria-expanded="true"] .acc-icon{transform:rotate(180deg)}
-.acc-body{display:none;padding:4px 16px 16px;border-top:1px solid var(--divider)}
-.acc-head[aria-expanded="true"] + .acc-body{display:block}
-
-/* FORM GRID */
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:12px}
-.fg.single{grid-template-columns:1fr}
-.fg.triple{grid-template-columns:1fr 1fr 1fr}
-.f{display:flex;flex-direction:column;gap:4px}
-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-input,select{
-  background:var(--s2);border:1px solid var(--border);
-  border-radius:var(--r-md);padding:8px 10px;
-  color:var(--text);font:inherit;font-size:13px;font-family:var(--font-mono);
-  transition:border-color var(--t),background var(--t);
-  width:100%;
-}
-input:hover,select:hover{border-color:rgba(255,255,255,.12)}
-input:focus,select:focus{border-color:rgba(200,150,60,.5);background:var(--s3);outline:none}
-input::placeholder{color:var(--faint)}
-input[type="checkbox"]{width:auto;appearance:none;-webkit-appearance:none;width:16px;height:16px;border-radius:3px;border:1px solid var(--border);background:var(--s2);cursor:pointer;flex-shrink:0}
-input[type="checkbox"]:checked{background:var(--accent);border-color:var(--accent)}
-input[type="checkbox"]:checked::after{content:'✓';display:block;text-align:center;font-size:10px;line-height:14px;color:#000;font-weight:700}
-.check-row{display:flex;align-items:center;gap:8px;padding:6px 0}
-.check-row label{text-transform:none;letter-spacing:0;font-size:13px;font-weight:400;color:var(--text);cursor:pointer}
-.hint{font-size:11px;color:var(--faint);font-family:var(--font-mono);margin-top:2px}
-.sep{grid-column:1/-1;border:none;border-top:1px solid var(--divider);margin:4px 0}
-
-/* STICKY SAVE BAR */
-.save-bar{
-  position:fixed;bottom:0;left:0;right:0;z-index:50;
-  background:rgba(13,15,18,.95);backdrop-filter:blur(12px);
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;justify-content:flex-end;gap:10px;
-  padding:10px 24px;
-}
-.btn-save{
-  display:flex;align-items:center;gap:7px;
-  padding:9px 22px;border-radius:var(--r-md);
-  background:var(--accent);color:#0d0f12;
-  font-size:13px;font-weight:700;letter-spacing:.02em;
-  border:none;transition:background var(--t),transform var(--t),box-shadow var(--t);
-  box-shadow:0 2px 8px rgba(200,150,60,.25);
-}
-.btn-save:hover{background:#d9a847;box-shadow:0 4px 16px rgba(200,150,60,.35)}
-.btn-save:active{transform:scale(.98)}
-.btn-reload{
-  display:flex;align-items:center;gap:6px;
-  padding:8px 14px;border-radius:var(--r-md);
-  background:transparent;color:var(--muted);
-  font-size:13px;border:1px solid var(--border);
-  transition:background var(--t),color var(--t);
-}
-.btn-reload:hover{background:var(--s3);color:var(--text)}
-
-@media(max-width:600px){
-  main{padding:12px 12px 64px}
-  .nav-link span{display:none}
-  .fg{grid-template-columns:1fr}
-  .fg.triple{grid-template-columns:1fr 1fr}
-  .save-bar{padding:8px 12px}
-}
+.save-bar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;margin:0 -24px;z-index:50}
+.save-status{font-size:12px;font-family:var(--mono);padding:4px 12px;border-radius:var(--radius);display:none}
+.save-status.ok{display:inline-block;background:var(--green-bg);color:#70c490}
+.save-status.warn{display:inline-block;background:var(--yellow-bg);color:#d0a840}
+.save-status.err{display:inline-block;background:var(--red-bg);color:#d07070}
+.section-gap{margin-top:12px}
 </style>
 </head>
 <body>
 <nav>
-  <div class="nav-logo">
-    <svg aria-label="MonSet" width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <rect x="2" y="2" width="22" height="22" rx="5" stroke="#c8963c" stroke-width="1.5"/>
-      <path d="M7 17 L7 13 L10 9 L13 13 L16 9 L19 13 L19 17" stroke="#c8963c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
-      <circle cx="13" cy="7" r="1.5" fill="#c8963c"/>
-    </svg>
-    <span class="logo-name">Mon<span class="logo-dot">Set</span></span>
-  </div>
-  <div class="nav-links">
-    <a class="nav-link" href="index.html"><span>Dashboard</span></a>
-    <a class="nav-link active" href="config.html"><span>Конфиг</span></a>
-    <a class="nav-link" href="logs.html"><span>Лог</span></a>
-    <a class="nav-link" href="files.html"><span>Файлы</span></a>
-  </div>
+<div class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="MonSet"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="7 10 10 7 13 10 16 7"/></svg>MonSet</div>
+<a href="/">Dashboard</a><a href="/config" class="active">Config</a><a href="/logs">Logs</a><a href="/files">Files</a>
+<div class="nav-spacer"></div>
+<span class="nav-status" id="nav-ip">—</span>
 </nav>
-
 <main>
-  <div class="page-header">
-    <div class="page-title">Конфигурация</div>
-  </div>
-  <div class="net-err" id="netErr">⚠ Нет связи с устройством</div>
-  <div class="save-msg" id="saveMsg"></div>
+  <h1 class="page-title">Config</h1>
 
   <!-- Network -->
-  <div class="acc" id="acc-net">
-    <div class="acc-head" aria-expanded="true" onclick="toggleAcc('acc-net')">
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
-      <span class="acc-title">Сеть / Wi-Fi</span>
-      <span class="acc-badge" id="badge-net">—</span>
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:none"><polyline points="6 9 12 15 18 9"/></svg>
+  <div class="card">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Сеть</h2><span class="acc-arrow open">▶</span>
     </div>
-    <div class="acc-body">
-      <div class="fg">
-        <div class="f"><label for="wifi_ssid">SSID</label><input id="wifi_ssid" name="wifi_ssid" placeholder="MyNetwork"></div>
-        <div class="f"><label for="wifi_pass">Пароль</label><input id="wifi_pass" name="wifi_pass" type="password" placeholder="••••••••"></div>
-        <div class="f"><label for="device_ip">IP адрес</label><input id="device_ip" name="device_ip" placeholder="192.168.1.100"><div class="hint">0.0.0.0 — DHCP</div></div>
-        <div class="f"><label for="device_gw">Gateway</label><input id="device_gw" name="device_gw" placeholder="192.168.1.1"></div>
-        <div class="f"><label for="device_mask">Маска</label><input id="device_mask" name="device_mask" placeholder="255.255.255.0"></div>
-        <div class="f"><label for="device_dns">DNS</label><input id="device_dns" name="device_dns" placeholder="8.8.8.8"></div>
-        <div class="f"><label for="web_port">HTTP порт</label><input id="web_port" name="web_port" type="number" placeholder="80"></div>
+    <div class="acc-body open" id="sec-network">
+      <div class="form-row">
+        <div class="form-field"><label>SSID</label><input type="text" id="c-ssid"></div>
+        <div class="form-field"><label>Пароль</label><input type="password" id="c-pass" placeholder="(без изменений)"></div>
+      </div>
+      <div class="form-row section-gap">
+        <div class="form-field"><label>IP (0.0.0.0 = DHCP)</label><input type="text" id="c-ip"></div>
+        <div class="form-field"><label>Маска</label><input type="text" id="c-mask"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Шлюз</label><input type="text" id="c-gw"></div>
+        <div class="form-field"><label>DNS</label><input type="text" id="c-dns"></div>
       </div>
     </div>
   </div>
 
   <!-- Modem -->
-  <div class="acc" id="acc-modem">
-    <div class="acc-head" aria-expanded="false" onclick="toggleAcc('acc-modem')">
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
-      <span class="acc-title">Сотовый модем (4G)</span>
-      <span class="acc-badge" id="badge-modem">—</span>
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:none"><polyline points="6 9 12 15 18 9"/></svg>
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Модем / UART</h2><span class="acc-arrow">▶</span>
     </div>
-    <div class="acc-body">
-      <div class="fg">
-        <div class="f"><label for="modem_apn">APN</label><input id="modem_apn" name="modem_apn" placeholder="internet"></div>
-        <div class="f"><label for="modem_baud">Скорость UART</label>
-          <select id="modem_baud" name="modem_baud">
-            <option value="9600">9600</option><option value="19200">19200</option>
-            <option value="38400">38400</option><option value="57600">57600</option>
-            <option value="115200">115200</option><option value="230400">230400</option>
-          </select>
-        </div>
-        <div class="f"><label for="server_host">Сервер</label><input id="server_host" name="server_host" placeholder="example.com"></div>
-        <div class="f"><label for="server_port">Порт</label><input id="server_port" name="server_port" type="number" placeholder="8883"></div>
-        <hr class="sep">
-        <div class="f" style="grid-column:1/-1">
-          <div class="check-row"><input type="checkbox" id="modem_tls" name="modem_tls"><label for="modem_tls">TLS / HTTPS</label></div>
-          <div class="check-row"><input type="checkbox" id="modem_enabled" name="modem_enabled"><label for="modem_enabled">Модем включён</label></div>
-        </div>
-        <div class="f"><label for="send_interval">Интервал отправки, с</label><input id="send_interval" name="send_interval" type="number" placeholder="60"></div>
-        <div class="f"><label for="modem_timeout">Таймаут AT, мс</label><input id="modem_timeout" name="modem_timeout" type="number" placeholder="5000"></div>
+    <div class="acc-body" id="sec-modem">
+      <div class="form-row">
+        <div class="form-field"><label>APN</label><input type="text" id="c-apn"></div>
+        <div class="form-field"><label>Baudrate</label><input type="number" id="c-baud"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Логин</label><input type="text" id="c-modem-user"></div>
+        <div class="form-field"><label>Пароль</label><input type="password" id="c-modem-pass" placeholder="(без изменений)"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Таймаут подключения (с)</label><input type="number" id="c-modem-timeout"></div>
+        <div class="form-field"><label>Retry интервал (с)</label><input type="number" id="c-modem-retry"></div>
       </div>
     </div>
   </div>
 
   <!-- Iridium -->
-  <div class="acc" id="acc-irid">
-    <div class="acc-head" aria-expanded="false" onclick="toggleAcc('acc-irid')">
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
-      <span class="acc-title">Iridium SBD</span>
-      <span class="acc-badge" id="badge-irid">—</span>
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:none"><polyline points="6 9 12 15 18 9"/></svg>
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Iridium SBD</h2><span class="acc-arrow">▶</span>
     </div>
-    <div class="acc-body">
-      <div class="fg">
-        <div class="f"><label for="irid_baud">Скорость UART</label>
-          <select id="irid_baud" name="irid_baud">
-            <option value="9600">9600</option><option value="19200">19200</option>
-            <option value="38400">38400</option><option value="115200">115200</option>
-          </select>
-        </div>
-        <div class="f"><label for="irid_interval">Интервал SBD, с</label><input id="irid_interval" name="irid_interval" type="number" placeholder="300"></div>
-        <div class="f"><label for="irid_timeout">Таймаут сессии, мс</label><input id="irid_timeout" name="irid_timeout" type="number" placeholder="30000"></div>
-        <div class="f">
-          <div class="check-row"><input type="checkbox" id="irid_enabled" name="irid_enabled"><label for="irid_enabled">Iridium включён</label></div>
-          <div class="check-row"><input type="checkbox" id="irid_fallback" name="irid_fallback"><label for="irid_fallback">Fallback если нет 4G</label></div>
+    <div class="acc-body" id="sec-iridium">
+      <div class="form-row">
+        <div class="form-field"><label>Интервал (с)</label><input type="number" id="c-sbd-interval"></div>
+        <div class="form-field"><label>Макс. попыток</label><input type="number" id="c-sbd-retries"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Таймаут сессии (с)</label><input type="number" id="c-sbd-timeout"></div>
+        <div class="form-field"><label>Формат сообщения</label>
+          <select id="c-sbd-fmt"><option value="raw">raw</option><option value="json">json</option><option value="csv">csv</option></select>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SD / Storage -->
-  <div class="acc" id="acc-sd">
-    <div class="acc-head" aria-expanded="false" onclick="toggleAcc('acc-sd')">
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 6.5l-3-4H4a1 1 0 0 0-1 1v17a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V6.5z"/><path d="M15 2v6h6"/></svg>
-      <span class="acc-title">SD-карта / Хранилище</span>
-      <span class="acc-badge" id="badge-sd">—</span>
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:none"><polyline points="6 9 12 15 18 9"/></svg>
+  <!-- Sensors -->
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Датчики</h2><span class="acc-arrow">▶</span>
     </div>
-    <div class="acc-body">
-      <div class="fg">
-        <div class="f"><label for="log_file">Файл лога</label><input id="log_file" name="log_file" placeholder="0:/log.txt"></div>
-        <div class="f"><label for="cfg_file">Файл конфига</label><input id="cfg_file" name="cfg_file" placeholder="0:/runtime_config.json"></div>
-        <div class="f"><label for="log_max_kb">Макс. размер лога, KB</label><input id="log_max_kb" name="log_max_kb" type="number" placeholder="512"></div>
-        <div class="f">
-          <div class="check-row"><input type="checkbox" id="sd_log_enabled" name="sd_log_enabled"><label for="sd_log_enabled">Логировать на SD</label></div>
-          <div class="check-row"><input type="checkbox" id="sd_rotate" name="sd_rotate"><label for="sd_rotate">Ротация лога</label></div>
-        </div>
+    <div class="acc-body" id="sec-sensors">
+      <div class="form-row three">
+        <div class="form-field"><label>Период опроса (мс)</label><input type="number" id="c-sensor-period"></div>
+        <div class="form-field"><label>Порог звука (дБ)</label><input type="number" id="c-sound-thr"></div>
+        <div class="form-field"><label>Усреднение (кол-во)</label><input type="number" id="c-avg-cnt"></div>
       </div>
     </div>
   </div>
 
-  <!-- Sensor -->
-  <div class="acc" id="acc-sensor">
-    <div class="acc-head" aria-expanded="false" onclick="toggleAcc('acc-sensor')">
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3 6 12H2"/></svg>
-      <span class="acc-title">Сенсоры / Датчики</span>
-      <span class="acc-badge" id="badge-sensor">—</span>
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:none"><polyline points="6 9 12 15 18 9"/></svg>
+  <!-- SD / Logging -->
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>SD / Логирование</h2><span class="acc-arrow">▶</span>
     </div>
-    <div class="acc-body">
-      <div class="fg">
-        <div class="f"><label for="sensor_interval">Интервал опроса, мс</label><input id="sensor_interval" name="sensor_interval" type="number" placeholder="1000"></div>
-        <div class="f"><label for="accel_gain">Усиление акселерометра</label><input id="accel_gain" name="accel_gain" type="number" placeholder="4"></div>
-        <div class="f"><label for="threshold_db">Порог дБ</label><input id="threshold_db" name="threshold_db" type="number" step="0.1" placeholder="70.0"></div>
-        <div class="f"><label for="avg_window">Окно усреднения</label><input id="avg_window" name="avg_window" type="number" placeholder="16"></div>
-        <div class="f">
-          <div class="check-row"><input type="checkbox" id="sensor_enabled" name="sensor_enabled"><label for="sensor_enabled">Сенсоры включены</label></div>
+    <div class="acc-body" id="sec-sd">
+      <div class="form-row">
+        <div class="form-field"><label>Папка логов</label><input type="text" id="c-log-dir"></div>
+        <div class="form-field"><label>Макс. размер файла (КБ)</label><input type="number" id="c-log-maxsize"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Уровень лога</label>
+          <select id="c-log-level"><option value="0">DEBUG</option><option value="1">INFO</option><option value="2">WARN</option><option value="3">ERROR</option></select>
         </div>
+        <div class="form-field"><label>Период сохранения конфига (с)</label><input type="number" id="c-cfg-save-period"></div>
       </div>
     </div>
   </div>
 
   <!-- System -->
-  <div class="acc" id="acc-sys">
-    <div class="acc-head" aria-expanded="false" onclick="toggleAcc('acc-sys')">
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M5.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      <span class="acc-title">Система</span>
-      <span class="acc-badge" id="badge-sys">—</span>
-      <svg class="acc-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:none"><polyline points="6 9 12 15 18 9"/></svg>
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Система</h2><span class="acc-arrow">▶</span>
     </div>
-    <div class="acc-body">
-      <div class="fg">
-        <div class="f"><label for="device_name">Имя устройства</label><input id="device_name" name="device_name" placeholder="MonSet-01"></div>
-        <div class="f"><label for="log_level">Уровень лога</label>
-          <select id="log_level" name="log_level">
-            <option value="0">DEBUG</option><option value="1">INFO</option>
-            <option value="2">WARN</option><option value="3">ERROR</option>
-          </select>
-        </div>
-        <div class="f"><label for="watchdog_ms">Watchdog, мс</label><input id="watchdog_ms" name="watchdog_ms" type="number" placeholder="30000"></div>
-        <div class="f">
-          <div class="check-row"><input type="checkbox" id="watchdog_enabled" name="watchdog_enabled"><label for="watchdog_enabled">Watchdog включён</label></div>
-        </div>
+    <div class="acc-body" id="sec-sys">
+      <div class="form-row">
+        <div class="form-field"><label>Watchdog таймаут (с)</label><input type="number" id="c-wdg"></div>
+        <div class="form-field"><label>Имя устройства</label><input type="text" id="c-devname"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Web-порт</label><input type="number" id="c-webport"></div>
+        <div class="form-field"><label>Часовой пояс (UTC+N)</label><input type="number" id="c-tz"></div>
       </div>
     </div>
   </div>
+
+  <div class="save-bar">
+    <button class="btn btn-primary" onclick="save()">💾 Сохранить</button>
+    <button class="btn btn-ghost" onclick="reload()">↺ Перечитать</button>
+    <span class="save-status" id="save-status"></span>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:var(--faint);font-family:var(--mono)" id="save-path"></span>
+  </div>
 </main>
-
-<div class="save-bar">
-  <button class="btn-reload" onclick="reloadCfg()" title="Перечитать с устройства">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    Перечитать
-  </button>
-  <button class="btn-save" onclick="save()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-    Сохранить
-  </button>
-</div>
-
+<div id="toast"></div>
 <script>
-(function(){
-'use strict';
 
-var msgTimer=null;
-function showMsg(type,text){
-  var el=document.getElementById('saveMsg');
-  el.className='save-msg '+type;
-  el.textContent=text;
-  el.style.display='block';
-  el.style.opacity='1';
-  clearTimeout(msgTimer);
-  if(type==='ok'){
-    msgTimer=setTimeout(function(){
-      el.style.opacity='0';
-      setTimeout(function(){el.style.display='none';el.style.opacity='1';},300);
-    },6000);
+function toast(msg,type,ms){
+  type=type||'ok'; ms=ms||6000;
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(t._tid);
+  t._tid=setTimeout(function(){t.className=type;},ms);
+}
+
+function toggle(hdr){
+  var arr=hdr.querySelector('.acc-arrow');
+  var body=hdr.nextElementSibling;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  arr.classList.toggle('open',!open);
+}
+var F={
+  ssid:'c-ssid',pass:'c-pass',ip:'c-ip',mask:'c-mask',gw:'c-gw',dns:'c-dns',
+  apn:'c-apn',baud:'c-baud',modem_user:'c-modem-user',modem_pass:'c-modem-pass',
+  modem_timeout:'c-modem-timeout',modem_retry:'c-modem-retry',
+  sbd_interval:'c-sbd-interval',sbd_retries:'c-sbd-retries',sbd_timeout:'c-sbd-timeout',sbd_fmt:'c-sbd-fmt',
+  sensor_period:'c-sensor-period',sound_thr:'c-sound-thr',avg_cnt:'c-avg-cnt',
+  log_dir:'c-log-dir',log_maxsize:'c-log-maxsize',log_level:'c-log-level',cfg_save_period:'c-cfg-save-period',
+  wdg:'c-wdg',devname:'c-devname',webport:'c-webport',tz:'c-tz'
+};
+function fillForm(d){
+  for(var k in F){
+    var el=document.getElementById(F[k]);
+    if(!el) continue;
+    if(k==='pass'||k==='modem_pass') continue;
+    if(d[k]!==undefined && d[k]!==null) el.value=d[k];
   }
+  if(d.ip_address) document.getElementById('c-ip').value=d.ip_address;
+  if(d.config_path) document.getElementById('save-path').textContent=d.config_path;
+  if(d.ip) document.getElementById('nav-ip').textContent=d.ip;
 }
-
-function ftch(url,o){var c=new AbortController(),t=setTimeout(function(){c.abort()},8000);return fetch(url,Object.assign({signal:c.signal},o||{})).finally(function(){clearTimeout(t)})}
-
-/* Populate form from JSON object */
-function applyJson(d){
-  Object.keys(d).forEach(function(k){
-    var el=document.getElementById(k);
-    if(!el) return;
-    if(el.type==='checkbox') el.checked=!!d[k];
-    else el.value=(d[k]==null)?'':d[k];
-  });
-  // update accordion badges
-  setBadge('badge-net', d.wifi_ssid||'');
-  setBadge('badge-modem', d.modem_enabled?d.modem_apn||'on':'off');
-  setBadge('badge-irid', d.irid_enabled?'on':'off');
-  setBadge('badge-sd', d.sd_log_enabled?'on':'off');
-  setBadge('badge-sensor', d.sensor_enabled?'on':'off');
-  setBadge('badge-sys', d.device_name||'');
+function reload(){
+  fetch('/api/config').then(r=>r.json()).then(function(d){
+    fillForm(d);
+    showStatus('ok','↺ Загружено с устройства');
+  }).catch(function(){toast('Нет связи','err');});
 }
-function setBadge(id,v){var el=document.getElementById(id);if(el)el.textContent=v||'—';}
-
-/* Collect form → JSON */
-function collectForm(){
-  var d={};
-  document.querySelectorAll('input[name],select[name]').forEach(function(el){
-    var v;
-    if(el.type==='checkbox') v=el.checked;
-    else if(el.type==='number') v=el.value===''?null:Number(el.value);
-    else v=el.value;
-    d[el.name]=v;
-  });
-  return d;
+function getForm(){
+  var out={};
+  for(var k in F){
+    var el=document.getElementById(F[k]);
+    if(!el) continue;
+    if((k==='pass'||k==='modem_pass')&&!el.value) continue;
+    out[k]=el.value;
+  }
+  return out;
 }
-
-window.reloadCfg=function(){
-  ftch('/api/config').then(function(r){return r.json()}).then(function(d){
-    document.getElementById('netErr').style.display='none';
-    applyJson(d);
-  }).catch(function(){
-    document.getElementById('netErr').style.display='block';
-  });
-};
-
-window.save=function(){
-  var payload=collectForm();
-  ftch('/api/config',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
-  }).then(function(r){
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    return r.json();
-  }).then(function(d){
-    document.getElementById('netErr').style.display='none';
-    if(d.status==='ok'){
-      if(d.saved_to_sd) showMsg('ok','✓ Сохранено на SD');
-      else showMsg('warn','⚠ Применено в RAM (SD недоступна)');
-    } else {
-      showMsg('err','✗ Ошибка: '+(d.message||'неизвестная'));
-    }
-    // reload from device to show normalized values
-    return ftch('/api/config').then(function(r){return r.json()}).then(applyJson);
-  }).catch(function(e){
-    showMsg('err','✗ Нет связи с устройством');
-  });
-};
-
-window.toggleAcc=function(id){
-  var card=document.getElementById(id);
-  if(!card) return;
-  var head=card.querySelector('.acc-head');
-  var open=head.getAttribute('aria-expanded')==='true';
-  head.setAttribute('aria-expanded',open?'false':'true');
-};
-
-// Load on page ready
-reloadCfg();
-})();
+function showStatus(type,msg){
+  var el=document.getElementById('save-status');
+  el.className='save-status '+type; el.textContent=msg;
+  clearTimeout(el._tid);
+  el._tid=setTimeout(function(){el.className='save-status';},6000);
+}
+function save(){
+  var payload=getForm();
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  .then(r=>r.json()).then(function(d){
+    if(d.status!=='ok'){ showStatus('err','✗ '+( d.message||'Ошибка'))); return; }
+    if(d.saved_to_sd)  showStatus('ok','✓ Сохранено на SD');
+    else               showStatus('warn','⚠ Применено в RAM (SD недоступна)');
+    reload();
+  }).catch(function(){showStatus('err','✗ Нет связи с устройством');});
+}
+reload();
 </script>
 </body>
 </html>

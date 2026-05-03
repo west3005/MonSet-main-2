@@ -4,222 +4,210 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MonSet — Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0d0f12;--s1:#131720;--s2:#181d28;--s3:#1e2435;
-  --border:rgba(255,255,255,.07);--divider:rgba(255,255,255,.04);
-  --text:#e8eaf0;--muted:#7b8499;--faint:#3d4357;
-  --accent:#c8963c;--accent-dim:rgba(200,150,60,.12);
-  --green:#4caf82;--green-dim:rgba(76,175,130,.12);
-  --red:#e05555;--red-dim:rgba(224,85,85,.12);
-  --yellow:#d4a017;--yellow-dim:rgba(212,160,23,.12);
-  --blue:#4e8fcf;--blue-dim:rgba(78,143,207,.12);
-  --font-body:'Inter',system-ui,sans-serif;
-  --font-mono:'Geist Mono','Fira Code',monospace;
-  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
-  --t:160ms cubic-bezier(.16,1,.3,1);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-font-smoothing:antialiased}
-body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100dvh}
-button{cursor:pointer;font:inherit;border:none;background:none}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
 
-nav{position:sticky;top:0;z-index:100;height:48px;display:flex;align-items:center;background:rgba(13,15,18,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 20px}
-.nav-logo{display:flex;align-items:center;gap:8px;margin-right:auto}
-.logo-name{font-weight:700;font-size:15px;letter-spacing:.03em}
-.logo-dot{color:var(--accent)}
-.nav-links{display:flex;gap:2px}
-.nav-link{height:48px;padding:0 14px;display:flex;align-items:center;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:color var(--t),border-color var(--t);text-decoration:none;white-space:nowrap}
-.nav-link:hover{color:var(--text)}
-.nav-link.active{color:var(--accent);border-bottom-color:var(--accent)}
+  :root {
+    --bg:#0d0f12; --surface:#141720; --surface2:#1a1e2a;
+    --border:oklch(from #e0c97a 0.7 0.1 85 / 0.15);
+    --text:#e8e6e0; --muted:#8a8880; --faint:#4a4846;
+    --gold:#c8963c; --gold-h:#e0b060;
+    --green:#4a9460; --yellow:#b89030; --red:#9c4040;
+    --green-bg:oklch(from #4a9460 0.25 0.08 145 / 0.25);
+    --yellow-bg:oklch(from #b89030 0.3 0.1 85 / 0.25);
+    --red-bg:oklch(from #9c4040 0.25 0.1 25 / 0.25);
+    --radius:6px; --radius-lg:10px;
+    --mono:'Geist Mono','Courier New',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:14px;-webkit-font-smoothing:antialiased}
+  body{background:var(--bg);color:var(--text);font-family:'Inter','Helvetica Neue',sans-serif;min-height:100dvh;display:flex;flex-direction:column}
+  a{color:var(--gold);text-decoration:none} a:hover{color:var(--gold-h)}
+  button{cursor:pointer;border:none;font:inherit}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:52px;position:sticky;top:0;z-index:100}
+  .nav-logo{display:flex;align-items:center;gap:10px;margin-right:32px;color:var(--gold);font-weight:700;font-size:15px;letter-spacing:.03em}
+  nav a{color:var(--muted);font-size:13px;font-weight:500;padding:0 14px;height:52px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  nav a:hover{color:var(--text)} nav a.active{color:var(--gold);border-bottom-color:var(--gold)}
+  .nav-spacer{flex:1}
+  .nav-status{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  main{flex:1;padding:24px;max-width:960px;margin:0 auto;width:100%}
+  .page-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:20px;letter-spacing:-.01em}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+  .card+.card{margin-top:16px}
+  .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+  input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:8px 11px;background:var(--bg);border:1px solid oklch(from var(--text) 0.5 0 0 / 0.15);border-radius:var(--radius);color:var(--text);font:inherit;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-row.three{grid-template-columns:1fr 1fr 1fr}
+  .form-field{display:flex;flex-direction:column}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:background .15s,color .15s,border-color .15s}
+  .btn-primary{background:var(--gold);color:#0d0f12} .btn-primary:hover{background:var(--gold-h)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)} .btn-ghost:hover{color:var(--text)}
+  .btn-danger{background:var(--red-bg);color:#d06060;border:1px solid oklch(from #9c4040 0.5 0.1 25 / 0.3)} .btn-danger:hover{background:oklch(from #9c4040 0.3 0.1 25 / 0.35)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+  .badge-ok{background:var(--green-bg);color:#70c490} .badge-warn{background:var(--yellow-bg);color:#d0a840} .badge-err{background:var(--red-bg);color:#d07070}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:10px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .25s;opacity:0;pointer-events:none;z-index:9999;white-space:nowrap}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  #toast.ok{background:var(--green-bg);color:#70c490;border:1px solid oklch(from #4a9460 0.4 0.08 145 / 0.4)}
+  #toast.warn{background:var(--yellow-bg);color:#d0a840;border:1px solid oklch(from #b89030 0.4 0.1 85 / 0.4)}
+  #toast.err{background:var(--red-bg);color:#d07070;border:1px solid oklch(from #9c4040 0.4 0.1 25 / 0.4)}
+  .acc-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 20px;margin:-20px -20px 0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;user-select:none;transition:background .15s}
+  .acc-hdr:hover{background:oklch(from var(--text) 0.15 0 0 / 0.05)}
+  .acc-hdr h2{font-size:13px;font-weight:600;color:var(--text)}
+  .acc-arrow{color:var(--muted);transition:transform .2s;font-size:11px}
+  .acc-arrow.open{transform:rotate(90deg)}
+  .acc-body{margin-top:20px;display:none} .acc-body.open{display:block}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+  .kpi-value{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--gold);letter-spacing:-.02em;line-height:1}
+  .kpi-value.ok{color:#70c490} .kpi-value.warn{color:#d0a840} .kpi-value.err{color:#d07070}
+  .kpi-unit{font-size:12px;color:var(--muted);margin-top:4px}
+  #log-output{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;height:480px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .log-info{color:#7898b8} .log-warn{color:#c8a840} .log-error{color:#c06060} .log-data{color:#60a878} .log-debug{color:#888}
+  .file-table{width:100%;border-collapse:collapse}
+  .file-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .file-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+  .file-table tr:last-child td{border-bottom:none}
+  .file-table tr:hover td{background:oklch(from var(--text) 0.15 0 0 / 0.04)}
+  .file-icon{margin-right:6px;color:var(--gold)}
+  .file-size{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .drop-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;color:var(--muted);transition:border-color .15s,background .15s;cursor:pointer}
+  .drop-zone.drag-over{border-color:var(--gold);background:var(--yellow-bg)}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+  .progress-fill{height:100%;background:var(--gold);width:0;transition:width .1s;border-radius:2px}
+  @media(max-width:600px){main{padding:16px}.form-row,.form-row.three{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
 
-main{max-width:900px;margin:0 auto;padding:20px 20px 40px}
-.page-header{margin-bottom:18px;display:flex;align-items:baseline;gap:10px}
-.page-title{font-size:15px;font-weight:600;color:var(--text)}
-.page-sub{font-size:12px;color:var(--muted);font-family:var(--font-mono)}
-.net-err{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,85,85,.2);padding:10px 16px;border-radius:var(--r-md);font-size:12px;font-family:var(--font-mono);display:none;margin-bottom:14px}
-
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px}
-.kpi-label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.kpi-val{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--text);letter-spacing:-.01em;line-height:1}
-.kpi-val.ok{color:var(--green)}
-.kpi-val.warn{color:var(--yellow)}
-.kpi-val.bad{color:var(--red)}
-.kpi-meta{font-size:11px;color:var(--faint);margin-top:4px}
-
-.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:12px}
-.card-head{padding:11px 16px;border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between}
-.card-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
-.card-title-dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
-.card-body{padding:14px 16px}
-
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
-.info-list{display:flex;flex-direction:column;gap:0}
-.info-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--divider);font-size:13px}
-.info-item:last-child{border-bottom:none}
-.info-key{color:var(--muted)}
-.info-val{font-family:var(--font-mono);font-size:12px;color:var(--text)}
-
-.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600}
-.badge.ok{background:var(--green-dim);color:var(--green)}
-.badge.bad{background:var(--red-dim);color:var(--red)}
-.badge.warn{background:var(--yellow-dim);color:var(--yellow)}
-.badge.info{background:var(--blue-dim);color:var(--blue)}
-.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
-
-.log-box{background:var(--s2);border-radius:var(--r-md);padding:12px;font-family:var(--font-mono);font-size:11px;color:var(--muted);max-height:140px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
-
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;display:inline-block}
-
-@media(max-width:600px){
-  main{padding:12px 12px 32px}
-  .nav-link span{display:none}
-  .kpi-grid{grid-template-columns:1fr 1fr}
-  .row2{grid-template-columns:1fr}
-}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.stat-row:last-child{border-bottom:none}
+.stat-key{color:var(--muted)}
+.stat-val{font-family:var(--mono);font-size:12px;color:var(--text)}
+#mini-log{height:90px;font-size:11px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px;font-family:var(--mono);line-height:1.5}
 </style>
 </head>
 <body>
 <nav>
-  <div class="nav-logo">
-    <svg aria-label="MonSet" width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <rect x="2" y="2" width="22" height="22" rx="5" stroke="#c8963c" stroke-width="1.5"/>
-      <path d="M7 17 L7 13 L10 9 L13 13 L16 9 L19 13 L19 17" stroke="#c8963c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
-      <circle cx="13" cy="7" r="1.5" fill="#c8963c"/>
-    </svg>
-    <span class="logo-name">Mon<span class="logo-dot">Set</span></span>
-  </div>
-  <div class="nav-links">
-    <a class="nav-link active" href="index.html"><span>Dashboard</span></a>
-    <a class="nav-link" href="config.html"><span>Конфиг</span></a>
-    <a class="nav-link" href="logs.html"><span>Лог</span></a>
-    <a class="nav-link" href="files.html"><span>Файлы</span></a>
-  </div>
+<div class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="MonSet"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="7 10 10 7 13 10 16 7"/></svg>MonSet</div>
+<a href="/" class="active">Dashboard</a><a href="/config">Config</a><a href="/logs">Logs</a><a href="/files">Files</a>
+<div class="nav-spacer"></div>
+<span class="nav-status" id="nav-ip">—</span>
 </nav>
-
 <main>
-  <div class="net-err" id="netErr">⚠ Нет связи с устройством</div>
-  <div class="page-header">
-    <div class="page-title">Dashboard</div>
-    <div class="live-dot" title="Обновление в реальном времени"></div>
-    <div class="page-sub" id="lastUpdate">—</div>
+  <h1 class="page-title">Dashboard</h1>
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Uptime</div><div class="kpi-value" id="kpi-uptime">—</div><div class="kpi-unit">hh:mm:ss</div></div>
+    <div class="kpi"><div class="kpi-label">SD Card</div><div class="kpi-value" id="kpi-sd">—</div><div class="kpi-unit" id="kpi-sd-size">—</div></div>
+    <div class="kpi"><div class="kpi-label">Free Heap</div><div class="kpi-value" id="kpi-heap">—</div><div class="kpi-unit">bytes</div></div>
+    <div class="kpi"><div class="kpi-label">IP Address</div><div class="kpi-value" id="kpi-ip" style="font-size:16px">—</div><div class="kpi-unit" id="kpi-net-mode">—</div></div>
+    <div class="kpi"><div class="kpi-label">RSSI</div><div class="kpi-value" id="kpi-rssi">—</div><div class="kpi-unit">dBm</div></div>
+    <div class="kpi"><div class="kpi-label">Last Save</div><div class="kpi-value" id="kpi-save" style="font-size:14px">—</div><div class="kpi-unit" id="kpi-save-status">—</div></div>
   </div>
-
-  <div class="kpi-grid">
-    <div class="kpi"><div class="kpi-label">Статус</div><div class="kpi-val" id="kStatus">—</div><div class="kpi-meta" id="kUptime">—</div></div>
-    <div class="kpi"><div class="kpi-label">SD</div><div class="kpi-val" id="kSd">—</div><div class="kpi-meta" id="kSdMeta">—</div></div>
-    <div class="kpi"><div class="kpi-label">IP адрес</div><div class="kpi-val" id="kIp" style="font-size:16px">—</div><div class="kpi-meta" id="kMac">—</div></div>
-    <div class="kpi"><div class="kpi-label">RAM свободно</div><div class="kpi-val" id="kRam">—</div><div class="kpi-meta" id="kRamT">—</div></div>
-    <div class="kpi"><div class="kpi-label">Modem</div><div class="kpi-val" id="kModem" style="font-size:16px">—</div><div class="kpi-meta" id="kModemMeta">—</div></div>
-    <div class="kpi"><div class="kpi-label">Iridium</div><div class="kpi-val" id="kIrid" style="font-size:16px">—</div><div class="kpi-meta" id="kIridMeta">—</div></div>
-  </div>
-
-  <div class="row2">
+  <div class="two-col">
     <div class="card">
-      <div class="card-head"><div class="card-title"><div class="card-title-dot"></div>Сеть</div></div>
-      <div class="card-body">
-        <div class="info-list">
-          <div class="info-item"><span class="info-key">SSID</span><span class="info-val" id="iSsid">—</span></div>
-          <div class="info-item"><span class="info-key">Gateway</span><span class="info-val" id="iGw">—</span></div>
-          <div class="info-item"><span class="info-key">DNS</span><span class="info-val" id="iDns">—</span></div>
-          <div class="info-item"><span class="info-key">Сигнал</span><span class="info-val" id="iRssi">—</span></div>
-        </div>
-      </div>
+      <div class="card-title">Сеть</div>
+      <div class="stat-row"><span class="stat-key">SSID</span><span class="stat-val" id="s-ssid">—</span></div>
+      <div class="stat-row"><span class="stat-key">MAC</span><span class="stat-val" id="s-mac">—</span></div>
+      <div class="stat-row"><span class="stat-key">Gateway</span><span class="stat-val" id="s-gw">—</span></div>
+      <div class="stat-row"><span class="stat-key">DNS</span><span class="stat-val" id="s-dns">—</span></div>
+      <div class="stat-row"><span class="stat-key">Соединений</span><span class="stat-val" id="s-conn">—</span></div>
+      <div class="stat-row"><span class="stat-key">Rx / Tx</span><span class="stat-val" id="s-rxtx">—</span></div>
     </div>
     <div class="card">
-      <div class="card-head"><div class="card-title"><div class="card-title-dot"></div>Система</div></div>
-      <div class="card-body">
-        <div class="info-list">
-          <div class="info-item"><span class="info-key">Прошивка</span><span class="info-val" id="iFw">—</span></div>
-          <div class="info-item"><span class="info-key">MCU</span><span class="info-val" id="iMcu">—</span></div>
-          <div class="info-item"><span class="info-key">Flash</span><span class="info-val" id="iFlash">—</span></div>
-          <div class="info-item"><span class="info-key">Температура</span><span class="info-val" id="iTemp">—</span></div>
-        </div>
-      </div>
+      <div class="card-title">Система</div>
+      <div class="stat-row"><span class="stat-key">CPU</span><span class="stat-val" id="s-cpu">—</span></div>
+      <div class="stat-row"><span class="stat-key">Температура</span><span class="stat-val" id="s-temp">—</span></div>
+      <div class="stat-row"><span class="stat-key">SD путь конфига</span><span class="stat-val" id="s-cfgpath">—</span></div>
+      <div class="stat-row"><span class="stat-key">SD записей</span><span class="stat-val" id="s-sdwrites">—</span></div>
+      <div class="stat-row"><span class="stat-key">Прошивка</span><span class="stat-val" id="s-fw">—</span></div>
+      <div class="stat-row"><span class="stat-key">Дата сборки</span><span class="stat-val" id="s-built">—</span></div>
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-head"><div class="card-title"><div class="card-title-dot"></div>Последние события</div></div>
-    <div class="card-body"><div class="log-box" id="logBox">Загрузка...</div></div>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Последние события</div>
+      <a href="/logs" style="font-size:12px;color:var(--gold)">все логи →</a>
+    </div>
+    <div id="mini-log"></div>
   </div>
 </main>
-
+<div id="toast"></div>
 <script>
-(function(){
-'use strict';
-function ftch(url){var c=new AbortController(),t=setTimeout(function(){c.abort()},6000);return fetch(url,{signal:c.signal}).finally(function(){clearTimeout(t)})}
-function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v==null?'—':v;}
-function fmt(ms){
-  if(ms==null) return '—';
-  var s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60),d=Math.floor(h/24);
-  if(d>0) return d+'д '+( h%24)+'ч';
-  if(h>0) return h+'ч '+(m%60)+'м';
-  if(m>0) return m+'м '+(s%60)+'с';
-  return s+'с';
-}
-function fmtMem(b){if(b==null) return '—'; return b>=1048576?(b/1048576).toFixed(1)+' MB':(b/1024).toFixed(0)+' KB';}
-function color(id,cls){var el=document.getElementById(id);if(!el) return;el.className='kpi-val '+cls;}
 
-function load(){
-  ftch('/api/status').then(function(r){return r.json()}).then(function(d){
-    document.getElementById('netErr').style.display='none';
-    var now=new Date();
-    document.getElementById('lastUpdate').textContent=now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-
-    set('kStatus',d.running?'OK':'Стоп');
-    color('kStatus',d.running?'ok':'bad');
-    set('kUptime','uptime: '+fmt(d.uptime_ms));
-
-    var sdOk=d.sd_mounted;
-    set('kSd',sdOk?'Смонтирована':'Нет');
-    color('kSd',sdOk?'ok':'bad');
-    set('kSdMeta',d.sd_total?fmtMem(d.sd_free)+' / '+fmtMem(d.sd_total):'—');
-
-    set('kIp',d.ip||'—');
-    set('kMac',d.mac||'');
-
-    set('kRam',fmtMem(d.ram_free));
-    color('kRam',d.ram_free>50000?'ok':d.ram_free>20000?'warn':'bad');
-    set('kRamT','из '+fmtMem(d.ram_total));
-
-    set('kModem',d.modem_state||'—');
-    color('kModem',d.modem_ok?'ok':'warn');
-    set('kModemMeta',d.modem_apn||'');
-
-    set('kIrid',d.iridium_state||'—');
-    color('kIrid',d.iridium_ok?'ok':'warn');
-    set('kIridMeta',d.iridium_signal!=null?'RSSI: '+d.iridium_signal:'');
-
-    set('iSsid',d.ssid||'—');
-    set('iGw',d.gw||'—');
-    set('iDns',d.dns||'—');
-    set('iRssi',d.rssi!=null?d.rssi+' dBm':'—');
-
-    set('iFw',d.fw||'—');
-    set('iMcu',d.mcu||'—');
-    set('iFlash',fmtMem(d.flash));
-    set('iTemp',d.temp_c!=null?d.temp_c.toFixed(1)+' °C':'—');
-
-  }).catch(function(){document.getElementById('netErr').style.display='block';});
-
-  ftch('/api/log?lines=20&level=WARN').then(function(r){return r.text()}).then(function(t){
-    var box=document.getElementById('logBox');
-    box.textContent=t.trim()||'— нет событий —';
-    box.scrollTop=box.scrollHeight;
-  }).catch(function(){});
+function toast(msg,type,ms){
+  type=type||'ok'; ms=ms||6000;
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(t._tid);
+  t._tid=setTimeout(function(){t.className=type;},ms);
 }
 
-load();
-setInterval(load,5000);
-})();
+function colorKpi(id,val,okMin,warnMin){
+  var el=document.getElementById(id);
+  if(!el) return;
+  var cls='err';
+  if(val>=okMin) cls='ok';
+  else if(val>=warnMin) cls='warn';
+  el.className='kpi-value '+cls;
+}
+function fmt(s){
+  if(s===undefined||s===null||s==='') return '—';
+  return String(s);
+}
+function fmtUptime(s){
+  s=parseInt(s)||0;
+  var h=Math.floor(s/3600), m=Math.floor(s%3600/60), sec=s%60;
+  return (h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+function colorLog(line){
+  if(/\[ERR/i.test(line)||/ERROR/i.test(line)) return '<span class="log-error">'+line+'</span>';
+  if(/\[WRN/i.test(line)||/WARN/i.test(line))  return '<span class="log-warn">'+line+'</span>';
+  if(/\[DATA/i.test(line))  return '<span class="log-data">'+line+'</span>';
+  if(/\[DBG/i.test(line))   return '<span class="log-debug">'+line+'</span>';
+  return '<span class="log-info">'+line+'</span>';
+}
+function poll(){
+  fetch('/api/status').then(r=>r.json()).then(function(d){
+    document.getElementById('kpi-uptime').textContent=fmtUptime(d.uptime_s);
+    var sdOk=d.sd_ok||d.sd_status==='ok';
+    var sdEl=document.getElementById('kpi-sd');
+    sdEl.textContent=sdOk?'OK':'FAIL';
+    sdEl.className='kpi-value '+(sdOk?'ok':'err');
+    document.getElementById('kpi-sd-size').textContent=d.sd_free?d.sd_free+' free':'—';
+    var heap=parseInt(d.free_heap)||0;
+    document.getElementById('kpi-heap').textContent=heap?heap.toLocaleString():'—';
+    colorKpi('kpi-heap',heap,40000,15000);
+    var ip=d.ip||d.ip_address||'—';
+    document.getElementById('kpi-ip').textContent=ip;
+    document.getElementById('kpi-net-mode').textContent=d.net_mode||d.mode||'—';
+    document.getElementById('nav-ip').textContent=ip;
+    var rssi=parseInt(d.rssi)||0;
+    document.getElementById('kpi-rssi').textContent=rssi?rssi:'—';
+    colorKpi('kpi-rssi',rssi,-60,-80);
+    document.getElementById('kpi-save').textContent=d.last_save_time||'—';
+    document.getElementById('kpi-save-status').textContent=d.last_save_ok?'на SD':'в RAM';
+    document.getElementById('s-ssid').textContent=fmt(d.ssid);
+    document.getElementById('s-mac').textContent=fmt(d.mac);
+    document.getElementById('s-gw').textContent=fmt(d.gateway);
+    document.getElementById('s-dns').textContent=fmt(d.dns);
+    document.getElementById('s-conn').textContent=fmt(d.connections);
+    document.getElementById('s-rxtx').textContent=(d.rx_bytes||'?')+' / '+(d.tx_bytes||'?');
+    document.getElementById('s-cpu').textContent=d.cpu_load!==undefined?d.cpu_load+'%':'—';
+    document.getElementById('s-temp').textContent=d.temp_c!==undefined?d.temp_c+' °C':'—';
+    document.getElementById('s-cfgpath').textContent=fmt(d.config_path);
+    document.getElementById('s-sdwrites').textContent=fmt(d.sd_writes);
+    document.getElementById('s-fw').textContent=fmt(d.firmware);
+    document.getElementById('s-built').textContent=fmt(d.build_date);
+    var log=document.getElementById('mini-log');
+    if(d.last_lines&&Array.isArray(d.last_lines)){
+      log.innerHTML=d.last_lines.slice(-6).map(colorLog).join('\n');
+      log.scrollTop=log.scrollHeight;
+    }
+  }).catch(function(){toast('Нет связи с устройством','err');});
+}
+poll(); setInterval(poll,5000);
 </script>
 </body>
 </html>
