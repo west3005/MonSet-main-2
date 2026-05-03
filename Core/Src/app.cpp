@@ -445,7 +445,7 @@ void App::init() {
     // и флаг m_webStartPending=true. Повторная попытка каждую итерацию run().
     m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
     m_webServer.setSdOk(m_sdOk);
-    if (!m_webServer.isRunning() && Cfg().eth_enabled) {
+    if (!m_webServer.isRunning()) {
         DBG.info("[9/9] WebServer: deferred start pending (eth not ready)");
         m_webStartPending = true;
     }
@@ -497,7 +497,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
         // ── Отложенный старт веб-сервера ──────────────────────────────────
         // Если init() не смог открыть сокет (eth не поднят на boot),
         // пробуем повторно каждую итерацию главного цикла.
-        if (m_webStartPending && Cfg().eth_enabled) {
+        if (m_webStartPending) {
             if (ensureEthReady()) {
                 m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
                 m_webServer.setSdOk(m_sdOk);
