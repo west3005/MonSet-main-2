@@ -874,15 +874,18 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       return HAL_ERROR;
     }
 
-    /* Enable DPSM only after card accepted the write command */
-    config.DPSM = SDIO_DPSM_ENABLE;
-    (void)SDIO_ConfigData(hsd->Instance, &config);
-
-    uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v9-txfix blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
+    /* Log BEFORE enabling DPSM: uart_log_info takes hundreds of us via UART,
+     * which drains the empty FIFO before the while-loop starts -> TXUNDERR.
+     * Especially critical for multiblock (cnt>1, DLEN>512). */
+    uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v10-logfix blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
     uart_log_info("[HAL_SD] Write CMD24: err=0x%lX RESP1=0x%08lX STA=0x%08lX",
                   (unsigned long)errorstate,
                   (unsigned long)hsd->Instance->RESP1,
                   (unsigned long)hsd->Instance->STA);
+
+    /* Enable DPSM only after card accepted the write command */
+    config.DPSM = SDIO_DPSM_ENABLE;
+    (void)SDIO_ConfigData(hsd->Instance, &config);
 
     /* Write block(s) in polling mode */
     dataremaining = config.DataLength;
