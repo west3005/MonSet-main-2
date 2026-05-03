@@ -3664,7 +3664,7 @@ void WebServer::handleApiConfig(uint8_t sn){
         "\"alerts_enabled\":%s,\"batt_low\":%.1f,"
         "\"alert_on_channel_fail\":%s,\"alert_on_sensor_fail\":%s,"
         "\"alert_webhook_url\":\"%s\""
-        "}",
+        "",
         c.server_url,
         (unsigned long)c.poll_interval_sec,(unsigned long)c.send_interval_polls,
         ch_eth?"true":"false",ch_gsm?"true":"false",ch_wifi?"true":"false",ch_irid?"true":"false",
