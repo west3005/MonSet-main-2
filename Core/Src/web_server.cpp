@@ -130,6 +130,12 @@ void WebServer::init(SensorReader* s, SdBackup* b, BatteryMonitor* bat) {
 }
 void WebServer::init(SensorReader* s, SdBackup* b, BatteryMonitor* bat, App* app) {
     m_sensor=s; m_backup=b; m_battery=bat; m_app=app;
+    // Guard: повторный вызов из deferred start — сбрасываем сокет
+    if (m_running) {
+        close(HTTP_SOCKET);
+        m_running = false;
+    }
+
     if(socket(HTTP_SOCKET,Sn_MR_TCP,HTTP_PORT,0)==HTTP_SOCKET) {
         if(listen(HTTP_SOCKET)==SOCK_OK) {
             m_running=true;

@@ -10,13 +10,7 @@ SD_HandleTypeDef hsd;
 
 bool MX_SDIO_SD_Init(void)
 {
-    /* Аппаратный сброс SDIO через RCC — чистое состояние после любого ресета */
-    __HAL_RCC_SDIO_FORCE_RESET();
-    HAL_Delay(5);
-    __HAL_RCC_SDIO_RELEASE_RESET();
-    HAL_Delay(5);
-
-    /* Дать карте время выйти из состояния после сброса (≥1 мс по спеку) */
+    /* Небольшая пауза для стабилизации питания карты (≥1 мс по спеку) */
     HAL_Delay(10);
 
     hsd.Instance             = SDIO;
@@ -24,7 +18,7 @@ bool MX_SDIO_SD_Init(void)
     hsd.Init.ClockBypass     = SDIO_CLOCK_BYPASS_DISABLE;
     hsd.Init.ClockPowerSave  = SDIO_CLOCK_POWER_SAVE_DISABLE;
     hsd.Init.BusWide         = SDIO_BUS_WIDE_1B;
-    hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
+    hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE; /* STM32F4 errata: HWFC causes TXUNDERR in polling mode */
     hsd.Init.ClockDiv        = 118U; /* 48MHz/(118+2) = 400 кГц */
 
     uart_log_info("[SDIO] CLKCR=0x%08lX RCC_APB2ENR=0x%08lX",

@@ -440,12 +440,14 @@ void App::init() {
     DBG.info("Mode: %s",m_mode==SystemMode::Debug?"DEBUG":"SLEEP");
     DBG.info("Poll: %lu s | Send every: %lu polls",
              (unsigned long)Cfg().poll_interval_sec,(unsigned long)Cfg().send_interval_polls);
-    // FIX: передаём this — иначе m_app=nullptr и notifyWebActivity не работает
-    if(Cfg().eth_enabled&&m_mode==SystemMode::Debug){
-        if(ensureEthReady()){
-            m_webServer.init(&m_sensor,&m_sdBackup,&m_battery,this);
-            m_webServer.setSdOk(m_sdOk);
-        }
+    // Web-сервер стартует НЕЗАВИСИМО от mode и eth_enabled.
+    // Если W5500 ещё не поднят (DHCP не ответил) — init() выставит m_running=false
+    // и флаг m_webStartPending=true. Повторная попытка каждую итерацию run().
+    m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+    m_webServer.setSdOk(m_sdOk);
+    if (!m_webServer.isRunning() && Cfg().eth_enabled) {
+        DBG.info("[9/9] WebServer: deferred start pending (eth not ready)");
+        m_webStartPending = true;
     }
     if(m_mode==SystemMode::Debug) ledOn(); else ledBlink(3,200);
     m_lastBackupSendTick=HAL_GetTick();
@@ -492,6 +494,21 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
     bool firstCycle   = true;
 
     while (true) {
+        // ── Отложенный старт веб-сервера ──────────────────────────────────
+        // Если init() не смог открыть сокет (eth не поднят на boot),
+        // пробуем повторно каждую итерацию главного цикла.
+        if (m_webStartPending && Cfg().eth_enabled) {
+            if (ensureEthReady()) {
+                m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+                m_webServer.setSdOk(m_sdOk);
+                if (m_webServer.isRunning()) {
+                    m_webStartPending = false;
+                    DBG.info("WebServer: deferred start OK");
+                }
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         CfgUartBridge_Tick();
 
         if (eth.ready()) eth.tick();

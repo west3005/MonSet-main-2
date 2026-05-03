@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MonSet — Файлы SD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f12;--s1:#131720;--s2:#181d28;--s3:#1e2435;
+  --border:rgba(255,255,255,.07);--divider:rgba(255,255,255,.04);
+  --text:#e8eaf0;--muted:#7b8499;--faint:#3d4357;
+  --accent:#c8963c;--accent-dim:rgba(200,150,60,.12);
+  --green:#4caf82;--green-dim:rgba(76,175,130,.12);
+  --red:#e05555;--red-dim:rgba(224,85,85,.12);
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'Geist Mono','Fira Code',monospace;
+  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
+  --t:160ms cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100dvh}
+button{cursor:pointer;font:inherit;border:none;background:none}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+nav{position:sticky;top:0;z-index:100;height:48px;display:flex;align-items:center;background:rgba(13,15,18,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 20px}
+.nav-logo{display:flex;align-items:center;gap:8px;margin-right:auto}
+.logo-name{font-weight:700;font-size:15px;letter-spacing:.03em}
+.logo-dot{color:var(--accent)}
+.nav-links{display:flex;gap:2px}
+.nav-link{height:48px;padding:0 14px;display:flex;align-items:center;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:color var(--t),border-color var(--t);white-space:nowrap}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--accent);border-bottom-color:var(--accent)}
+main{max-width:900px;margin:0 auto;padding:20px 20px 40px}
+.breadcrumb{display:flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-bottom:14px;flex-wrap:wrap}
+.bc-seg{cursor:pointer;transition:color var(--t)}.bc-seg:hover{color:var(--accent)}
+.bc-sep{color:var(--faint)}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.btn{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--r-md);font-size:13px;border:1px solid var(--border);transition:background var(--t),border-color var(--t),color var(--t)}
+.btn-ghost{background:transparent;color:var(--muted)}.btn-ghost:hover{background:var(--s3);color:var(--text)}
+.btn-accent{background:var(--accent-dim);border-color:rgba(200,150,60,.25);color:var(--accent)}.btn-accent:hover{background:rgba(200,150,60,.2)}
+.upload-area{display:none;background:var(--s2);border:1px dashed rgba(200,150,60,.3);border-radius:var(--r-lg);padding:20px;text-align:center;margin-bottom:14px;cursor:pointer;transition:border-color var(--t),background var(--t)}
+.upload-area:hover{border-color:var(--accent);background:var(--accent-dim)}
+.upload-area input{display:none}
+.upload-text{font-size:13px;color:var(--muted)}.upload-text strong{color:var(--accent)}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.card-head{padding:11px 16px;border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
+.card-title-dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.file-list{width:100%;border-collapse:collapse}
+.file-list th{padding:8px 16px;font-size:11px;color:var(--faint);font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--divider);text-align:left}
+.file-list td{padding:9px 16px;font-size:13px;border-bottom:1px solid var(--divider);vertical-align:middle}
+.file-list tr:last-child td{border-bottom:none}
+.file-list tr:hover td{background:rgba(255,255,255,.025)}
+.file-icon{font-size:14px;width:20px;text-align:center}
+.file-name{font-family:var(--font-mono);color:var(--text);cursor:pointer;transition:color var(--t)}.file-name:hover{color:var(--accent)}.file-name.dir{color:var(--accent)}
+.file-size{font-family:var(--font-mono);font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
+.file-actions{display:flex;gap:4px;justify-content:flex-end}
+.btn-dl{padding:3px 10px;border-radius:var(--r-md);font-size:11px;background:transparent;border:1px solid var(--border);color:var(--muted);transition:background var(--t),color var(--t),border-color var(--t)}
+.btn-dl:hover{background:var(--s3);color:var(--text);border-color:rgba(200,150,60,.3)}
+.empty-row td{text-align:center;color:var(--faint);font-family:var(--font-mono);font-size:12px;padding:32px}
+.net-err{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,85,85,.2);padding:10px 16px;border-radius:var(--r-md);font-size:12px;font-family:var(--font-mono);display:none;margin-bottom:14px}
+.prog-bar{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin-bottom:4px}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .2s}
+.prog-label{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.upload-progress{display:none;margin-bottom:14px}
+@media(max-width:600px){.nav-link span{display:none}main{padding:12px 12px 32px}.file-list th:nth-child(3),.file-list td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">
+    <svg aria-label="MonSet" width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect x="2" y="2" width="22" height="22" rx="5" stroke="#c8963c" stroke-width="1.5"/>
+      <path d="M7 17 L7 13 L10 9 L13 13 L16 9 L19 13 L19 17" stroke="#c8963c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+      <circle cx="13" cy="7" r="1.5" fill="#c8963c"/>
+    </svg>
+    <span class="logo-name">Mon<span class="logo-dot">Set</span></span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html"><span>Dashboard</span></a>
+    <a class="nav-link" href="config.html"><span>Конфиг</span></a>
+    <a class="nav-link" href="logs.html"><span>Лог</span></a>
+    <a class="nav-link active" href="files.html"><span>Файлы</span></a>
+  </div>
+</nav>
+<main>
+  <div class="net-err" id="netErr">⚠ Нет связи с устройством</div>
+  <div class="breadcrumb" id="breadcrumb"><span class="bc-seg" data-path="/">SD:</span></div>
+  <div class="toolbar">
+    <button class="btn btn-accent" onclick="toggleUpload()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Загрузить файл
+    </button>
+    <button class="btn btn-ghost" onclick="load()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Обновить
+    </button>
+  </div>
+  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+    <input type="file" id="fileInput">
+    <div class="upload-text">Перетащите файл сюда или <strong>нажмите для выбора</strong></div>
+    <div style="font-size:11px;color:var(--faint);margin-top:4px;font-family:var(--font-mono)">Файл будет загружен в текущую папку</div>
+  </div>
+  <div class="upload-progress" id="uploadProg">
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-label" id="progLabel">Загрузка...</div>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><div class="card-title-dot"></div>Содержимое</div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--faint)" id="fileCount">0 объектов</div>
+    </div>
+    <table class="file-list" id="fileTable">
+      <thead><tr><th style="width:28px"></th><th>Имя</th><th>Размер</th><th></th></tr></thead>
+      <tbody id="fileTbody"><tr class="empty-row"><td colspan="4">Загрузка...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script>
+(function(){
+'use strict';
+var curPath='/';
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function ftch(url,o){var c=new AbortController(),t=setTimeout(function(){c.abort()},8000);return fetch(url,Object.assign({signal:c.signal},o||{})).finally(function(){clearTimeout(t)})}
+function fmtSize(b){if(b==null)return '';if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB';}
+function fileIcon(name,isDir){if(isDir)return '📁';var ext=(name.split('.').pop()||'').toLowerCase();if(ext==='html'||ext==='htm')return '🌐';if(ext==='json')return '📄';if(ext==='txt'||ext==='log')return '📋';return '📄';}
+function renderBC(){
+  var bc=document.getElementById('breadcrumb');
+  var parts=curPath.replace(/\/+$/,'').split('/').filter(Boolean);
+  var html='<span class="bc-seg" data-path="/">SD:</span>';
+  var built='/';
+  parts.forEach(function(p){built+=p+'/';html+='<span class="bc-sep">/</span><span class="bc-seg" data-path="'+esc(built)+'">'+esc(p)+'</span>';});
+  bc.innerHTML=html;
+  bc.querySelectorAll('.bc-seg').forEach(function(el){el.onclick=function(){curPath=el.getAttribute('data-path');load();};});
+}
+window.load=function(){
+  renderBC();
+  var tbody=document.getElementById('fileTbody');
+  tbody.innerHTML='<tr class="empty-row"><td colspan="4">Загрузка...</td></tr>';
+  ftch('/api/files?path='+encodeURIComponent(curPath)).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('netErr').style.display='none';
+    var items=d.items||[];
+    document.getElementById('fileCount').textContent=items.length+' объектов';
+    if(!items.length){tbody.innerHTML='<tr class="empty-row"><td colspan="4">Папка пуста</td></tr>';return;}
+    var dirs=items.filter(function(i){return i.dir}),files=items.filter(function(i){return !i.dir});
+    dirs.sort(function(a,b){return a.name.localeCompare(b.name)});
+    files.sort(function(a,b){return a.name.localeCompare(b.name)});
+    tbody.innerHTML=[].concat(dirs,files).map(function(it){
+      var p=curPath.replace(/\/$/,'')+'/'+it.name;
+      var click=it.dir?'curPath=\''+esc(p+'/')+'\'';load()':''
+      var actions=it.dir?'':'<button class="btn-dl" onclick="dlFile(\''+esc(p)+'\',\''+esc(it.name)+'\')">Скачать</button>';
+      return '<tr><td><span class="file-icon">'+fileIcon(it.name,it.dir)+'</span></td>'+
+        '<td><span class="file-name'+(it.dir?' dir':'')+'"'+(it.dir?' onclick="navigate(\''+esc(p+'/\')\')"':'')+'">'+esc(it.name)+'</span></td>'+
+        '<td class="file-size">'+(it.dir?'—':fmtSize(it.size))+'</td>'+
+        '<td class="file-actions">'+actions+'</td></tr>';
+    }).join('');
+    if(curPath!=='/'){
+      var back=curPath.replace(/\/[^\/]+\/?$/,'')||'/';
+      tbody.insertAdjacentHTML('afterbegin','<tr><td><span class="file-icon">📁</span></td><td><span class="file-name dir" onclick="navigate(\''+esc(back)+'\')">.. (назад)</span></td><td></td><td></td></tr>');
+    }
+  }).catch(function(){document.getElementById('netErr').style.display='block';tbody.innerHTML='<tr class="empty-row"><td colspan="4">Ошибка загрузки</td></tr>';});
+};
+window.navigate=function(p){curPath=p;load();};
+window.dlFile=function(path,name){
+  ftch('/api/download?path='+encodeURIComponent(path)).then(function(r){return r.blob()}).then(function(b){
+    var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  }).catch(function(){alert('Ошибка скачивания: '+name);});
+};
+window.toggleUpload=function(){var el=document.getElementById('uploadArea');el.style.display=el.style.display==='block'?'none':'block';};
+function uploadFile(file){
+  if(!file)return;
+  document.getElementById('uploadArea').style.display='none';
+  var prog=document.getElementById('uploadProg'),fill=document.getElementById('progFill'),lbl=document.getElementById('progLabel');
+  prog.style.display='block';fill.style.width='0%';lbl.textContent='Загрузка '+file.name+'...';
+  var xhr=new XMLHttpRequest();
+  xhr.upload.onprogress=function(e){if(e.lengthComputable){var p=Math.round(e.loaded/e.total*100);fill.style.width=p+'%';lbl.textContent=p+'% — '+file.name;}};
+  xhr.onload=function(){prog.style.display='none';if(xhr.status>=200&&xhr.status<300)load();else alert('Ошибка: '+xhr.status);};
+  xhr.onerror=function(){prog.style.display='none';alert('Ошибка сети');};
+  xhr.open('POST','/api/upload?path='+encodeURIComponent(curPath.replace(/\/$/,'')+'/'+file.name));
+  xhr.send(file);
+}
+document.getElementById('fileInput').onchange=function(){uploadFile(this.files[0]);};
+document.getElementById('uploadArea').ondragover=function(e){e.preventDefault();};
+document.getElementById('uploadArea').ondrop=function(e){e.preventDefault();var f=(e.dataTransfer.files||[])[0];if(f)uploadFile(f);};
+load();
+})();
+</script>
+</body>
+</html>
