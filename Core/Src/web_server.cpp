@@ -208,7 +208,7 @@ void WebServer::send404(uint8_t sn){
     sendResponse(sn,404,"application/json",b,(uint16_t)std::strlen(b));
 }
 bool WebServer::serveFile(uint8_t sn,const char* path,const char* ct){
-    char fp[64]; std::snprintf(fp,sizeof(fp),"0:/www%s",path);
+    char fp[64]; std::snprintf(fp,sizeof(fp),"0:%s",path);
     FIL f;
     if(f_open(&f,fp,FA_READ)!=FR_OK) return false;
     FSIZE_t fsize=f_size(&f);
