@@ -198,7 +198,13 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
                   (int)HAL_SD_GetCardState(&hsd));
 
     SD_ClearFlags();
-    HAL_Delay(1);
+    /* STM32F4 errata: disable HWFC before write to prevent TXUNDERR in polling mode */
+    MODIFY_REG(SDIO->CLKCR, SDIO_CLKCR_CLKDIV | SDIO_CLKCR_CLKEN | SDIO_CLKCR_HWFC_EN,
+               (118U) | SDIO_CLKCR_CLKEN);
+    HAL_Delay(2);
+    SDIO->DCTRL = 0U;
+    __DSB();
+    __ISB();
 
     hs = HAL_SD_WriteBlocks(&hsd, (uint8_t *)buff,
                             (uint32_t)sector, (uint32_t)count, SD_TIMEOUT);
