@@ -80,6 +80,7 @@ private:
     bool serveFile(uint8_t sn, const char* path, const char* contentType);
 
     void handleRequest(uint8_t sn, const char* request, uint16_t reqLen);
+    void socketReset();  ///< disconnect+close+socket+listen; clears g_web_exclusive
 
     // HTML pages
     void handleConfig(uint8_t sn);
