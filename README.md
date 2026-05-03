@@ -334,3 +334,98 @@ NB-IoT Cat NB2 (3GPP Rel.14).
 ***
 
 *Этот репозиторий — рабочая ветка разработки. Стабильная версия: [west3005/MonSet](https://github.com/west3005/MonSet)*
+
+***
+
+## SDIO Write — Известная проблема и решение
+
+> **Дата фикса:** 2026-05-03  
+> **Коммит фикса:** [`14b23ad`](https://github.com/west3005/MonSet-main-2/commit/14b23adad0f2a84b26127b7d41d563b5e5a7330b)  
+> **Файл:** `FATFS/Target/sd_diskio.c`
+
+### Симптом
+
+SD-карта успешно монтируется и читается. Запись одиночного блока (`cnt=1`) — OK.  
+Запись нескольких блоков (`cnt≥2`, например `cnt=4`) — стабильный сбой:
+
+```
+[HAL_SD] Write CMD24: err=0x0 RESP1=0x00000900 STA=0x00000000  ← CMD OK
+[HAL_SD] DPSM ON: TXFIFOHE=1 dataremaining=2048               ← while вошёл нормально
+[ERR] [DISKIO] write: HAL=1 ErrorCode=0x00000002              ← TXUNDERR
+                                CardState=6 (RCV)              ← карта ещё принимает
+```
+
+`ErrorCode=0x00000002` = `HAL_SD_ERROR_TX_UNDERRUN` (бит TXUNDERR в SDIO→STA).
+
+### Причина
+
+HAL-функция `HAL_SD_WriteBlocks()` с `count > 1` использует **CMD25 (WRITE_MULTIPLE_BLOCK)**.
+
+Поведение SD-карты при CMD25 в polling-режиме STM32F4:
+
+```
+Хост отправил 512 байт → карта перешла в PRG (запись во flash)
+                        → DPSM продолжает тактировать шину
+                        → CPU не успевает заполнить FIFO до опустошения
+                        → TXUNDERR на блоке 2+
+```
+
+Это **архитектурная несовместимость** STM32F4 polling SDIO с CMD25 — не баг карты, не баг HAL, не ошибка частоты.
+
+### Решение
+
+Всегда писать одиночными **CMD24** — по одному блоку за раз, с явным ожиданием готовности карты между блоками.
+
+**В `sd_diskio.c`, функция `SD_write()`:**
+
+```c
+// БЫЛО:
+HAL_SD_WriteBlocks(&hsd, buff, sector, count, SD_TIMEOUT);  // CMD25 при count > 1
+
+// СТАЛО: цикл одиночных CMD24
+for (UINT blk = 0; blk < count; blk++) {
+    SDIO->DCTRL = 0U;
+    __DSB(); __ISB();
+    hs = HAL_SD_WriteBlocks(&hsd,
+                            (uint8_t *)buff + blk * 512U,
+                            (uint32_t)sector + blk,
+                            1U,             // ← всегда count=1 (CMD24)
+                            SD_TIMEOUT);
+    if (hs != HAL_OK) { /* ошибка */ return RES_ERROR; }
+    if (blk + 1U < count) {
+        SD_WaitCardReady(SD_TIMEOUT);  // ← ждём PRG→TRAN между блоками
+    }
+}
+```
+
+### Дополнительные настройки
+
+| Параметр | Значение | Причина |
+|---|---|---|
+| `SDIO_CLKCR_HWFC_EN` | **ВЫКЛЮЧЕН** | Errata STM32F4: HWFC вызывает ложный TXUNDERR при остановке clock |
+| `ClockDiv` при write | **0** (24 МГц) | Даёт CPU запас ~270x для заполнения FIFO (84 МГц / ~10 нс на слово) |
+| `SDIO->DCTRL = 0` + `__DSB/__ISB` | Перед каждым блоком | Сброс DPSM-машины состояний между транзакциями |
+
+### Диагностика (если сбой повторится)
+
+Лог для определения точки сбоя:
+
+```
+[HAL_SD] DPSM ON: STA=0x... DCTRL=0x... dataremaining=...
+[HAL_SD] while#1: STA=0x... TXFIFOHE=0/1 dataremaining=...
+```
+
+- `DPSM ON: STA` уже содержит TXUNDERR → аппаратный сбой до while
+- `while#1` отсутствует → TXUNDERR взводится в момент DPSM=ENABLE
+- `while#1: TXFIFOHE=0` → FIFO не запрашивает данные, карта не готова принимать
+- `while#1: TXFIFOHE=1` → while вошёл нормально, сбой происходит внутри → CMD25 / PRG-проблема
+
+### Хронология отладки
+
+| Патч | Гипотеза | Результат |
+|---|---|---|
+| v8-v9 | HWFC=0 | Не помогло |
+| v10-logfix | Логи DPSM | Диагностика |
+| v11-dctrl | DCTRL reset + барьеры | Не помогло |
+| v12-diag | Лог DPSM ON + while#1 | Локализовал: cnt=4 падает внутри while, CardState=6 |
+| **v13 (14b23ad)** | **CMD25 → цикл CMD24** | **✅ РЕШЕНО** |
