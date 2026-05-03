@@ -3943,12 +3943,12 @@ void WebServer::tick(){
         case SOCK_CLOSE_WAIT:
             socketReset();
             break;
-        // W5500 TIME_WAIT / FIN_WAIT / LAST_ACK / CLOSING — принудительный reset
+        // W5500 FIN_WAIT / TIME_WAIT / CLOSING / LAST_ACK — принудительный reset
         // без ожидания TCP timeout (~60 c). close() переводит сокет в CLOSED немедленно.
-        case 0x18:   // SOCK_TIME_WAIT
-        case 0x1C:   // SOCK_FIN_WAIT
-        case 0x22:   // SOCK_CLOSING
-        case 0x1D:   // SOCK_LAST_ACK
+        case SOCK_FIN_WAIT:    // 0x18
+        case SOCK_TIME_WAIT:   // 0x1B
+        case SOCK_CLOSING:     // 0x1A
+        case SOCK_LAST_ACK:    // 0x1D
             close(HTTP_SOCKET);
             if(socket(HTTP_SOCKET,Sn_MR_TCP,HTTP_PORT,0)==HTTP_SOCKET) listen(HTTP_SOCKET);
             DBG.info("WebServer: socket reset from state 0x%02x", (unsigned)status);
