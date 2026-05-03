@@ -3,191 +3,226 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MonSet — Файлы SD</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet">
+<title>MonSet — Files</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0d0f12;--s1:#131720;--s2:#181d28;--s3:#1e2435;
-  --border:rgba(255,255,255,.07);--divider:rgba(255,255,255,.04);
-  --text:#e8eaf0;--muted:#7b8499;--faint:#3d4357;
-  --accent:#c8963c;--accent-dim:rgba(200,150,60,.12);
-  --green:#4caf82;--green-dim:rgba(76,175,130,.12);
-  --red:#e05555;--red-dim:rgba(224,85,85,.12);
-  --font-body:'Inter',system-ui,sans-serif;
-  --font-mono:'Geist Mono','Fira Code',monospace;
-  --r-sm:4px;--r-md:6px;--r-lg:10px;--r-xl:14px;
-  --t:160ms cubic-bezier(.16,1,.3,1);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-font-smoothing:antialiased}
-body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100dvh}
-button{cursor:pointer;font:inherit;border:none;background:none}
-a{color:inherit;text-decoration:none}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
-nav{position:sticky;top:0;z-index:100;height:48px;display:flex;align-items:center;background:rgba(13,15,18,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 20px}
-.nav-logo{display:flex;align-items:center;gap:8px;margin-right:auto}
-.logo-name{font-weight:700;font-size:15px;letter-spacing:.03em}
-.logo-dot{color:var(--accent)}
-.nav-links{display:flex;gap:2px}
-.nav-link{height:48px;padding:0 14px;display:flex;align-items:center;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:color var(--t),border-color var(--t);white-space:nowrap}
-.nav-link:hover{color:var(--text)}
-.nav-link.active{color:var(--accent);border-bottom-color:var(--accent)}
-main{max-width:900px;margin:0 auto;padding:20px 20px 40px}
-.breadcrumb{display:flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-bottom:14px;flex-wrap:wrap}
-.bc-seg{cursor:pointer;transition:color var(--t)}.bc-seg:hover{color:var(--accent)}
-.bc-sep{color:var(--faint)}
-.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.btn{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--r-md);font-size:13px;border:1px solid var(--border);transition:background var(--t),border-color var(--t),color var(--t)}
-.btn-ghost{background:transparent;color:var(--muted)}.btn-ghost:hover{background:var(--s3);color:var(--text)}
-.btn-accent{background:var(--accent-dim);border-color:rgba(200,150,60,.25);color:var(--accent)}.btn-accent:hover{background:rgba(200,150,60,.2)}
-.upload-area{display:none;background:var(--s2);border:1px dashed rgba(200,150,60,.3);border-radius:var(--r-lg);padding:20px;text-align:center;margin-bottom:14px;cursor:pointer;transition:border-color var(--t),background var(--t)}
-.upload-area:hover{border-color:var(--accent);background:var(--accent-dim)}
-.upload-area input{display:none}
-.upload-text{font-size:13px;color:var(--muted)}.upload-text strong{color:var(--accent)}
-.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
-.card-head{padding:11px 16px;border-bottom:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between}
-.card-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:6px}
-.card-title-dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
-.file-list{width:100%;border-collapse:collapse}
-.file-list th{padding:8px 16px;font-size:11px;color:var(--faint);font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--divider);text-align:left}
-.file-list td{padding:9px 16px;font-size:13px;border-bottom:1px solid var(--divider);vertical-align:middle}
-.file-list tr:last-child td{border-bottom:none}
-.file-list tr:hover td{background:rgba(255,255,255,.025)}
-.file-icon{font-size:14px;width:20px;text-align:center}
-.file-name{font-family:var(--font-mono);color:var(--text);cursor:pointer;transition:color var(--t)}.file-name:hover{color:var(--accent)}.file-name.dir{color:var(--accent)}
-.file-size{font-family:var(--font-mono);font-size:12px;color:var(--muted);text-align:right;white-space:nowrap}
-.file-actions{display:flex;gap:4px;justify-content:flex-end}
-.btn-dl{padding:3px 10px;border-radius:var(--r-md);font-size:11px;background:transparent;border:1px solid var(--border);color:var(--muted);transition:background var(--t),color var(--t),border-color var(--t)}
-.btn-dl:hover{background:var(--s3);color:var(--text);border-color:rgba(200,150,60,.3)}
-.empty-row td{text-align:center;color:var(--faint);font-family:var(--font-mono);font-size:12px;padding:32px}
-.net-err{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,85,85,.2);padding:10px 16px;border-radius:var(--r-md);font-size:12px;font-family:var(--font-mono);display:none;margin-bottom:14px}
-.prog-bar{height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin-bottom:4px}
-.prog-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .2s}
-.prog-label{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
-.upload-progress{display:none;margin-bottom:14px}
-@media(max-width:600px){.nav-link span{display:none}main{padding:12px 12px 32px}.file-list th:nth-child(3),.file-list td:nth-child(3){display:none}}
+
+  :root {
+    --bg:#0d0f12; --surface:#141720; --surface2:#1a1e2a;
+    --border:oklch(from #e0c97a 0.7 0.1 85 / 0.15);
+    --text:#e8e6e0; --muted:#8a8880; --faint:#4a4846;
+    --gold:#c8963c; --gold-h:#e0b060;
+    --green:#4a9460; --yellow:#b89030; --red:#9c4040;
+    --green-bg:oklch(from #4a9460 0.25 0.08 145 / 0.25);
+    --yellow-bg:oklch(from #b89030 0.3 0.1 85 / 0.25);
+    --red-bg:oklch(from #9c4040 0.25 0.1 25 / 0.25);
+    --radius:6px; --radius-lg:10px;
+    --mono:'Geist Mono','Courier New',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:14px;-webkit-font-smoothing:antialiased}
+  body{background:var(--bg);color:var(--text);font-family:'Inter','Helvetica Neue',sans-serif;min-height:100dvh;display:flex;flex-direction:column}
+  a{color:var(--gold);text-decoration:none} a:hover{color:var(--gold-h)}
+  button{cursor:pointer;border:none;font:inherit}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:52px;position:sticky;top:0;z-index:100}
+  .nav-logo{display:flex;align-items:center;gap:10px;margin-right:32px;color:var(--gold);font-weight:700;font-size:15px;letter-spacing:.03em}
+  nav a{color:var(--muted);font-size:13px;font-weight:500;padding:0 14px;height:52px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  nav a:hover{color:var(--text)} nav a.active{color:var(--gold);border-bottom-color:var(--gold)}
+  .nav-spacer{flex:1}
+  .nav-status{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  main{flex:1;padding:24px;max-width:960px;margin:0 auto;width:100%}
+  .page-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:20px;letter-spacing:-.01em}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+  .card+.card{margin-top:16px}
+  .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+  input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:8px 11px;background:var(--bg);border:1px solid oklch(from var(--text) 0.5 0 0 / 0.15);border-radius:var(--radius);color:var(--text);font:inherit;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-row.three{grid-template-columns:1fr 1fr 1fr}
+  .form-field{display:flex;flex-direction:column}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:background .15s,color .15s,border-color .15s}
+  .btn-primary{background:var(--gold);color:#0d0f12} .btn-primary:hover{background:var(--gold-h)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)} .btn-ghost:hover{color:var(--text)}
+  .btn-danger{background:var(--red-bg);color:#d06060;border:1px solid oklch(from #9c4040 0.5 0.1 25 / 0.3)} .btn-danger:hover{background:oklch(from #9c4040 0.3 0.1 25 / 0.35)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+  .badge-ok{background:var(--green-bg);color:#70c490} .badge-warn{background:var(--yellow-bg);color:#d0a840} .badge-err{background:var(--red-bg);color:#d07070}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:10px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .25s;opacity:0;pointer-events:none;z-index:9999;white-space:nowrap}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  #toast.ok{background:var(--green-bg);color:#70c490;border:1px solid oklch(from #4a9460 0.4 0.08 145 / 0.4)}
+  #toast.warn{background:var(--yellow-bg);color:#d0a840;border:1px solid oklch(from #b89030 0.4 0.1 85 / 0.4)}
+  #toast.err{background:var(--red-bg);color:#d07070;border:1px solid oklch(from #9c4040 0.4 0.1 25 / 0.4)}
+  .acc-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 20px;margin:-20px -20px 0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;user-select:none;transition:background .15s}
+  .acc-hdr:hover{background:oklch(from var(--text) 0.15 0 0 / 0.05)}
+  .acc-hdr h2{font-size:13px;font-weight:600;color:var(--text)}
+  .acc-arrow{color:var(--muted);transition:transform .2s;font-size:11px}
+  .acc-arrow.open{transform:rotate(90deg)}
+  .acc-body{margin-top:20px;display:none} .acc-body.open{display:block}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+  .kpi-value{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--gold);letter-spacing:-.02em;line-height:1}
+  .kpi-value.ok{color:#70c490} .kpi-value.warn{color:#d0a840} .kpi-value.err{color:#d07070}
+  .kpi-unit{font-size:12px;color:var(--muted);margin-top:4px}
+  #log-output{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;height:480px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .log-info{color:#7898b8} .log-warn{color:#c8a840} .log-error{color:#c06060} .log-data{color:#60a878} .log-debug{color:#888}
+  .file-table{width:100%;border-collapse:collapse}
+  .file-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .file-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+  .file-table tr:last-child td{border-bottom:none}
+  .file-table tr:hover td{background:oklch(from var(--text) 0.15 0 0 / 0.04)}
+  .file-icon{margin-right:6px;color:var(--gold)}
+  .file-size{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .drop-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;color:var(--muted);transition:border-color .15s,background .15s;cursor:pointer}
+  .drop-zone.drag-over{border-color:var(--gold);background:var(--yellow-bg)}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+  .progress-fill{height:100%;background:var(--gold);width:0;transition:width .1s;border-radius:2px}
+  @media(max-width:600px){main{padding:16px}.form-row,.form-row.three{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+
+.breadcrumb{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin-bottom:14px;flex-wrap:wrap}
+.breadcrumb a{color:var(--gold)} .breadcrumb span{color:var(--faint)}
+.file-table td:last-child{text-align:right;white-space:nowrap}
+.file-name{cursor:pointer} .file-name:hover{color:var(--gold)}
+.dir-icon{color:var(--gold)} .file-icon{color:var(--muted)}
 </style>
 </head>
 <body>
 <nav>
-  <div class="nav-logo">
-    <svg aria-label="MonSet" width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <rect x="2" y="2" width="22" height="22" rx="5" stroke="#c8963c" stroke-width="1.5"/>
-      <path d="M7 17 L7 13 L10 9 L13 13 L16 9 L19 13 L19 17" stroke="#c8963c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
-      <circle cx="13" cy="7" r="1.5" fill="#c8963c"/>
-    </svg>
-    <span class="logo-name">Mon<span class="logo-dot">Set</span></span>
-  </div>
-  <div class="nav-links">
-    <a class="nav-link" href="index.html"><span>Dashboard</span></a>
-    <a class="nav-link" href="config.html"><span>Конфиг</span></a>
-    <a class="nav-link" href="logs.html"><span>Лог</span></a>
-    <a class="nav-link active" href="files.html"><span>Файлы</span></a>
-  </div>
+<div class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="MonSet"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="7 10 10 7 13 10 16 7"/></svg>MonSet</div>
+<a href="/">Dashboard</a><a href="/config">Config</a><a href="/logs">Logs</a><a href="/files" class="active">Files</a>
+<div class="nav-spacer"></div>
+<span class="nav-status" id="nav-ip">—</span>
 </nav>
 <main>
-  <div class="net-err" id="netErr">⚠ Нет связи с устройством</div>
-  <div class="breadcrumb" id="breadcrumb"><span class="bc-seg" data-path="/">SD:</span></div>
-  <div class="toolbar">
-    <button class="btn btn-accent" onclick="toggleUpload()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Загрузить файл
-    </button>
-    <button class="btn btn-ghost" onclick="load()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      Обновить
-    </button>
-  </div>
-  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-    <input type="file" id="fileInput">
-    <div class="upload-text">Перетащите файл сюда или <strong>нажмите для выбора</strong></div>
-    <div style="font-size:11px;color:var(--faint);margin-top:4px;font-family:var(--font-mono)">Файл будет загружен в текущую папку</div>
-  </div>
-  <div class="upload-progress" id="uploadProg">
-    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
-    <div class="prog-label" id="progLabel">Загрузка...</div>
-  </div>
+  <h1 class="page-title">Files</h1>
   <div class="card">
-    <div class="card-head">
-      <div class="card-title"><div class="card-title-dot"></div>Содержимое</div>
-      <div style="font-family:var(--font-mono);font-size:11px;color:var(--faint)" id="fileCount">0 объектов</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <span style="font-size:11px;color:var(--faint);font-family:var(--mono)" id="sd-free-lbl"></span>
     </div>
-    <table class="file-list" id="fileTable">
-      <thead><tr><th style="width:28px"></th><th>Имя</th><th>Размер</th><th></th></tr></thead>
-      <tbody id="fileTbody"><tr class="empty-row"><td colspan="4">Загрузка...</td></tr></tbody>
-    </table>
+    <div class="drop-zone" id="drop-zone">
+      Перетащите файлы сюда или <label style="color:var(--gold);cursor:pointer">выберите<input type="file" id="file-input" multiple style="display:none"></label>
+      <div class="progress-bar" id="prog-bar"><div class="progress-fill" id="prog-fill"></div></div>
+      <div id="upload-status" style="font-size:12px;color:var(--muted);margin-top:6px"></div>
+    </div>
+    <div style="margin-top:16px">
+      <table class="file-table">
+        <thead><tr><th>Имя</th><th>Размер</th><th>Изменён</th><th></th></tr></thead>
+        <tbody id="file-list"><tr><td colspan="4" style="color:var(--muted);padding:20px;text-align:center">Загрузка…</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </main>
+<div id="toast"></div>
 <script>
-(function(){
-'use strict';
-var curPath='/';
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function ftch(url,o){var c=new AbortController(),t=setTimeout(function(){c.abort()},8000);return fetch(url,Object.assign({signal:c.signal},o||{})).finally(function(){clearTimeout(t)})}
-function fmtSize(b){if(b==null)return '';if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB';}
-function fileIcon(name,isDir){if(isDir)return '📁';var ext=(name.split('.').pop()||'').toLowerCase();if(ext==='html'||ext==='htm')return '🌐';if(ext==='json')return '📄';if(ext==='txt'||ext==='log')return '📋';return '📄';}
-function renderBC(){
-  var bc=document.getElementById('breadcrumb');
-  var parts=curPath.replace(/\/+$/,'').split('/').filter(Boolean);
-  var html='<span class="bc-seg" data-path="/">SD:</span>';
-  var built='/';
-  parts.forEach(function(p){built+=p+'/';html+='<span class="bc-sep">/</span><span class="bc-seg" data-path="'+esc(built)+'">'+esc(p)+'</span>';});
-  bc.innerHTML=html;
-  bc.querySelectorAll('.bc-seg').forEach(function(el){el.onclick=function(){curPath=el.getAttribute('data-path');load();};});
+
+function toast(msg,type,ms){
+  type=type||'ok'; ms=ms||6000;
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(t._tid);
+  t._tid=setTimeout(function(){t.className=type;},ms);
 }
-window.load=function(){
-  renderBC();
-  var tbody=document.getElementById('fileTbody');
-  tbody.innerHTML='<tr class="empty-row"><td colspan="4">Загрузка...</td></tr>';
-  ftch('/api/files?path='+encodeURIComponent(curPath)).then(function(r){return r.json()}).then(function(d){
-    document.getElementById('netErr').style.display='none';
-    var items=d.items||[];
-    document.getElementById('fileCount').textContent=items.length+' объектов';
-    if(!items.length){tbody.innerHTML='<tr class="empty-row"><td colspan="4">Папка пуста</td></tr>';return;}
-    var dirs=items.filter(function(i){return i.dir}),files=items.filter(function(i){return !i.dir});
-    dirs.sort(function(a,b){return a.name.localeCompare(b.name)});
-    files.sort(function(a,b){return a.name.localeCompare(b.name)});
-    tbody.innerHTML=[].concat(dirs,files).map(function(it){
-      var p=curPath.replace(/\/$/,'')+'/'+it.name;
-      var click=it.dir?'curPath=\''+esc(p+'/')+'\'';load()':''
-      var actions=it.dir?'':'<button class="btn-dl" onclick="dlFile(\''+esc(p)+'\',\''+esc(it.name)+'\')">Скачать</button>';
-      return '<tr><td><span class="file-icon">'+fileIcon(it.name,it.dir)+'</span></td>'+
-        '<td><span class="file-name'+(it.dir?' dir':'')+'"'+(it.dir?' onclick="navigate(\''+esc(p+'/\')\')"':'')+'">'+esc(it.name)+'</span></td>'+
-        '<td class="file-size">'+(it.dir?'—':fmtSize(it.size))+'</td>'+
-        '<td class="file-actions">'+actions+'</td></tr>';
-    }).join('');
-    if(curPath!=='/'){
-      var back=curPath.replace(/\/[^\/]+\/?$/,'')||'/';
-      tbody.insertAdjacentHTML('afterbegin','<tr><td><span class="file-icon">📁</span></td><td><span class="file-name dir" onclick="navigate(\''+esc(back)+'\')">.. (назад)</span></td><td></td><td></td></tr>');
+
+var cwd='/';
+function encPath(p){return encodeURIComponent(p).replace(/%2F/g,'/');}
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmtSize(n){
+  n=parseInt(n)||0;
+  if(n<1024) return n+' B';
+  if(n<1048576) return (n/1024).toFixed(1)+' KB';
+  return (n/1048576).toFixed(2)+' MB';
+}
+function buildBreadcrumb(path){
+  var el=document.getElementById('breadcrumb');
+  var parts=path.split('/').filter(Boolean);
+  var html='<a href="#" onclick="cd(\'/\');return false">0:</a>';
+  var acc='/';
+  parts.forEach(function(p){
+    acc+=(acc==='/'?'':'/') +p;
+    var a=acc;
+    html+='<span>▸</span><a href="#" onclick="cd(''+a+'');return false">'+escH(p)+'</a>';
+  });
+  el.innerHTML=html;
+}
+function cd(path){
+  cwd=path; loadDir(path);
+}
+function loadDir(path){
+  buildBreadcrumb(path);
+  fetch('/api/files?path='+encodeURIComponent(path)).then(r=>r.json()).then(function(d){
+    if(d.free_bytes!==undefined) document.getElementById('sd-free-lbl').textContent='Свободно: '+fmtSize(d.free_bytes);
+    var items=d.files||d.items||[];
+    var tb=document.getElementById('file-list');
+    if(!items.length){
+      tb.innerHTML='<tr><td colspan="4" style="color:var(--muted);padding:20px;text-align:center">Папка пуста</td></tr>';
+      return;
     }
-  }).catch(function(){document.getElementById('netErr').style.display='block';tbody.innerHTML='<tr class="empty-row"><td colspan="4">Ошибка загрузки</td></tr>';});
-};
-window.navigate=function(p){curPath=p;load();};
-window.dlFile=function(path,name){
-  ftch('/api/download?path='+encodeURIComponent(path)).then(function(r){return r.blob()}).then(function(b){
-    var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();
-  }).catch(function(){alert('Ошибка скачивания: '+name);});
-};
-window.toggleUpload=function(){var el=document.getElementById('uploadArea');el.style.display=el.style.display==='block'?'none':'block';};
-function uploadFile(file){
-  if(!file)return;
-  document.getElementById('uploadArea').style.display='none';
-  var prog=document.getElementById('uploadProg'),fill=document.getElementById('progFill'),lbl=document.getElementById('progLabel');
-  prog.style.display='block';fill.style.width='0%';lbl.textContent='Загрузка '+file.name+'...';
-  var xhr=new XMLHttpRequest();
-  xhr.upload.onprogress=function(e){if(e.lengthComputable){var p=Math.round(e.loaded/e.total*100);fill.style.width=p+'%';lbl.textContent=p+'% — '+file.name;}};
-  xhr.onload=function(){prog.style.display='none';if(xhr.status>=200&&xhr.status<300)load();else alert('Ошибка: '+xhr.status);};
-  xhr.onerror=function(){prog.style.display='none';alert('Ошибка сети');};
-  xhr.open('POST','/api/upload?path='+encodeURIComponent(curPath.replace(/\/$/,'')+'/'+file.name));
-  xhr.send(file);
+    var html='';
+    if(path!=='/'){
+      html+='<tr><td class="file-name dir-icon" colspan="3" onclick="cd(parent_of(''+path+''))">&#128281; ..</td><td></td></tr>';
+    }
+    items.sort(function(a,b){return (b.dir?1:0)-(a.dir?1:0)||a.name.localeCompare(b.name);});
+    items.forEach(function(f){
+      var fp=(path==='/'?'/':path+'/')+f.name;
+      if(f.dir){
+        html+='<tr><td class="file-name dir-icon" colspan="2" onclick="cd(''+fp+'')">&#128193; '+escH(f.name)+'</td><td style="color:var(--muted)">папка</td><td></td></tr>';
+      } else {
+        html+='<tr>'
+          +'<td class="file-name" onclick="dl(''+fp+'')">&#128196; '+escH(f.name)+'</td>'
+          +'<td class="file-size">'+fmtSize(f.size)+'</td>'
+          +'<td class="file-size">'+(f.date||'—')+'</td>'
+          +'<td><button class="btn btn-danger btn-sm" onclick="del(''+fp+'',this)">✕</button></td>'
+          +'</tr>';
+      }
+    });
+    tb.innerHTML=html;
+  }).catch(function(){toast('Ошибка загрузки списка','err');});
 }
-document.getElementById('fileInput').onchange=function(){uploadFile(this.files[0]);};
-document.getElementById('uploadArea').ondragover=function(e){e.preventDefault();};
-document.getElementById('uploadArea').ondrop=function(e){e.preventDefault();var f=(e.dataTransfer.files||[])[0];if(f)uploadFile(f);};
-load();
-})();
+function parent_of(p){
+  var s=p.replace(/\/+$/,'');
+  var i=s.lastIndexOf('/');
+  return i<=0?'/':s.slice(0,i);
+}
+function dl(fp){
+  window.open('/api/file?path='+encodeURIComponent(fp),'_blank');
+}
+function del(fp,btn){
+  if(!confirm('Удалить '+fp+'?')) return;
+  btn.disabled=true; btn.textContent='…';
+  fetch('/api/files?path='+encodeURIComponent(fp),{method:'DELETE'})
+  .then(r=>r.json()).then(function(d){
+    if(d.status==='ok'){ toast('Удалено: '+fp,'ok'); loadDir(cwd); }
+    else toast('Ошибка: '+(d.message||'?'),'err');
+  }).catch(function(){toast('Нет связи','err');});
+}
+function upload(files){
+  if(!files||!files.length) return;
+  var pb=document.getElementById('prog-bar');
+  var pf=document.getElementById('prog-fill');
+  var st=document.getElementById('upload-status');
+  pb.style.display='block'; pf.style.width='0%';
+  var i=0;
+  function next(){
+    if(i>=files.length){ pb.style.display='none'; st.textContent=''; loadDir(cwd); toast('Загружено: '+files.length+' файл(а)','ok'); return; }
+    var f=files[i++]; st.textContent='Загрузка: '+f.name;
+    var fd=new FormData(); fd.append('file',f); fd.append('path',cwd);
+    var xhr=new XMLHttpRequest();
+    xhr.upload.onprogress=function(e){if(e.lengthComputable) pf.style.width=Math.round(e.loaded/e.total*100)+'%';};
+    xhr.onload=function(){pf.style.width='0%'; next();};
+    xhr.onerror=function(){toast('Ошибка загрузки '+f.name,'err');};
+    xhr.open('POST','/api/upload');
+    xhr.send(fd);
+  }
+  next();
+}
+var dz=document.getElementById('drop-zone');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('drag-over');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('drag-over');upload(e.dataTransfer.files);});
+document.getElementById('file-input').addEventListener('change',function(e){upload(e.target.files);});
+loadDir('/');
 </script>
 </body>
 </html>
