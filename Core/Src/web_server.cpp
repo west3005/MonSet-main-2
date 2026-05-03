@@ -3517,11 +3517,11 @@ void WebServer::handleApiConfig(uint8_t sn){
             "\"rms\":%u,\"fms\":%u,\"devs\":[]}",
             i==0?"":",",
             rp.enabled?"true":"false",
-            (unsigned long)rp.baud,
+            (unsigned long)rp.baudrate,
             (unsigned)rp.stop_bits,
             parStr,
             (unsigned)rp.response_timeout_ms,
-            (unsigned)rp.frame_gap_ms
+            (unsigned)rp.inter_frame_ms
         );
     }
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "]");
@@ -3541,8 +3541,8 @@ void WebServer::handleApiConfig(uint8_t sn){
 
     // tcp_devs array (ModbusTcpMasterConfig devices)
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, ",\"tcp_devs\":[");
-    for (int i = 0; i < c.tcp_master.device_count && i < ModbusTcpMasterConfig::MAX_DEVICES; i++) {
-        const ModbusTcpDeviceConfig& td = c.tcp_master.devices[i];
+    for (int i = 0; i < c.tcp_master.device_count && i < ModbusTcpMasterConfig::MAX_TCP_DEVICES; i++) {
+        const ModbusTcpDeviceCfg& td = c.tcp_master.devices[i];
         n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
             "%s{\"en\":%s,\"ip\":\"%s\",\"port\":%u,\"uid\":%u,\"nm\":\"%s\","
             "\"fc\":%u,\"rs\":%u,\"rc\":%u,\"dt\":%u,\"sc\":%f,\"of\":%f,"
@@ -3550,7 +3550,7 @@ void WebServer::handleApiConfig(uint8_t sn){
             i==0?"":",",
             td.enabled?"true":"false",
             td.ip, (unsigned)td.port, (unsigned)td.unit_id, td.name,
-            (unsigned)td.function_code,(unsigned)td.start_reg,(unsigned)td.reg_count,
+            (unsigned)td.func_code,(unsigned)td.start_reg,(unsigned)td.reg_count,
             (unsigned)td.data_type,(double)td.scale,(double)td.offset,
             td.unit,(unsigned)td.channel_idx,
             (unsigned)td.poll_timeout_ms,(unsigned)td.connect_timeout_ms,
