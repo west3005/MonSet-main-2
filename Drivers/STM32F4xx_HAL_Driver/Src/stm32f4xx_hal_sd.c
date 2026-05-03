@@ -839,16 +839,19 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       return HAL_ERROR;
     }
 
-    /* Configure the SD DPSM (Data Path State Machine) */
+    /* Configure the SD DPSM (Data Path State Machine).
+     * FIX: send CMD24/CMD25 first (DPSM disabled), then enable DPSM.
+     * This mirrors the ReadBlocks() fix and resolves ErrorCode=0x02 on STM32F4 polling write.
+     */
     config.DataTimeOut   = SDMMC_DATATIMEOUT;
     config.DataLength    = NumberOfBlocks * BLOCKSIZE;
     config.DataBlockSize = SDIO_DATABLOCK_SIZE_512B;
     config.TransferDir   = SDIO_TRANSFER_DIR_TO_CARD;
     config.TransferMode  = SDIO_TRANSFER_MODE_BLOCK;
-    config.DPSM          = SDIO_DPSM_ENABLE;
+    config.DPSM          = SDIO_DPSM_DISABLE;
     (void)SDIO_ConfigData(hsd->Instance, &config);
 
-    /* Write Blocks in polling mode */
+    /* Send write command first (CMD24 / CMD25), then enable DPSM */
     if(NumberOfBlocks > 1U)
     {
       hsd->Context = SD_CONTEXT_WRITE_MULTIPLE_BLOCK;
@@ -870,6 +873,10 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       hsd->Context = SD_CONTEXT_NONE;
       return HAL_ERROR;
     }
+
+    /* Enable DPSM only after card accepted the write command */
+    config.DPSM = SDIO_DPSM_ENABLE;
+    (void)SDIO_ConfigData(hsd->Instance, &config);
 
     uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v8-hwfc blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
     uart_log_info("[HAL_SD] Write CMD24: err=0x%lX RESP1=0x%08lX STA=0x%08lX",
