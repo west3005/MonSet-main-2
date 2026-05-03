@@ -215,7 +215,7 @@ bool WebServer::serveFile(uint8_t sn,const char* path,const char* ct){
     char hdr[192];
     int hl=std::snprintf(hdr,sizeof(hdr),
         "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %lu\r\n"
-        "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
+        "Cache-Control: no-cache, no-store\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
         ct,(unsigned long)fsize);
     w5500_send(sn,(uint8_t*)hdr,(uint16_t)hl);
     uint8_t chunk[512]; UINT br;
@@ -3182,6 +3182,7 @@ void WebServer::handleConfig(uint8_t sn){
         char hdr[192];
         int hl=std::snprintf(hdr,sizeof(hdr),
             "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\n"
+            "Cache-Control: no-cache, no-store\r\n"
             "Content-Length: %lu\r\nAccess-Control-Allow-Origin: *\r\n"
             "Connection: close\r\n\r\n",
             (unsigned long)s_config_html_len);
@@ -3794,6 +3795,86 @@ void WebServer::handleApiSdTest(uint8_t sn) {
     sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
 }
 
+// ── GET /api/files?path=/  — листинг SD (JSON) ───────────────────────────────
+void WebServer::handleApiFiles(uint8_t sn, const char* /*path*/, const char* request) {
+    char dir[128] = "0:/";
+    const char* q = std::strstr(request, "path=");
+    if (q) {
+        q += 5;
+        const char* end = q;
+        while (*end && *end != ' ' && *end != '&' && *end != '\r') end++;
+        size_t len = end - q;
+        if (len > sizeof(dir) - 4) len = sizeof(dir) - 4;
+        std::snprintf(dir, sizeof(dir), "0:%.*s", (int)len, q);
+    }
+
+    DIR d; FILINFO fi;
+    char body[2048]; int pos = 0;
+    pos += std::snprintf(body + pos, sizeof(body) - pos, "[");
+    bool first = true;
+    if (f_opendir(&d, dir) == FR_OK) {
+        while (f_readdir(&d, &fi) == FR_OK && fi.fname[0]) {
+            if (!first) pos += std::snprintf(body + pos, sizeof(body) - pos, ",");
+            first = false;
+            pos += std::snprintf(body + pos, sizeof(body) - pos,
+                "{\"name\":\"%s\",\"size\":%lu,\"dir\":%s}",
+                fi.fname, (unsigned long)fi.fsize,
+                (fi.fattrib & AM_DIR) ? "true" : "false");
+        }
+        f_closedir(&d);
+    }
+    pos += std::snprintf(body + pos, sizeof(body) - pos, "]");
+
+    char hdr[256];
+    int hl = std::snprintf(hdr, sizeof(hdr),
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n"
+        "Content-Length: %d\r\nCache-Control: no-cache, no-store\r\n"
+        "Access-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n", pos);
+    w5500_send(sn, (uint8_t*)hdr, (uint16_t)hl);
+    w5500_send(sn, (uint8_t*)body, (uint16_t)pos);
+}
+
+// ── GET /api/download?path=/file.json — скачать файл с SD ────────────────────
+void WebServer::handleApiDownload(uint8_t sn, const char* /*path*/, const char* request) {
+    const char* q = std::strstr(request, "path=");
+    if (!q) { sendResponse(sn, 400, "application/json", "{\"error\":\"Missing path\"}", 23); return; }
+    q += 5;
+    const char* end = q;
+    while (*end && *end != ' ' && *end != '&' && *end != '\r') end++;
+    char relpath[96]; size_t len = end - q;
+    if (len >= sizeof(relpath)) len = sizeof(relpath) - 1;
+    std::memcpy(relpath, q, len); relpath[len] = 0;
+
+    char fpath[128];
+    std::snprintf(fpath, sizeof(fpath), "0:%s", relpath);
+
+    FIL f;
+    if (f_open(&f, fpath, FA_READ) != FR_OK) {
+        sendResponse(sn, 404, "application/json", "{\"error\":\"Not found\"}", 21);
+        return;
+    }
+    FSIZE_t fsize = f_size(&f);
+
+    const char* fname = relpath;
+    for (const char* p = relpath; *p; p++) if (*p == '/') fname = p + 1;
+
+    char hdr[256];
+    int hl = std::snprintf(hdr, sizeof(hdr),
+        "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\n"
+        "Content-Length: %lu\r\nContent-Disposition: attachment; filename=\"%s\"\r\n"
+        "Cache-Control: no-cache, no-store\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n",
+        (unsigned long)fsize, fname);
+    w5500_send(sn, (uint8_t*)hdr, (uint16_t)hl);
+
+    uint8_t chunk[512]; UINT br;
+    while (f_read(&f, chunk, sizeof(chunk), &br) == FR_OK && br > 0) {
+        w5500_send(sn, chunk, (uint16_t)br);
+        IWDG->KR = 0xAAAA;
+    }
+    f_close(&f);
+}
+
+
 void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
     if(!checkAuth(request)){send401(sn);return;}
     if(m_activityCb) m_activityCb(m_activityCtx);
@@ -3824,6 +3905,8 @@ void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
         else if(std::strcmp(cleanPath,"/api/test_result")==0)handleApiTestResult(sn);
         else if(std::strcmp(cleanPath,"/api/logs/export")==0)handleApiLogsExport(sn);
         else if(std::strncmp(cleanPath,"/api/logs",9)==0) handleApiLogs(sn,queryStr);
+        else if(std::strncmp(cleanPath,"/api/files",10)==0)   handleApiFiles(sn,cleanPath,request);
+        else if(std::strncmp(cleanPath,"/api/download",13)==0) handleApiDownload(sn,cleanPath,request);
         else if(std::strcmp(cleanPath,"/api/sd-test")==0)  handleApiSdTest(sn);
         else{
             const char* ext=std::strrchr(cleanPath,'.');
