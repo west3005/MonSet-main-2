@@ -924,18 +924,15 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     /* Send stop transmission command in case of multiblock write */
     if(__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_DATAEND) && (NumberOfBlocks > 1U))
     {
-      if(hsd->SdCard.CardType != CARD_MMC)
+      /* Send STOP_TRANSMISSION Command (SD cards always require it) */
+      errorstate = SDMMC_CmdStopTransfer(hsd->Instance);
+      if(errorstate != HAL_SD_ERROR_NONE)
       {
-        /* Send STOP_TRANSMISSION Command */
-        errorstate = SDMMC_CmdStopTransfer(hsd->Instance);
-        if(errorstate != HAL_SD_ERROR_NONE)
-        {
-          __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
-          hsd->ErrorCode |= errorstate;
-          hsd->State = HAL_SD_STATE_READY;
-          hsd->Context = SD_CONTEXT_NONE;
-          return HAL_ERROR;
-        }
+        __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_FLAGS);
+        hsd->ErrorCode |= errorstate;
+        hsd->State = HAL_SD_STATE_READY;
+        hsd->Context = SD_CONTEXT_NONE;
+        return HAL_ERROR;
       }
     }
 
