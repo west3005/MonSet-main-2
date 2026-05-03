@@ -198,9 +198,15 @@ DRESULT SD_write(BYTE lun, const BYTE *buff, DWORD sector, UINT count)
                   (int)HAL_SD_GetCardState(&hsd));
 
     SD_ClearFlags();
-    /* STM32F4 errata: disable HWFC before write to prevent TXUNDERR in polling mode */
-    MODIFY_REG(SDIO->CLKCR, SDIO_CLKCR_CLKDIV | SDIO_CLKCR_CLKEN | SDIO_CLKCR_HWFC_EN,
-               (118U) | SDIO_CLKCR_CLKEN);
+    /*
+     * TXUNDERR fix: при write нужна РАБОЧАЯ частота (24 МГц, ClockDiv=0), а не 400 кГц.
+     * При 400 кГц DPSM опустошает FIFO быстрее чем CPU успевает его заполнить.
+     * При 24 МГц одно 32-битное слово уходит за ~2.7 мкс — CPU при 84 МГц
+     * записывает слово за ~10 нс, запас x270. HWFC_EN=0 (errata STM32F4).
+     */
+    MODIFY_REG(SDIO->CLKCR,
+               SDIO_CLKCR_CLKDIV | SDIO_CLKCR_CLKEN | SDIO_CLKCR_HWFC_EN | SDIO_CLKCR_BYPASS,
+               (0U) | SDIO_CLKCR_CLKEN);  /* ClockDiv=0 → 48/(0+2)=24 МГц */
     HAL_Delay(2);
     SDIO->DCTRL = 0U;
     __DSB();
