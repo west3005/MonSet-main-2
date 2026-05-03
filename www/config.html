@@ -294,20 +294,7 @@ window.addEventListener('DOMContentLoaded',function(){
   for(var p=0;p<3;p++){rtu.push({en:false,baud:9600,sb:1,par:'None',rms:500,fms:3,devs:[]});document.getElementById('tp'+p).innerHTML=rtuH(p)}
   initSns(4);
   fetch('/api/sensors').then(function(r){return r.json()}).then(function(d){initSns(d.count||4)}).catch(function(){});
-  fetch('/api/config').then(function(r){return r.json()}).then(function(d){
-    cfg=d;
-    var bk=['ch_eth','ch_gsm','ch_wifi','ch_iridium','chain_mode','deep_sleep_enabled','schedule_enabled','mtcpm_en','mtcps_en','ntp_enabled','web_auth_enabled','web_exclusive_mode','alerts_enabled','alert_on_channel_fail','alert_on_sensor_fail','mqtt_tls','eth_dhcp'];
-    bk.forEach(function(k){var e=document.getElementById(k);if(e)e.checked=!!d[k]});
-    var tx=['tb_host','tb_token','tb_port','mqtt_host','mqtt_port','mqtt_user','mqtt_topic','webhook_url','poll_interval_s','send_interval_s','backup_retry_s','avg_count','deep_sleep_s','schedule_start','schedule_stop','sl_port','sl_uid','sl_sock','sl_ctms','eth_ip','eth_sn','eth_gw','eth_dns','gsm_apn','gsm_user','wifi_ssid','ntp_server','web_user','web_port','web_idle_timeout_s','batt_low','alert_webhook_url','channel_timeout_s','channel_retry_s','channel_max_retries'];
-    tx.forEach(function(k){var e=document.getElementById(k);if(e&&d[k]!==undefined)e.value=d[k]});
-    if(d.proto)sp(d.proto);
-    if(d.chain_order){cord=d.chain_order;coen=d.co_en||coen;rndOrd()}
-    if(d.tcp_devs){tcpd=d.tcp_devs;rndTD()}
-    if(d.regs){regs=d.regs;rndRegs()}
-    if(d.rtu){d.rtu.forEach(function(r,p){if(rtu[p]){Object.assign(rtu[p],r);document.getElementById('tp'+p).innerHTML=rtuH(p);}})}
-    sh('ds_f',!!d.deep_sleep_enabled);
-    sh('eth_st',!d.eth_dhcp);
-  }).catch(function(){});
+  reloadCfg();
 });
 </script>
   <!-- ── Кнопки SD / файловый менеджер ──────────────────────────── -->
