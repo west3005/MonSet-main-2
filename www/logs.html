@@ -1,448 +1,239 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MonSet — Лог</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0e1117;--surface:#161b22;--border:#30363d;--accent:#2dd4bf;--text:#c9d1d9;--muted:#8b949e;--green:#3fb950;--yellow:#d29922;--red:#f85149;--blue:#58a6ff}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Courier New',Courier,monospace;font-size:13px;line-height:1.5}
-a{color:inherit;text-decoration:none}
+:root{
+  --bg:#0d0f12;--s1:#131720;--s2:#181d28;--s3:#1e2435;
+  --border:rgba(255,255,255,.07);--divider:rgba(255,255,255,.04);
+  --text:#e8eaf0;--muted:#7b8499;--faint:#3d4357;
+  --accent:#c8963c;--accent-dim:rgba(200,150,60,.12);
+  --green:#4caf82;--green-dim:rgba(76,175,130,.12);
+  --red:#e05555;--red-dim:rgba(224,85,85,.12);
+  --yellow:#d4a017;--yellow-dim:rgba(212,160,23,.12);
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'Geist Mono','Fira Code',monospace;
+  --r-sm:4px;--r-md:6px;--r-lg:10px;
+  --t:160ms cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100dvh;display:flex;flex-direction:column}
+button{cursor:pointer;font:inherit;border:none;background:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
 
-/* HEADER */
-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.brand{display:flex;align-items:center;gap:10px}
-.brand-name{font-size:16px;font-weight:700;letter-spacing:.08em;color:var(--text)}
-.status-dot{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .4s}
-.dot.active{background:var(--green);box-shadow:0 0 6px var(--green)}
-.dot.pulse{animation:pulse 2s infinite}
+nav{position:sticky;top:0;z-index:100;height:48px;display:flex;align-items:center;background:rgba(13,15,18,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0}
+.nav-logo{display:flex;align-items:center;gap:8px;margin-right:auto}
+.logo-name{font-weight:700;font-size:15px;letter-spacing:.03em}
+.logo-dot{color:var(--accent)}
+.nav-links{display:flex;gap:2px}
+.nav-link{height:48px;padding:0 14px;display:flex;align-items:center;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:color var(--t),border-color var(--t);text-decoration:none;white-space:nowrap}
+.nav-link:hover{color:var(--text)}
+.nav-link.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+.log-wrap{flex:1;display:flex;flex-direction:column;max-width:900px;margin:0 auto;padding:16px 20px 20px;width:100%}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.net-err{background:var(--red-dim);color:var(--red);border:1px solid rgba(224,85,85,.2);padding:8px 14px;border-radius:var(--r-md);font-size:12px;font-family:var(--font-mono);display:none;margin-bottom:10px}
+.btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--r-md);font-size:13px;border:1px solid var(--border);transition:background var(--t),border-color var(--t),color var(--t)}
+.btn-ghost{background:transparent;color:var(--muted)}
+.btn-ghost:hover{background:var(--s3);color:var(--text)}
+.btn-ghost.active{background:var(--accent-dim);border-color:rgba(200,150,60,.3);color:var(--accent)}
+.sel{background:var(--s2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:var(--r-md);font:inherit;font-size:13px}
+.sel:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+.log-area-wrap{
+  flex:1;position:relative;
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;
+  display:flex;flex-direction:column;min-height:0;
+}
+.log-area{
+  flex:1;overflow-y:scroll;padding:10px 14px;
+  font-family:var(--font-mono);font-size:12px;line-height:1.7;
+  scrollbar-width:thin;scrollbar-color:var(--s3) transparent;
+}
+.log-area::-webkit-scrollbar{width:6px}
+.log-area::-webkit-scrollbar-track{background:transparent}
+.log-area::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+
+.log-line{display:flex;gap:10px;padding:1px 0}
+.log-line:hover{background:rgba(255,255,255,.02)}
+.l-ts{color:var(--faint);white-space:nowrap;flex-shrink:0}
+.l-lvl{width:40px;flex-shrink:0;font-weight:600;letter-spacing:.04em}
+.l-lvl.INFO{color:var(--muted)}
+.l-lvl.WARN{color:var(--yellow)}
+.l-lvl.ERR,.l-lvl.ERROR{color:var(--red)}
+.l-lvl.DBG,.l-lvl.DEBUG{color:var(--faint)}
+.l-lvl.OK{color:var(--green)}
+.l-src{color:var(--faint);white-space:nowrap;flex-shrink:0;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.l-msg{color:var(--text);word-break:break-word}
+.l-msg.ERR,.l-msg.ERROR{color:var(--red)}
+.l-msg.WARN{color:var(--yellow)}
+
+.log-foot{padding:6px 14px;border-top:1px solid var(--divider);display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--faint)}
+
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-nav{display:flex;gap:4px}
-nav a{padding:5px 12px;border-radius:4px;font-size:12px;color:var(--muted);border:1px solid transparent;transition:all .15s}
-nav a:hover{color:var(--text);border-color:var(--border)}
-nav a.active{color:var(--accent);border-color:var(--accent);background:rgba(45,212,191,.08)}
+.live-indicator{display:flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite}
+.live-dot.paused{background:var(--yellow);animation:none}
 
-/* LAYOUT */
-.page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-main{flex:1;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:hidden}
-
-/* LOG PANEL */
-.log-panel{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
-
-/* PANEL TITLE BAR */
-.panel-title{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);flex-shrink:0}
-.panel-title-text{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex:1}
-.btn-icon{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:4px 9px;font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
-.btn-icon:hover{border-color:var(--accent);color:var(--accent);background:rgba(45,212,191,.08)}
-.btn-icon.danger:hover{border-color:var(--red);color:var(--red);background:rgba(248,81,73,.08)}
-
-/* FILTERS */
-.filters{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
-.filter-label{color:var(--muted);font-size:11px;white-space:nowrap}
-select.filter-select{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit;cursor:pointer;outline:none;transition:border-color .15s}
-select.filter-select:focus{border-color:var(--accent)}
-.search-input{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 10px;font-size:12px;font-family:inherit;outline:none;transition:border-color .15s}
-.search-input::placeholder{color:var(--muted)}
-.search-input:focus{border-color:var(--accent)}
-
-/* LOG VIEWPORT */
-.log-viewport{flex:1;overflow-y:auto;padding:6px 0;min-height:0;scroll-behavior:smooth}
-.log-viewport::-webkit-scrollbar{width:6px}
-.log-viewport::-webkit-scrollbar-track{background:transparent}
-.log-viewport::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.log-viewport::-webkit-scrollbar-thumb:hover{background:var(--muted)}
-
-/* LOG LINES */
-.line{display:flex;align-items:baseline;gap:0;padding:1px 12px;font-size:12px;white-space:pre-wrap;word-break:break-all;line-height:1.6}
-.line:hover{background:rgba(255,255,255,.03)}
-.line.hidden{display:none}
-.line .ts{color:var(--muted);flex-shrink:0;margin-right:8px;user-select:none}
-.line .lv{flex-shrink:0;margin-right:8px;font-weight:700;width:4ch;display:inline-block;user-select:none}
-.line.INFO .lv{color:var(--muted)}
-.line.WARN .lv{color:var(--yellow)}
-.line.ERR .lv{color:var(--red)}
-.line.DATA .lv{color:var(--blue)}
-.line.INFO .msg{color:var(--muted)}
-.line.WARN .msg{color:var(--text)}
-.line.ERR .msg{color:var(--red)}
-.line.DATA .msg{color:var(--blue)}
-
-/* EMPTY / ERROR STATES */
-.log-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:12px;flex-direction:column;gap:8px;user-select:none}
-.log-empty .icon{font-size:24px;opacity:.4}
-
-/* STATUS BAR */
-.status-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(255,255,255,.02);border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;gap:8px}
-.status-left{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--muted)}
-.status-count{white-space:nowrap}
-.net-error{color:var(--red);font-size:11px;display:none;align-items:center;gap:4px}
-.net-error.show{display:flex}
-.autoscroll-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);white-space:nowrap}
-.toggle{position:relative;display:inline-flex;cursor:pointer;user-select:none}
-.toggle input{position:absolute;opacity:0;width:0;height:0}
-.toggle-track{width:36px;height:18px;background:var(--border);border-radius:9px;transition:background .2s;flex-shrink:0}
-.toggle input:checked+.toggle-track{background:var(--accent)}
-.toggle-thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s;pointer-events:none}
-.toggle input:checked~.toggle-thumb{left:20px}
-
-/* SCROLLED INDICATOR */
-.scroll-hint{display:none;position:absolute;bottom:60px;right:24px;background:var(--accent);color:#0e1117;border:none;border-radius:12px;padding:4px 12px;font-size:11px;font-family:inherit;cursor:pointer;font-weight:700;z-index:10}
-.scroll-hint.show{display:block}
-.main-wrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+@media(max-width:600px){
+  .nav-link span{display:none}
+  .log-wrap{padding:10px 10px 12px}
+  .l-src{display:none}
+}
 </style>
 </head>
 <body>
-<div class="page">
-  <header>
-    <div class="brand">
-      <span class="brand-name">MonSet</span>
-      <div class="status-dot">
-        <span class="dot pulse" id="hdrDot"></span>
-        <span id="hdrLabel">ONLINE</span>
-      </div>
+<nav>
+  <div class="nav-logo">
+    <svg aria-label="MonSet" width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <rect x="2" y="2" width="22" height="22" rx="5" stroke="#c8963c" stroke-width="1.5"/>
+      <path d="M7 17 L7 13 L10 9 L13 13 L16 9 L19 13 L19 17" stroke="#c8963c" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+      <circle cx="13" cy="7" r="1.5" fill="#c8963c"/>
+    </svg>
+    <span class="logo-name">Mon<span class="logo-dot">Set</span></span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html"><span>Dashboard</span></a>
+    <a class="nav-link" href="config.html"><span>Конфиг</span></a>
+    <a class="nav-link active" href="logs.html"><span>Лог</span></a>
+    <a class="nav-link" href="files.html"><span>Файлы</span></a>
+  </div>
+</nav>
+
+<div class="log-wrap">
+  <div class="net-err" id="netErr">⚠ Нет связи с устройством</div>
+  <div class="toolbar">
+    <select class="sel" id="levelSel" onchange="applyFilter()">
+      <option value="">Все уровни</option>
+      <option value="DEBUG">DEBUG</option>
+      <option value="INFO">INFO</option>
+      <option value="WARN">WARN</option>
+      <option value="ERR">ERR / ERROR</option>
+    </select>
+    <select class="sel" id="linesSel" onchange="applyFilter()">
+      <option value="100">100 строк</option>
+      <option value="200">200 строк</option>
+      <option value="500">500 строк</option>
+      <option value="1000">1000 строк</option>
+    </select>
+    <button class="btn btn-ghost" id="liveBtn" onclick="toggleLive()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M5.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Live
+    </button>
+    <button class="btn btn-ghost" onclick="clearLog()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      Очистить
+    </button>
+    <button class="btn btn-ghost" onclick="downloadLog()" style="margin-left:auto">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Сохранить
+    </button>
+  </div>
+
+  <div class="log-area-wrap">
+    <div class="log-area" id="logArea"></div>
+    <div class="log-foot">
+      <div class="live-indicator"><div class="live-dot" id="liveDot"></div><span id="liveLabel">Live</span></div>
+      <div id="lineCount">0 строк</div>
     </div>
-    <nav>
-      <a href="/config">Конфиг</a>
-      <a href="/">Тест</a>
-      <a href="/logs" class="active">Лог</a>
-    </nav>
-  </header>
-
-  <main>
-    <div class="main-wrap">
-      <div class="log-panel">
-        <!-- Title bar -->
-        <div class="panel-title">
-          <span class="panel-title-text">Системный лог</span>
-          <button class="btn-icon" id="btnDownload" title="Скачать лог">⬇ Скачать</button>
-          <button class="btn-icon danger" id="btnClear" title="Очистить лог">✕ Очистить</button>
-        </div>
-
-        <!-- Filters -->
-        <div class="filters">
-          <span class="filter-label">Уровень:</span>
-          <select class="filter-select" id="selLevel">
-            <option value="">ВСЕ</option>
-            <option value="INFO">INFO</option>
-            <option value="WARN">WARN</option>
-            <option value="ERR">ERR</option>
-            <option value="DATA">DATA</option>
-          </select>
-          <span class="filter-label">Поиск:</span>
-          <input class="search-input" id="inpSearch" type="text" placeholder="Фильтр сообщений...">
-        </div>
-
-        <!-- Log viewport -->
-        <div class="log-viewport" id="logViewport">
-          <div class="log-empty" id="logEmpty">
-            <span class="icon">📋</span>
-            <span>Загрузка журнала...</span>
-          </div>
-        </div>
-
-        <!-- Status bar -->
-        <div class="status-bar">
-          <div class="status-left">
-            <span class="status-count" id="statusCount">Строк: 0/500</span>
-            <span class="net-error" id="netError">⚠ Нет связи</span>
-          </div>
-          <div class="autoscroll-wrap">
-            Автопрокрутка:
-            <label class="toggle" title="Автопрокрутка">
-              <input type="checkbox" id="chkAutoScroll" checked>
-              <span class="toggle-track"></span>
-              <span class="toggle-thumb"></span>
-            </label>
-            <span id="autoScrollLabel">ON</span>
-          </div>
-        </div>
-      </div>
-
-      <button class="scroll-hint" id="scrollHint" title="К последней строке">▼ Новые строки</button>
-    </div>
-  </main>
+  </div>
 </div>
 
 <script>
 (function(){
 'use strict';
+var liveOn=true, timer=null, rawLines=[], autoScroll=true;
 
-/* ── constants ── */
-const MAX_LINES = 500;
-const POLL_LOGS_MS = 3000;
-const POLL_WEB_MS = 5000;
-const FETCH_COUNT = 100;
-const POLL_COUNT = 50;
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function ftch(url){var c=new AbortController(),t=setTimeout(function(){c.abort()},6000);return fetch(url,{signal:c.signal}).finally(function(){clearTimeout(t)})}
 
-/* ── state ── */
-let allLines = [];       // {raw, ts, lv, msg}
-let offset = 0;
-let autoScroll = true;
-let userScrolled = false;
-let pollTimer = null;
-let webTimer = null;
-
-/* ── elements ── */
-const viewport   = document.getElementById('logViewport');
-const logEmpty   = document.getElementById('logEmpty');
-const statusCount= document.getElementById('statusCount');
-const netError   = document.getElementById('netError');
-const selLevel   = document.getElementById('selLevel');
-const inpSearch  = document.getElementById('inpSearch');
-const chkAS      = document.getElementById('chkAutoScroll');
-const asLabel    = document.getElementById('autoScrollLabel');
-const scrollHint = document.getElementById('scrollHint');
-const hdrDot     = document.getElementById('hdrDot');
-const hdrLabel   = document.getElementById('hdrLabel');
-
-/* ── parse a raw log line ── */
 function parseLine(raw){
-  // format: "[HH:MM:SS] LEVEL msg"
-  const m = raw.match(/^\[(\d{2}:\d{2}:\d{2})\]\s+(\w+)\s*(.*)/);
-  if(m) return {raw, ts:m[1], lv:m[2].toUpperCase().slice(0,4), msg:m[3]};
-  return {raw, ts:'--:--:--', lv:'INFO', msg:raw};
+  // Expected: "[HH:MM:SS] [LEVEL] [SRC] message" or "HH:MM:SS LEVEL SRC: message"
+  var m=raw.match(/^(\[?[\d:\.]+\]?)\s+\[?([A-Z]+)\]?\s+(\[?[\w\.]+\]?)?\s*:?\s*(.*)/);
+  if(m) return{ts:m[1].replace(/[\[\]]/g,''),lvl:m[2],src:(m[3]||'').replace(/[\[\]]/g,''),msg:m[4]};
+  return{ts:'',lvl:'INFO',src:'',msg:raw};
 }
 
-/* ── build DOM element for one line ── */
-function buildLineEl(o){
-  const lvClass = ['INFO','WARN','ERR','DATA'].includes(o.lv) ? o.lv : 'INFO';
-  const d = document.createElement('div');
-  d.className = 'line ' + lvClass;
-  d.innerHTML =
-    '<span class="ts">['+esc(o.ts)+']</span>'+
-    '<span class="lv '+lvClass+'">'+esc(o.lv)+'</span>'+
-    '<span class="msg">'+esc(o.msg)+'</span>';
-  return d;
+function renderLines(lines){
+  var area=document.getElementById('logArea');
+  if(!lines.length){area.innerHTML='<div style="padding:20px;color:var(--faint);text-align:center">Лог пуст</div>';return;}
+  var html=lines.map(function(raw){
+    if(!raw.trim()) return '';
+    var p=parseLine(raw);
+    return '<div class="log-line">'+
+      '<span class="l-ts">'+esc(p.ts)+'</span>'+
+      '<span class="l-lvl '+esc(p.lvl)+'">'+esc(p.lvl)+'</span>'+
+      (p.src?'<span class="l-src">'+esc(p.src)+'</span>':'')+
+      '<span class="l-msg '+esc(p.lvl)+'">'+esc(p.msg)+'</span>'+
+      '</div>';
+  }).join('');
+  area.innerHTML=html;
+  document.getElementById('lineCount').textContent=lines.length+' строк';
+  if(autoScroll) area.scrollTop=area.scrollHeight;
 }
 
-function esc(s){
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-/* ── apply filters to a single element ── */
-function matchesFilter(o, lv, q){
-  if(lv && o.lv !== lv) return false;
-  if(q && !o.raw.toLowerCase().includes(q)) return false;
-  return true;
-}
-
-/* ── re-render all lines with current filter ── */
 function applyFilter(){
-  const lv = selLevel.value;
-  const q  = inpSearch.value.toLowerCase().trim();
-  const nodes = viewport.querySelectorAll('.line');
-  nodes.forEach((node, i) => {
-    const o = allLines[i];
-    if(!o){ node.classList.add('hidden'); return; }
-    node.classList.toggle('hidden', !matchesFilter(o, lv, q));
-  });
-  updateCount();
+  var lvl=document.getElementById('levelSel').value;
+  var shown=lvl?rawLines.filter(function(l){
+    var m=l.match(/\b(DEBUG|DBG|INFO|WARN|ERR|ERROR|OK)\b/i);
+    var ll=(m&&m[1]||'').toUpperCase();
+    if(lvl==='ERR') return ll==='ERR'||ll==='ERROR';
+    return ll===lvl;
+  }):rawLines;
+  renderLines(shown);
+}
+window.applyFilter=applyFilter;
+
+function load(){
+  var n=document.getElementById('linesSel').value;
+  var lvl=document.getElementById('levelSel').value;
+  var url='/api/log?lines='+n+(lvl?'&level='+lvl:'');
+  ftch(url).then(function(r){return r.text()}).then(function(t){
+    document.getElementById('netErr').style.display='none';
+    rawLines=t.split('\n').filter(function(l){return l.trim()});
+    applyFilter();
+  }).catch(function(){document.getElementById('netErr').style.display='block';});
 }
 
-function updateCount(){
-  const lv = selLevel.value;
-  const q  = inpSearch.value.toLowerCase().trim();
-  const visible = allLines.filter(o => matchesFilter(o,lv,q)).length;
-  statusCount.textContent = 'Строк: ' + visible + '/' + allLines.length;
-}
+window.toggleLive=function(){
+  liveOn=!liveOn;
+  var btn=document.getElementById('liveBtn');
+  var dot=document.getElementById('liveDot');
+  var lbl=document.getElementById('liveLabel');
+  btn.classList.toggle('active',liveOn);
+  dot.className='live-dot'+(liveOn?'':' paused');
+  lbl.textContent=liveOn?'Live':'Пауза';
+  if(liveOn){load();timer=setInterval(load,3000);}
+  else{clearInterval(timer);}
+};
 
-/* ── append new lines to DOM and allLines[] ── */
-function appendLines(raws){
-  if(!raws || !raws.length) return;
-  const lv = selLevel.value;
-  const q  = inpSearch.value.toLowerCase().trim();
-  const frag = document.createDocumentFragment();
+window.clearLog=function(){
+  rawLines=[];
+  document.getElementById('logArea').innerHTML='<div style="padding:20px;color:var(--faint);text-align:center">Лог очищен</div>';
+  document.getElementById('lineCount').textContent='0 строк';
+};
 
-  raws.forEach(raw => {
-    const o = parseLine(raw);
-    allLines.push(o);
-    const el = buildLineEl(o);
-    if(!matchesFilter(o, lv, q)) el.classList.add('hidden');
-    frag.appendChild(el);
-  });
+window.downloadLog=function(){
+  var text=rawLines.join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download='monset-log-'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.txt';
+  a.click();
+};
 
-  // enforce MAX_LINES in DOM and array
-  const nodes = viewport.querySelectorAll('.line');
-  const excess = allLines.length - MAX_LINES;
-  if(excess > 0){
-    allLines.splice(0, excess);
-    for(let i=0; i<excess; i++){
-      if(nodes[i]) nodes[i].remove();
-    }
-  }
-
-  // remove empty placeholder if present
-  if(logEmpty.parentNode === viewport) logEmpty.remove();
-
-  viewport.appendChild(frag);
-  updateCount();
-
-  if(autoScroll){
-    scrollToBottom();
-  } else {
-    scrollHint.classList.add('show');
-  }
-}
-
-function scrollToBottom(){
-  viewport.scrollTop = viewport.scrollHeight;
-}
-
-/* ── network ── */
-function setNetError(on){
-  netError.classList.toggle('show', on);
-}
-
-async function fetchLogs(fetchOffset, count){
-  const r = await fetch('/api/logs?offset='+fetchOffset+'&count='+count);
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  return r.json(); // expects {lines:["...",...],"total":N}
-}
-
-async function initialLoad(){
-  try{
-    const data = await fetchLogs(0, FETCH_COUNT);
-    const lines = Array.isArray(data) ? data : (data.lines || []);
-    offset = lines.length;
-    appendLines(lines);
-    setNetError(false);
-  }catch(e){
-    setNetError(true);
-    logEmpty.innerHTML = '<span class="icon">⚠</span><span>Ошибка загрузки журнала</span>';
-    if(logEmpty.parentNode !== viewport) viewport.appendChild(logEmpty);
-  }
-  schedulePoll();
-}
-
-async function pollLogs(){
-  try{
-    const data = await fetchLogs(offset, POLL_COUNT);
-    const lines = Array.isArray(data) ? data : (data.lines || []);
-    if(lines.length){
-      offset += lines.length;
-      appendLines(lines);
-    }
-    setNetError(false);
-  }catch(e){
-    setNetError(true);
-  }
-  schedulePoll();
-}
-
-function schedulePoll(){
-  clearTimeout(pollTimer);
-  pollTimer = setTimeout(pollLogs, POLL_LOGS_MS);
-}
-
-/* ── web mode poll ── */
-async function pollWebMode(){
-  try{
-    const r = await fetch('/api/web_mode');
-    if(!r.ok) throw new Error();
-    const d = await r.json();
-    const active = d.active || d.enabled || d.web_mode;
-    hdrDot.className = 'dot' + (active ? ' active' : ' pulse');
-    hdrLabel.textContent = active ? 'WEB ACTIVE' : 'ONLINE';
-  }catch(e){
-    hdrDot.className = 'dot pulse';
-    hdrLabel.textContent = 'ONLINE';
-  }
-  clearTimeout(webTimer);
-  webTimer = setTimeout(pollWebMode, POLL_WEB_MS);
-}
-
-/* ── download ── */
-document.getElementById('btnDownload').addEventListener('click', async()=>{
-  try{
-    const r = await fetch('/api/logs/export');
-    if(!r.ok) throw new Error();
-    const blob = await r.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'monset.log';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    setTimeout(()=>URL.revokeObjectURL(url), 2000);
-  }catch(e){
-    alert('Ошибка экспорта лога');
-  }
+var area=document.getElementById('logArea');
+area.addEventListener('scroll',function(){
+  autoScroll=area.scrollTop+area.clientHeight>=area.scrollHeight-20;
 });
 
-/* ── clear ── */
-document.getElementById('btnClear').addEventListener('click', async()=>{
-  if(!confirm('Очистить системный журнал?')) return;
-  try{
-    const r = await fetch('/api/logs/clear',{method:'POST'});
-    if(!r.ok) throw new Error();
-    allLines = [];
-    viewport.querySelectorAll('.line').forEach(n=>n.remove());
-    if(logEmpty.parentNode !== viewport) viewport.appendChild(logEmpty);
-    logEmpty.innerHTML = '<span class="icon">📋</span><span>Журнал очищен</span>';
-    offset = 0;
-    updateCount();
-  }catch(e){
-    alert('Ошибка очистки журнала');
-  }
-});
-
-/* ── filters ── */
-selLevel.addEventListener('change', applyFilter);
-inpSearch.addEventListener('input', applyFilter);
-
-/* ── auto-scroll toggle ── */
-chkAS.addEventListener('change', ()=>{
-  autoScroll = chkAS.checked;
-  asLabel.textContent = autoScroll ? 'ON' : 'OFF';
-  userScrolled = false;
-  if(autoScroll){
-    scrollHint.classList.remove('show');
-    scrollToBottom();
-  }
-});
-
-/* ── scroll listener: disable autoscroll on manual scroll up ── */
-let lastScrollTop = 0;
-viewport.addEventListener('scroll', ()=>{
-  const st = viewport.scrollTop;
-  const isAtBottom = viewport.scrollHeight - st - viewport.clientHeight < 32;
-
-  if(st < lastScrollTop && !isAtBottom){
-    // scrolled up
-    if(autoScroll){
-      autoScroll = false;
-      chkAS.checked = false;
-      asLabel.textContent = 'OFF';
-      userScrolled = true;
-    }
-  }
-
-  if(isAtBottom && userScrolled){
-    autoScroll = true;
-    chkAS.checked = true;
-    asLabel.textContent = 'ON';
-    userScrolled = false;
-    scrollHint.classList.remove('show');
-  }
-
-  lastScrollTop = st;
-},{passive:true});
-
-/* ── scroll hint button ── */
-scrollHint.addEventListener('click', ()=>{
-  autoScroll = true;
-  chkAS.checked = true;
-  asLabel.textContent = 'ON';
-  userScrolled = false;
-  scrollHint.classList.remove('show');
-  scrollToBottom();
-});
-
-/* ── init ── */
-initialLoad();
-pollWebMode();
-
+load();
+timer=setInterval(load,3000);
 })();
 </script>
 </body>
