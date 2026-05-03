@@ -3936,6 +3936,15 @@ void WebServer::tick(){
             if(socket(HTTP_SOCKET,Sn_MR_TCP,HTTP_PORT,0)==HTTP_SOCKET) listen(HTTP_SOCKET);
             break;
         case SOCK_LISTEN: break;
+        // W5500 промежуточные состояния TCP teardown:
+        // 0x18=FIN_WAIT, 0x1A=CLOSING, 0x1B=TIME_WAIT — принудительно сбрасываем сокет
+        // чтобы браузер мог подключиться снова без ожидания таймаута
+        case 0x18: // SOCK_FIN_WAIT
+        case 0x1A: // SOCK_CLOSING
+        case 0x1B: // SOCK_TIME_WAIT
+            close(HTTP_SOCKET);
+            if(socket(HTTP_SOCKET,Sn_MR_TCP,HTTP_PORT,0)==HTTP_SOCKET) listen(HTTP_SOCKET);
+            break;
         default: break;
     }
 }
