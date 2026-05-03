@@ -1,429 +1,293 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MonSet — Конфигурация</title><style>
-:root{
-  --bg:#0b0d10;--surf:#13161b;--surf2:#1a1d24;--surf3:#22262f;
-  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
-  --text:#dde1ea;--muted:#7a8394;--faint:#40454f;
-  --accent:#c8963c;--accent-h:#dba84a;--accent-d:#a07628;
-  --green:#4caf78;--yellow:#d4a017;--red:#e05555;
-  --radius:6px;--radius-lg:10px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-font-smoothing:antialiased}
-body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,'Segoe UI',Inter,sans-serif;padding-bottom:72px}
-a{color:var(--accent);text-decoration:none}
-nav{display:flex;align-items:center;background:var(--surf);border-bottom:1px solid var(--border);padding:0 20px;height:48px;position:sticky;top:0;z-index:100}
-.brand{font-weight:700;letter-spacing:.04em;margin-right:auto;font-size:15px;color:var(--text)}
-.brand em{color:var(--accent);font-style:normal}
-.nav-tabs{display:flex}
-.nav-tab{padding:0 16px;height:48px;display:flex;align-items:center;font-size:13px;font-weight:500;border-bottom:2px solid transparent;color:var(--muted);transition:color .15s,border-color .15s}
-.nav-tab:hover{color:var(--text)}.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.hdr{padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surf);font-size:17px;font-weight:700;color:var(--accent);letter-spacing:.02em}
-details{background:var(--surf);border:1px solid var(--border);border-radius:var(--radius-lg);margin:10px 16px;overflow:hidden;transition:border-color .2s}
-details[open]{border-color:var(--border2)}
-summary{padding:12px 16px;cursor:pointer;font-weight:600;font-size:13px;color:var(--accent);user-select:none;list-style:none;display:flex;align-items:center;gap:8px}
-summary::-webkit-details-marker{display:none}
-summary::before{content:"▶";font-size:9px;transition:transform .2s;color:var(--faint);flex-shrink:0}
-details[open]>summary::before{transform:rotate(90deg);color:var(--accent)}
-.sc{padding:12px 16px 16px}
-.r{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;align-items:flex-end}
-.f{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
-label{font-size:11px;color:var(--muted);letter-spacing:.03em}
-input[type=text],input[type=number],input[type=password],select{
-  background:var(--surf2);border:1px solid var(--border2);border-radius:var(--radius);
-  color:var(--text);padding:7px 10px;font-size:13px;width:100%;
-  transition:border-color .15s,box-shadow .15s;font-family:inherit
-}
-input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(200,150,60,.15)}
-input::placeholder{color:var(--faint)}
-select option{background:var(--surf2)}
-.tg{display:flex;align-items:center;gap:10px}
-.tg input[type=checkbox]{appearance:none;width:38px;height:21px;background:var(--surf3);border:1px solid var(--border2);border-radius:11px;cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
-.tg input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
-.tg input[type=checkbox]::after{content:"";position:absolute;width:15px;height:15px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
-.tg input[type=checkbox]:checked::after{left:19px}
-.tg span{font-size:13px;white-space:nowrap;color:var(--text)}
-.btn{background:var(--accent);color:#0b0d10;border:none;border-radius:var(--radius);padding:8px 16px;cursor:pointer;font-size:13px;font-weight:700;transition:background .15s}
-.btn:hover{background:var(--accent-h)}.btn:active{background:var(--accent-d)}
-.btn.s{background:var(--surf3);color:var(--text);border:1px solid var(--border2)}
-.btn.s:hover{background:var(--surf2)}
-.cd{background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px}
-.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
-.tab{padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:500;background:var(--surf2);border:1px solid var(--border);color:var(--muted);transition:all .15s}
-.tab:hover{color:var(--text);border-color:var(--border2)}
-.tab.act{background:rgba(200,150,60,.15);color:var(--accent);border-color:var(--accent);font-weight:700}
-.tp{display:none}.tp.act{display:block}
-.bar{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--border);padding:12px 20px;display:flex;gap:8px;z-index:99;box-shadow:0 -4px 20px rgba(0,0,0,.5)}
-.dr{display:flex;align-items:center;gap:8px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;margin-bottom:6px;cursor:grab}
-.dr span{flex:1;font-size:12px}
-.file-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
-.file-item:last-child{border-bottom:0}
-.file-name{flex:1;color:var(--text)}.file-size{color:var(--muted);font-family:'Courier New',monospace;font-size:11px;min-width:60px;text-align:right}
-.file-dl{color:var(--accent);cursor:pointer;font-size:12px;white-space:nowrap}
-.file-dl:hover{color:var(--accent-h)}
-#save-msg{font-size:13px;font-weight:600;margin-left:auto;white-space:nowrap;transition:opacity .3s}
-.msg-ok{color:var(--green)}.msg-warn{color:var(--yellow)}.msg-err{color:var(--red)}
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MonSet — Config</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
 
-.msg{font-size:13px;font-weight:600;margin-left:auto;white-space:nowrap;display:none}
-.msg.ok{color:var(--green)}.msg.warn{color:var(--yellow)}.msg.er{color:var(--red)}
-</style></head><body>
+  :root {
+    --bg:#0d0f12; --surface:#141720; --surface2:#1a1e2a;
+    --border:oklch(from #e0c97a 0.7 0.1 85 / 0.15);
+    --text:#e8e6e0; --muted:#8a8880; --faint:#4a4846;
+    --gold:#c8963c; --gold-h:#e0b060;
+    --green:#4a9460; --yellow:#b89030; --red:#9c4040;
+    --green-bg:oklch(from #4a9460 0.25 0.08 145 / 0.25);
+    --yellow-bg:oklch(from #b89030 0.3 0.1 85 / 0.25);
+    --red-bg:oklch(from #9c4040 0.25 0.1 25 / 0.25);
+    --radius:6px; --radius-lg:10px;
+    --mono:'Geist Mono','Courier New',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:14px;-webkit-font-smoothing:antialiased}
+  body{background:var(--bg);color:var(--text);font-family:'Inter','Helvetica Neue',sans-serif;min-height:100dvh;display:flex;flex-direction:column}
+  a{color:var(--gold);text-decoration:none} a:hover{color:var(--gold-h)}
+  button{cursor:pointer;border:none;font:inherit}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:52px;position:sticky;top:0;z-index:100}
+  .nav-logo{display:flex;align-items:center;gap:10px;margin-right:32px;color:var(--gold);font-weight:700;font-size:15px;letter-spacing:.03em}
+  nav a{color:var(--muted);font-size:13px;font-weight:500;padding:0 14px;height:52px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  nav a:hover{color:var(--text)} nav a.active{color:var(--gold);border-bottom-color:var(--gold)}
+  .nav-spacer{flex:1}
+  .nav-status{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  main{flex:1;padding:24px;max-width:960px;margin:0 auto;width:100%}
+  .page-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:20px;letter-spacing:-.01em}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+  .card+.card{margin-top:16px}
+  .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+  input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:8px 11px;background:var(--bg);border:1px solid oklch(from var(--text) 0.5 0 0 / 0.15);border-radius:var(--radius);color:var(--text);font:inherit;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-row.three{grid-template-columns:1fr 1fr 1fr}
+  .form-field{display:flex;flex-direction:column}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:background .15s,color .15s,border-color .15s}
+  .btn-primary{background:var(--gold);color:#0d0f12} .btn-primary:hover{background:var(--gold-h)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)} .btn-ghost:hover{color:var(--text)}
+  .btn-danger{background:var(--red-bg);color:#d06060;border:1px solid oklch(from #9c4040 0.5 0.1 25 / 0.3)} .btn-danger:hover{background:oklch(from #9c4040 0.3 0.1 25 / 0.35)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+  .badge-ok{background:var(--green-bg);color:#70c490} .badge-warn{background:var(--yellow-bg);color:#d0a840} .badge-err{background:var(--red-bg);color:#d07070}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:10px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .25s;opacity:0;pointer-events:none;z-index:9999;white-space:nowrap}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  #toast.ok{background:var(--green-bg);color:#70c490;border:1px solid oklch(from #4a9460 0.4 0.08 145 / 0.4)}
+  #toast.warn{background:var(--yellow-bg);color:#d0a840;border:1px solid oklch(from #b89030 0.4 0.1 85 / 0.4)}
+  #toast.err{background:var(--red-bg);color:#d07070;border:1px solid oklch(from #9c4040 0.4 0.1 25 / 0.4)}
+  .acc-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 20px;margin:-20px -20px 0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;user-select:none;transition:background .15s}
+  .acc-hdr:hover{background:oklch(from var(--text) 0.15 0 0 / 0.05)}
+  .acc-hdr h2{font-size:13px;font-weight:600;color:var(--text)}
+  .acc-arrow{color:var(--muted);transition:transform .2s;font-size:11px}
+  .acc-arrow.open{transform:rotate(90deg)}
+  .acc-body{margin-top:20px;display:none} .acc-body.open{display:block}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+  .kpi-value{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--gold);letter-spacing:-.02em;line-height:1}
+  .kpi-value.ok{color:#70c490} .kpi-value.warn{color:#d0a840} .kpi-value.err{color:#d07070}
+  .kpi-unit{font-size:12px;color:var(--muted);margin-top:4px}
+  #log-output{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;height:480px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .log-info{color:#7898b8} .log-warn{color:#c8a840} .log-error{color:#c06060} .log-data{color:#60a878} .log-debug{color:#888}
+  .file-table{width:100%;border-collapse:collapse}
+  .file-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .file-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+  .file-table tr:last-child td{border-bottom:none}
+  .file-table tr:hover td{background:oklch(from var(--text) 0.15 0 0 / 0.04)}
+  .file-icon{margin-right:6px;color:var(--gold)}
+  .file-size{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .drop-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;color:var(--muted);transition:border-color .15s,background .15s;cursor:pointer}
+  .drop-zone.drag-over{border-color:var(--gold);background:var(--yellow-bg)}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+  .progress-fill{height:100%;background:var(--gold);width:0;transition:width .1s;border-radius:2px}
+  @media(max-width:600px){main{padding:16px}.form-row,.form-row.three{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+
+.save-bar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;margin:0 -24px;z-index:50}
+.save-status{font-size:12px;font-family:var(--mono);padding:4px 12px;border-radius:var(--radius);display:none}
+.save-status.ok{display:inline-block;background:var(--green-bg);color:#70c490}
+.save-status.warn{display:inline-block;background:var(--yellow-bg);color:#d0a840}
+.save-status.err{display:inline-block;background:var(--red-bg);color:#d07070}
+.section-gap{margin-top:12px}
+</style>
+</head>
+<body>
 <nav>
-  <span class="brand">Mon<em>Set</em></span>
-  <div class="nav-tabs">
-    <a class="nav-tab active" href="/config">Конфиг</a>
-    <a class="nav-tab" href="/">Тест</a>
-    <a class="nav-tab" href="/logs">Лог</a>
-  </div>
+<div class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="MonSet"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="7 10 10 7 13 10 16 7"/></svg>MonSet</div>
+<a href="/">Dashboard</a><a href="/config" class="active">Config</a><a href="/logs">Logs</a><a href="/files">Files</a>
+<div class="nav-spacer"></div>
+<span class="nav-status" id="nav-ip">—</span>
 </nav>
-<div class="hdr">Конфигурация устройства</div>
-<details open><summary>A: Каналы передачи, привет Дипсик</summary><div class="sc">
-<div class="r">
-<div class="tg"><input type="checkbox" id="ch_eth" onchange="c('ch_eth',this.checked)"><span>Ethernet W5500</span></div>
-<div class="tg"><input type="checkbox" id="ch_gsm" onchange="c('ch_gsm',this.checked)"><span>GSM</span></div>
-<div class="tg"><input type="checkbox" id="ch_wifi" onchange="c('ch_wifi',this.checked)"><span>WiFi ESP8266</span></div>
-<div class="tg"><input type="checkbox" id="ch_iridium" onchange="c('ch_iridium',this.checked)"><span>Iridium SBD</span></div>
-<div class="tg"><input type="checkbox" id="chain_mode" onchange="c('chain_mode',this.checked)"><span>Chain mode</span></div>
-</div>
-<div style="font-size:11px;color:#8b949e;margin-bottom:4px">Приоритет:</div>
-<div id="cord"></div>
-<div class="r" style="margin-top:8px">
-<div class="f"><label>Таймаут (с)</label><input type="number" id="channel_timeout_s" value="30" onchange="c('channel_timeout_s',+this.value)"></div>
-<div class="f"><label>Повтор (с)</label><input type="number" id="channel_retry_s" value="10" onchange="c('channel_retry_s',+this.value)"></div>
-<div class="f"><label>Макс попыток</label><input type="number" id="channel_max_retries" value="3" onchange="c('channel_max_retries',+this.value)"></div>
-</div></div></details>
-<details><summary>B: Протокол и сервер</summary><div class="sc">
-<div class="f" style="max-width:260px;margin-bottom:10px"><label>Протокол</label>
-<select id="proto" onchange="sp(this.value)"><option value="https_tb">HTTPS ThingsBoard</option><option value="mqtt_gen">MQTT (Generic)</option><option value="mqtt_tb">MQTT ThingsBoard</option><option value="webhook">HTTP Webhook</option></select></div>
-<div id="g_tb"><div class="r"><div class="f"><label>Хост TB</label><input type="text" id="tb_host" onchange="c('tb_host',this.value)"></div><div class="f"><label>Токен</label><input type="text" id="tb_token" onchange="c('tb_token',this.value)"></div><div class="f" style="max-width:90px"><label>Порт</label><input type="number" id="tb_port" value="443" onchange="c('tb_port',+this.value)"></div></div></div>
-<div id="g_mqtt" style="display:none"><div class="r"><div class="f"><label>MQTT Хост</label><input type="text" id="mqtt_host" onchange="c('mqtt_host',this.value)"></div><div class="f" style="max-width:90px"><label>Порт</label><input type="number" id="mqtt_port" value="1883" onchange="c('mqtt_port',+this.value)"></div></div>
-<div class="r"><div class="f"><label>Пользователь</label><input type="text" id="mqtt_user" onchange="c('mqtt_user',this.value)"></div><div class="f"><label>Пароль</label><input type="password" id="mqtt_pass" onchange="c('mqtt_pass',this.value)"></div></div>
-<div class="r"><div class="f"><label>Топик</label><input type="text" id="mqtt_topic" onchange="c('mqtt_topic',this.value)"></div><div class="f" style="max-width:80px"><label>QoS</label><select id="mqtt_qos" onchange="c('mqtt_qos',+this.value)"><option>0</option><option>1</option><option>2</option></select></div><div class="tg" style="margin-top:16px"><input type="checkbox" id="mqtt_tls" onchange="c('mqtt_tls',this.checked)"><span>TLS</span></div></div></div>
-<div id="g_wh" style="display:none"><div class="r"><div class="f"><label>URL Webhook</label><input type="text" id="webhook_url" onchange="c('webhook_url',this.value)"></div><div class="f" style="max-width:100px"><label>Метод</label><select id="webhook_method" onchange="c('webhook_method',this.value)"><option>GET</option><option selected>POST</option><option>PUT</option></select></div></div></div>
-</div></details>
-<details><summary>C: Расписание и опрос</summary><div class="sc">
-<div class="r">
-<div class="f"><label>Опрос (с)</label><input type="number" id="poll_interval_s" value="10" onchange="c('poll_interval_s',+this.value)"></div>
-<div class="f"><label>Отправка (с)</label><input type="number" id="send_interval_s" value="60" onchange="c('send_interval_s',+this.value)"></div>
-<div class="f"><label>Резерв повтор (с)</label><input type="number" id="backup_retry_s" value="300" onchange="c('backup_retry_s',+this.value)"></div>
-<div class="f" style="max-width:90px"><label>Усреднение</label><input type="number" id="avg_count" value="1" onchange="c('avg_count',+this.value)"></div>
-</div>
-<div class="r"><div class="tg"><input type="checkbox" id="deep_sleep_enabled" onchange="c('deep_sleep_enabled',this.checked);sh('ds_f',this.checked)"><span>Deep sleep</span></div><div class="f" id="ds_f" style="max-width:130px;display:none"><label>Длительность (с)</label><input type="number" id="deep_sleep_s" value="3600" onchange="c('deep_sleep_s',+this.value)"></div></div>
-<div class="r"><div class="tg"><input type="checkbox" id="schedule_enabled" onchange="c('schedule_enabled',this.checked);sh('sch_f',this.checked)"><span>Расписание</span></div><div id="sch_f" style="display:none;display:flex;gap:8px"><div class="f" style="max-width:90px"><label>Старт</label><input type="text" id="schedule_start" placeholder="06:00" onchange="c('schedule_start',this.value)"></div><div class="f" style="max-width:90px"><label>Стоп</label><input type="text" id="schedule_stop" placeholder="22:00" onchange="c('schedule_stop',this.value)"></div></div></div>
-</div></details>
-<details><summary>D: Датчики Modbus RTU</summary><div class="sc">
-<div class="tabs"><div class="tab act" onclick="st(this,'tp0')">USART3</div><div class="tab" onclick="st(this,'tp1')">UART4</div><div class="tab" onclick="st(this,'tp2')">UART5</div></div>
-<div id="tp0" class="tp act"></div><div id="tp1" class="tp"></div><div id="tp2" class="tp"></div>
-</div></details>
-<details><summary>E: Modbus TCP Master</summary><div class="sc">
-<div class="tg" style="margin-bottom:10px"><input type="checkbox" id="mtcpm_en" onchange="c('mtcpm_en',this.checked)"><span>Включить</span></div>
-<div id="tcp_devs"></div><button class="btn s" onclick="addTD()">+ Добавить устройство TCP</button>
-</div></details>
-<details><summary>F: Modbus TCP Slave</summary><div class="sc">
-<div class="tg" style="margin-bottom:10px"><input type="checkbox" id="mtcps_en" onchange="c('mtcps_en',this.checked)"><span>Включить</span></div>
-<div class="r"><div class="f" style="max-width:90px"><label>Порт</label><input type="number" id="sl_port" value="502" onchange="c('sl_port',+this.value)"></div><div class="f" style="max-width:90px"><label>Unit ID</label><input type="number" id="sl_uid" value="1" onchange="c('sl_uid',+this.value)"></div><div class="f" style="max-width:90px"><label>W5500 сокет</label><input type="number" id="sl_sock" value="0" onchange="c('sl_sock',+this.value)"></div><div class="f" style="max-width:140px"><label>Таймаут соед. (мс)</label><input type="number" id="sl_ctms" value="5000" onchange="c('sl_ctms',+this.value)"></div></div>
-<table><thead><tr><th>Адрес</th><th>Источник</th><th>Тип</th><th>Масштаб</th><th>Ед.</th><th>Имя</th><th></th></tr></thead><tbody id="regtbl"></tbody></table>
-<button class="btn s" style="margin-top:6px" onclick="addReg()">+ Добавить регистр</button>
-</div></details>
-<details><summary>G: Сеть</summary><div class="sc">
-<div class="sh">Ethernet</div>
-<div class="r"><div class="tg"><input type="checkbox" id="eth_dhcp" checked onchange="c('eth_dhcp',this.checked);sh('eth_st',!this.checked)"><span>DHCP</span></div></div>
-<div id="eth_st" style="display:none"><div class="r"><div class="f"><label>IP</label><input type="text" id="eth_ip" onchange="c('eth_ip',this.value)"></div><div class="f"><label>Маска</label><input type="text" id="eth_sn" onchange="c('eth_sn',this.value)"></div><div class="f"><label>Шлюз</label><input type="text" id="eth_gw" onchange="c('eth_gw',this.value)"></div><div class="f"><label>DNS</label><input type="text" id="eth_dns" onchange="c('eth_dns',this.value)"></div></div></div>
-<div class="sh">GSM</div>
-<div class="r"><div class="f"><label>APN</label><input type="text" id="gsm_apn" onchange="c('gsm_apn',this.value)"></div><div class="f"><label>Пользователь</label><input type="text" id="gsm_user" onchange="c('gsm_user',this.value)"></div><div class="f"><label>Пароль</label><input type="password" id="gsm_pass" onchange="c('gsm_pass',this.value)"></div></div>
-<div class="sh">WiFi</div>
-<div class="r"><div class="f"><label>SSID</label><input type="text" id="wifi_ssid" onchange="c('wifi_ssid',this.value)"></div><div class="f"><label>Пароль</label><input type="password" id="wifi_pass" onchange="c('wifi_pass',this.value)"></div></div>
-</div></details>
-<details><summary>H: Время и NTP</summary><div class="sc">
-<div class="r"><div class="tg"><input type="checkbox" id="ntp_enabled" onchange="c('ntp_enabled',this.checked)"><span>NTP</span></div><div class="f"><label>Сервер</label><input type="text" id="ntp_server" value="pool.ntp.org" onchange="c('ntp_server',this.value)"></div><div class="f" style="max-width:130px"><label>Часовой пояс</label><select id="tz_off" onchange="c('tz_off',+this.value)"></select></div></div>
-</div></details>
-<details><summary>I: Веб и безопасность</summary><div class="sc">
-<div class="r"><div class="f"><label>Пользователь</label><input type="text" id="web_user" value="admin" onchange="c('web_user',this.value)"></div><div class="f"><label>Пароль</label><input type="password" id="web_pass" onchange="c('web_pass',this.value)"></div><div class="f" style="max-width:80px"><label>Порт</label><input type="number" id="web_port" value="80" onchange="c('web_port',+this.value)"></div></div>
-<div class="r"><div class="tg"><input type="checkbox" id="web_auth_enabled" onchange="c('web_auth_enabled',this.checked)"><span>Аутентификация</span></div><div class="tg"><input type="checkbox" id="web_exclusive_mode" onchange="c('web_exclusive_mode',this.checked)"><span>Эксклюзивный режим</span></div><div class="f" style="max-width:150px"><label>Таймаут простоя (с)</label><input type="number" id="web_idle_timeout_s" value="300" onchange="c('web_idle_timeout_s',+this.value)"></div></div>
-</div></details>
-<details><summary>J: Оповещения</summary><div class="sc">
-<div class="r"><div class="tg"><input type="checkbox" id="alerts_enabled" onchange="c('alerts_enabled',this.checked)"><span>Оповещения</span></div><div class="f" style="max-width:150px"><label>Батарея мин. (%)</label><input type="number" id="batt_low" value="20" onchange="c('battery_low_threshold_pct',+this.value)"></div></div>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div id="sns_min"></div><div id="sns_max"></div></div>
-<div class="r"><div class="tg"><input type="checkbox" id="alert_ch_fail" onchange="c('alert_on_channel_fail',this.checked)"><span>Сбой канала</span></div><div class="tg"><input type="checkbox" id="alert_sn_fail" onchange="c('alert_on_sensor_fail',this.checked)"><span>Сбой датчика</span></div></div>
-<div class="f" style="margin-top:6px"><label>Webhook оповещений</label><input type="text" id="alert_webhook_url" onchange="c('alert_webhook_url',this.value)"></div>
-</div></details>
-<div class="bar"><button class="btn" onclick="save()">💾 Сохранить</button><button class="btn s" onclick="rst()">↺ Сброс</button><button class="btn s" onclick="exp()">⬇ Экспорт JSON</button><span class="msg" id="msg"></span></div>
-<script>
-var cfg={};
-var DT=['INT16','UINT16','INT32_BE','UINT32_BE','FLOAT32_BE'];
-var SRC=['Датчик 0','Датчик 1','Датчик 2','Датчик 3','Батарея%','Батарея V','Статус каналов'];
-var CHN=['Ethernet W5500','GSM','WiFi ESP8266','Iridium SBD'];
-var cord=[0,1,2,3],coen=[false,false,false,false];
+<main>
+  <h1 class="page-title">Config</h1>
 
-function c(k,v){cfg[k]=v}
-function sh(id,v){document.getElementById(id).style.display=v?'flex':'none'}
-
-function sp(v){
-  document.getElementById('g_tb').style.display=(v==='https_tb'||v==='mqtt_tb')?'block':'none';
-  document.getElementById('g_mqtt').style.display=(v==='mqtt_gen'||v==='mqtt_tb')?'block':'none';
-  document.getElementById('g_wh').style.display=(v==='webhook')?'block':'none';
-  cfg.proto=v;
-}
-
-function st(el,id){
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('act')});
-  document.querySelectorAll('.tp').forEach(function(t){t.classList.remove('act')});
-  el.classList.add('act');document.getElementById(id).classList.add('act');
-}
-
-function mv(i,d){
-  var j=i+d;if(j<0||j>3)return;
-  var t=cord[i];cord[i]=cord[j];cord[j]=t;
-  var t2=coen[i];coen[i]=coen[j];coen[j]=t2;
-  rndOrd();
-}
-
-function rndOrd(){
-  var h='';
-  for(var i=0;i<4;i++){
-    h+='<div class="dr"><input type="checkbox" style="width:auto"'+(coen[i]?' checked':'')
-      +' onchange="coen['+i+']=this.checked"><span>'+CHN[cord[i]]+'</span>'
-      +'<button onclick="mv('+i+',-1)">▲</button><button onclick="mv('+i+',1)">▼</button></div>';
-  }
-  document.getElementById('cord').innerHTML=h;
-}
-
-var BD=['2400','4800','9600','19200','38400','115200'];
-var rtu=[];
-
-function rtuH(p){
-  var x=rtu[p];
-  var h='<div class="r"><div class="tg"><input type="checkbox"'+(x.en?' checked':'')+' onchange="rtu['+p+'].en=this.checked"><span>Включить</span></div>'
-    +'<div class="f" style="max-width:100px"><label>Бодрейт</label><select onchange="rtu['+p+'].baud=+this.value">';
-  BD.forEach(function(b){h+='<option'+(x.baud==b?' selected':'')+'>'+b+'</option>'});
-  h+='</select></div><div class="f" style="max-width:80px"><label>Стоп-биты</label><select onchange="rtu['+p+'].sb=+this.value"><option'+(x.sb==1?' selected':'')+'>1</option><option'+(x.sb==2?' selected':'')+'>2</option></select></div>'
-    +'<div class="f" style="max-width:100px"><label>Чётность</label><select onchange="rtu['+p+'].par=this.value"><option'+(x.par=="None"?' selected':'')+'>None</option><option'+(x.par=="Even"?' selected':'')+'>Even</option><option'+(x.par=="Odd"?' selected':'')+'>Odd</option></select></div>'
-    +'<div class="f" style="max-width:120px"><label>Таймаут отв.(мс)</label><input type="number" value="'+x.rms+'" onchange="rtu['+p+'].rms=+this.value"></div>'
-    +'<div class="f" style="max-width:120px"><label>Межфреймовый(мс)</label><input type="number" value="'+x.fms+'" onchange="rtu['+p+'].fms=+this.value"></div>'
-    +'</div><div id="rd'+p+'"></div>'
-    +'<button class="btn s" onclick="addRD('+p+')">+ Добавить устройство</button>';
-  return h;
-}
-
-function rtuDH(p,i){
-  var d=rtu[p].devs[i];
-  return '<div class="cd"><div class="ch"><span style="font-size:12px;font-weight:600">Устройство '+(i+1)+'</span>'
-    +'<button class="btn s" style="padding:2px 8px;font-size:11px" onclick="delRD('+p+','+i+')">✕</button></div>'
-    +'<div class="r"><div class="tg"><input type="checkbox"'+(d.en?' checked':'')+' onchange="rtu['+p+'].devs['+i+'].en=this.checked"><span>Вкл</span></div>'
-    +'<div class="f" style="max-width:80px"><label>Slave addr</label><input type="number" value="'+d.sa+'" onchange="rtu['+p+'].devs['+i+'].sa=+this.value"></div>'
-    +'<div class="f"><label>Имя</label><input type="text" value="'+d.nm+'" onchange="rtu['+p+'].devs['+i+'].nm=this.value"></div>'
-    +'<div class="f" style="max-width:80px"><label>Func</label><select onchange="rtu['+p+'].devs['+i+'].fc=+this.value"><option'+(d.fc==3?' selected':'')+' value="3">03</option><option'+(d.fc==4?' selected':'')+' value="4">04</option></select></div>'
-    +'<div class="f" style="max-width:100px"><label>Reg start</label><input type="text" value="0x'+d.rs.toString(16).toUpperCase()+'" onchange="rtu['+p+'].devs['+i+'].rs=parseInt(this.value)"></div>'
-    +'<div class="f" style="max-width:80px"><label>Count</label><input type="number" value="'+d.rc+'" onchange="rtu['+p+'].devs['+i+'].rc=+this.value"></div>'
-    +'</div><div class="r"><div class="f" style="max-width:140px"><label>Data type</label><select onchange="rtu['+p+'].devs['+i+'].dt=this.value">'
-    +DT.map(function(t){return'<option'+(d.dt===t?' selected':'')+'>'+t+'</option>'}).join('')
-    +'</select></div><div class="f" style="max-width:80px"><label>Масштаб</label><input type="number" step="any" value="'+d.sc+'" onchange="rtu['+p+'].devs['+i+'].sc=+this.value"></div>'
-    +'<div class="f" style="max-width:80px"><label>Смещение</label><input type="number" step="any" value="'+d.of+'" onchange="rtu['+p+'].devs['+i+'].of=+this.value"></div>'
-    +'<div class="f" style="max-width:70px"><label>Ед.</label><input type="text" value="'+d.un+'" onchange="rtu['+p+'].devs['+i+'].un=this.value"></div>'
-    +'<div class="f" style="max-width:80px"><label>CH idx</label><input type="number" value="'+d.ci+'" onchange="rtu['+p+'].devs['+i+'].ci=+this.value"></div>'
-    +'</div></div>';
-}
-
-function addRD(p){if(rtu[p].devs.length<8){rtu[p].devs.push({en:false,sa:1,nm:'',fc:3,rs:0,rc:1,dt:'INT16',sc:1,of:0,un:'',ci:0});rndRD(p)}}
-function delRD(p,i){rtu[p].devs.splice(i,1);rndRD(p)}
-function rndRD(p){var h='';rtu[p].devs.forEach(function(_,i){h+=rtuDH(p,i)});document.getElementById('rd'+p).innerHTML=h}
-
-var tcpd=[];
-function tcpDH(i){
-  var d=tcpd[i];
-  return '<div class="cd"><div class="ch"><span style="font-size:12px;font-weight:600">TCP '+(i+1)+'</span>'
-    +'<button class="btn s" style="padding:2px 8px;font-size:11px" onclick="delTD('+i+')">✕</button></div>'
-    +'<div class="r"><div class="tg"><input type="checkbox"'+(d.en?' checked':'')+' onchange="tcpd['+i+'].en=this.checked"><span>Вкл</span></div>'
-    +'<div class="f"><label>IP</label><input type="text" value="'+d.ip+'" onchange="tcpd['+i+'].ip=this.value"></div>'
-    +'<div class="f" style="max-width:80px"><label>Порт</label><input type="number" value="'+d.port+'" onchange="tcpd['+i+'].port=+this.value"></div>'
-    +'<div class="f" style="max-width:80px"><label>Unit ID</label><input type="number" value="'+d.uid+'" onchange="tcpd['+i+'].uid=+this.value"></div>'
-    +'<div class="f"><label>Имя</label><input type="text" value="'+d.nm+'" onchange="tcpd['+i+'].nm=this.value"></div>'
-    +'<div class="f" style="max-width:70px"><label>Ед.</label><input type="text" value="'+d.un+'" onchange="tcpd['+i+'].un=this.value"></div>'
-    +'</div><div class="r">'
-    +'<div class="f" style="max-width:80px"><label>Func</label><select onchange="tcpd['+i+'].fc=+this.value"><option'+(d.fc==3?' selected':'')+' value="3">03</option><option'+(d.fc==4?' selected':'')+' value="4">04</option></select></div>'
-    +'<div class="f" style="max-width:100px"><label>Reg start</label><input type="text" value="0x'+d.rs.toString(16).toUpperCase()+'" onchange="tcpd['+i+'].rs=parseInt(this.value)"></div>'
-    +'<div class="f" style="max-width:80px"><label>Count</label><input type="number" value="'+d.rc+'" onchange="tcpd['+i+'].rc=+this.value"></div>'
-    +'<div class="f" style="max-width:130px"><label>Data type</label><select onchange="tcpd['+i+'].dt=this.value">'
-    +DT.map(function(t){return'<option'+(d.dt===t?' selected':'')+'>'+t+'</option>'}).join('')
-    +'</select></div>'
-    +'<div class="f" style="max-width:70px"><label>Масштаб</label><input type="number" step="any" value="'+d.sc+'" onchange="tcpd['+i+'].sc=+this.value"></div>'
-    +'<div class="f" style="max-width:70px"><label>Смещение</label><input type="number" step="any" value="'+d.of+'" onchange="tcpd['+i+'].of=+this.value"></div>'
-    +'<div class="f" style="max-width:70px"><label>CH idx</label><input type="number" value="'+d.ci+'" onchange="tcpd['+i+'].ci=+this.value"></div>'
-    +'<div class="f" style="max-width:110px"><label>Poll timeout(мс)</label><input type="number" value="'+d.pms+'" onchange="tcpd['+i+'].pms=+this.value"></div>'
-    +'<div class="f" style="max-width:120px"><label>Conn timeout(мс)</label><input type="number" value="'+d.cms+'" onchange="tcpd['+i+'].cms=+this.value"></div>'
-    +'<div class="f" style="max-width:100px"><label>W5500 сокет</label><input type="number" value="'+d.sk+'" onchange="tcpd['+i+'].sk=+this.value"></div>'
-    +'</div></div>';
-}
-
-function addTD(){if(tcpd.length<8){tcpd.push({en:false,ip:'',port:502,uid:1,nm:'',un:'',fc:3,rs:0,rc:1,dt:'INT16',sc:1,of:0,ci:0,pms:1000,cms:3000,sk:1});rndTD()}}
-function delTD(i){tcpd.splice(i,1);rndTD()}
-function rndTD(){var h='';tcpd.forEach(function(_,i){h+=tcpDH(i)});document.getElementById('tcp_devs').innerHTML=h}
-
-var regs=[];
-function regR(i){
-  var r=regs[i];
-  return '<tr><td><input type="number" value="'+r.ad+'" style="width:55px" onchange="regs['+i+'].ad=+this.value"></td>'
-    +'<td><select style="font-size:11px" onchange="regs['+i+'].src=this.value">'+SRC.map(function(s){return'<option'+(r.src===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></td>'
-    +'<td><select style="font-size:11px" onchange="regs['+i+'].dt=this.value">'+DT.map(function(t){return'<option'+(r.dt===t?' selected':'')+'>'+t+'</option>'}).join('')+'</select></td>'
-    +'<td><input type="number" step="any" value="'+r.sc+'" style="width:50px" onchange="regs['+i+'].sc=+this.value"></td>'
-    +'<td><input type="text" value="'+r.un+'" style="width:35px" onchange="regs['+i+'].un=this.value"></td>'
-    +'<td><input type="text" value="'+r.nm+'" style="width:70px" onchange="regs['+i+'].nm=this.value"></td>'
-    +'<td><button style="background:none;border:none;color:#f87171;cursor:pointer" onclick="delReg('+i+')">✕</button></td></tr>';
-}
-function addReg(){regs.push({ad:0,src:'Датчик 0',dt:'INT16',sc:1,un:'',nm:''});rndRegs()}
-function delReg(i){regs.splice(i,1);rndRegs()}
-function rndRegs(){var h='';regs.forEach(function(_,i){h+=regR(i)});document.getElementById('regtbl').innerHTML=h}
-
-function initSns(n){
-  var a='',b='';
-  for(var i=0;i<n;i++){
-    a+='<div class="f" style="margin-bottom:4px"><label>Датчик '+i+' мин</label><input type="number" step="any" onchange="c(\'sensor_min'+i+'\',+this.value)"></div>';
-    b+='<div class="f" style="margin-bottom:4px"><label>Датчик '+i+' макс</label><input type="number" step="any" onchange="c(\'sensor_max'+i+'\',+this.value)"></div>';
-  }
-  document.getElementById('sns_min').innerHTML=a;
-  document.getElementById('sns_max').innerHTML=b;
-}
-
-function initTZ(){
-  var h='';for(var i=-12;i<=14;i++)h+='<option value="'+i+'"'+(i===3?' selected':'')+'>'+(i>=0?'+':'')+i+'</option>';
-  document.getElementById('tz_off').innerHTML=h;
-}
-
-function showMsg(ok,t){var m=document.getElementById('msg');m.className='msg '+(ok===true?'ok':ok===false?'er':'warn');m.textContent=t;m.style.display='inline';setTimeout(function(){m.style.display='none'},6000)}
-
-function reloadCfg(){
-  fetch('/api/config').then(function(r){return r.json()}).then(function(d){
-    cfg=d;
-    var bk=['ch_eth','ch_gsm','ch_wifi','ch_iridium','chain_mode','deep_sleep_enabled',
-            'schedule_enabled','mtcpm_en','mtcps_en','ntp_enabled','web_auth_enabled',
-            'web_exclusive_mode','alerts_enabled','alert_on_channel_fail',
-            'alert_on_sensor_fail','mqtt_tls','eth_dhcp'];
-    bk.forEach(function(k){var e=document.getElementById(k);if(e)e.checked=!!d[k]});
-    var tx=['tb_host','tb_token','tb_port','mqtt_host','mqtt_port','mqtt_user','mqtt_topic',
-            'webhook_url','poll_interval_s','send_interval_s','backup_retry_s','avg_count',
-            'deep_sleep_s','schedule_start','schedule_stop','sl_port','sl_uid','sl_sock',
-            'sl_ctms','eth_ip','eth_sn','eth_gw','eth_dns','gsm_apn','gsm_user','wifi_ssid',
-            'ntp_server','web_user','web_port','web_idle_timeout_s','batt_low',
-            'alert_webhook_url','channel_timeout_s','channel_retry_s','channel_max_retries'];
-    tx.forEach(function(k){var e=document.getElementById(k);if(e&&d[k]!==undefined)e.value=d[k]});
-    if(d.proto)sp(d.proto);
-    if(d.chain_order){cord=d.chain_order;coen=d.co_en||coen;rndOrd()}
-    if(d.tcp_devs){tcpd=d.tcp_devs;rndTD()}
-    if(d.regs){regs=d.regs;rndRegs()}
-    if(d.rtu){d.rtu.forEach(function(r,p){if(rtu[p]){Object.assign(rtu[p],r);document.getElementById('tp'+p).innerHTML=rtuH(p);}})}
-    sh('ds_f',!!d.deep_sleep_enabled);
-    sh('eth_st',!d.eth_dhcp);
-  }).catch(function(){});
-}
-
-function save(){
-  // Читаем все поля формы → обновляем cfg перед отправкой
-  var bk=['ch_eth','ch_gsm','ch_wifi','ch_iridium','chain_mode','deep_sleep_enabled',
-          'schedule_enabled','mtcpm_en','mtcps_en','ntp_enabled','web_auth_enabled',
-          'web_exclusive_mode','alerts_enabled','alert_on_channel_fail',
-          'alert_on_sensor_fail','mqtt_tls','eth_dhcp'];
-  bk.forEach(function(k){var e=document.getElementById(k);if(e)cfg[k]=e.checked});
-  var tx=['tb_host','tb_token','tb_port','mqtt_host','mqtt_port','mqtt_user','mqtt_topic',
-          'webhook_url','poll_interval_s','send_interval_s','backup_retry_s','avg_count',
-          'deep_sleep_s','schedule_start','schedule_stop','sl_port','sl_uid','sl_sock',
-          'sl_ctms','eth_ip','eth_sn','eth_gw','eth_dns','gsm_apn','gsm_user','wifi_ssid',
-          'ntp_server','web_user','web_port','web_idle_timeout_s','batt_low',
-          'alert_webhook_url','channel_timeout_s','channel_retry_s','channel_max_retries'];
-  tx.forEach(function(k){var e=document.getElementById(k);if(e)cfg[k]=e.value});
-  var pr=document.querySelector('input[name="proto"]:checked');if(pr)cfg.proto=pr.value;
-  var out=Object.assign({},cfg,{rtu:rtu,tcp_devs:tcpd,regs:regs,chain_order:cord,co_en:coen});
-  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(out)})
-    .then(function(r){return r.json().then(function(d){
-      if(r.ok && d.saved_to_sd) showMsg(true,'✓ Сохранено на SD');
-      else if(r.ok) showMsg(null,'⚠ Применено в RAM (SD недоступна)');
-      else showMsg(false,'✗ Ошибка: '+(d.error||'неизвестно'));
-      if(r.ok) reloadCfg();
-    });}).catch(function(){showMsg(false,'✗ Нет связи с устройством');});
-}
-
-function rst(){
-  if(confirm('Сбросить конфигурацию?'))
-    fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:'{"__reset":true}'})
-      .then(function(r){showMsg(r.ok,'✓ Сброс');if(r.ok)location.reload()}).catch(function(){showMsg(false,'✗ Ошибка')});
-}
-
-function exp(){
-  var b=new Blob([JSON.stringify(Object.assign({},cfg,{rtu:rtu,tcp_devs:tcpd,regs:regs}),null,2)],{type:'application/json'});
-  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='config.jsn';a.click();
-}
-
-window.addEventListener('DOMContentLoaded',function(){
-  initTZ();rndOrd();
-  for(var p=0;p<3;p++){rtu.push({en:false,baud:9600,sb:1,par:'None',rms:500,fms:3,devs:[]});document.getElementById('tp'+p).innerHTML=rtuH(p)}
-  initSns(4);
-  fetch('/api/sensors').then(function(r){return r.json()}).then(function(d){initSns(d.count||4)}).catch(function(){});
-  fetch('/api/config').then(function(r){return r.json()}).then(function(d){
-    cfg=d;
-    var bk=['ch_eth','ch_gsm','ch_wifi','ch_iridium','chain_mode','deep_sleep_enabled','schedule_enabled','mtcpm_en','mtcps_en','ntp_enabled','web_auth_enabled','web_exclusive_mode','alerts_enabled','alert_on_channel_fail','alert_on_sensor_fail','mqtt_tls','eth_dhcp'];
-    bk.forEach(function(k){var e=document.getElementById(k);if(e)e.checked=!!d[k]});
-    var tx=['tb_host','tb_token','tb_port','mqtt_host','mqtt_port','mqtt_user','mqtt_topic','webhook_url','poll_interval_s','send_interval_s','backup_retry_s','avg_count','deep_sleep_s','schedule_start','schedule_stop','sl_port','sl_uid','sl_sock','sl_ctms','eth_ip','eth_sn','eth_gw','eth_dns','gsm_apn','gsm_user','wifi_ssid','ntp_server','web_user','web_port','web_idle_timeout_s','batt_low','alert_webhook_url','channel_timeout_s','channel_retry_s','channel_max_retries'];
-    tx.forEach(function(k){var e=document.getElementById(k);if(e&&d[k]!==undefined)e.value=d[k]});
-    if(d.proto)sp(d.proto);
-    if(d.chain_order){cord=d.chain_order;coen=d.co_en||coen;rndOrd()}
-    if(d.tcp_devs){tcpd=d.tcp_devs;rndTD()}
-    if(d.regs){regs=d.regs;rndRegs()}
-    if(d.rtu){d.rtu.forEach(function(r,p){if(rtu[p]){Object.assign(rtu[p],r);document.getElementById('tp'+p).innerHTML=rtuH(p);}})}
-    sh('ds_f',!!d.deep_sleep_enabled);
-    sh('eth_st',!d.eth_dhcp);
-  }).catch(function(){});
-});
-</script>
-  <!-- ── Кнопки SD / файловый менеджер ──────────────────────────── -->
-  <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
-    <button type="button" onclick="dlCfg()"
-      style="padding:.45rem 1.1rem;background:#2a7a4a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">
-      ⬇ Скачать конфиг</button>
-    <button type="button" onclick="toggleFm()"
-      style="padding:.45rem 1.1rem;background:#4a6a99;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">
-      📂 Файлы SD</button>
-  </div>
-
-  <div id="fm" style="display:none;margin-top:1rem;border:1px solid #bbb;border-radius:8px;padding:1rem;background:#f8f9fa">
-    <div style="font-weight:600;margin-bottom:.5rem">
-      📂 SD: <span id="fm_path" style="font-family:monospace">/</span>
+  <!-- Network -->
+  <div class="card">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Сеть</h2><span class="acc-arrow open">▶</span>
     </div>
-    <div id="fm_list" style="font-family:monospace;font-size:.88rem;line-height:1.8"></div>
+    <div class="acc-body open" id="sec-network">
+      <div class="form-row">
+        <div class="form-field"><label>SSID</label><input type="text" id="c-ssid"></div>
+        <div class="form-field"><label>Пароль</label><input type="password" id="c-pass" placeholder="(без изменений)"></div>
+      </div>
+      <div class="form-row section-gap">
+        <div class="form-field"><label>IP (0.0.0.0 = DHCP)</label><input type="text" id="c-ip"></div>
+        <div class="form-field"><label>Маска</label><input type="text" id="c-mask"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Шлюз</label><input type="text" id="c-gw"></div>
+        <div class="form-field"><label>DNS</label><input type="text" id="c-dns"></div>
+      </div>
+    </div>
   </div>
 
-  <script>
-  function dlCfg(){
-    var a=document.createElement('a');
-    a.href='/api/download?path=/runtime_config.json';
-    a.download='runtime_config.json';a.click();
-  }
-  var fmOpen=false;
-  function toggleFm(){
-    fmOpen=!fmOpen;
-    document.getElementById('fm').style.display=fmOpen?'block':'none';
-    if(fmOpen) loadDir('/');
-  }
-  function loadDir(p){
-    document.getElementById('fm_path').textContent=p;
-    fetch('/api/files?path='+encodeURIComponent(p))
-      .then(function(r){return r.json();})
-      .then(function(list){
-        var el=document.getElementById('fm_list');
-        var h='';
-        var parent=p.replace(/\/+$/,'').replace(/\/[^\/]*$/,'')||'/';
-        if(p!='/') h+='<div>⬆ <a href="#" onclick="loadDir(''+parent+'');return false">..</a></div>';
-        list.sort(function(a,b){return (b.dir-a.dir)||(a.name>b.name?1:-1);});
-        list.forEach(function(f){
-          var fp=(p.endsWith('/')?p:p+'/')+f.name;
-          if(f.dir){
-            h+='<div>📁 <a href="#" onclick="loadDir(''+fp+'/');return false">'+f.name+'/</a></div>';
-          } else {
-            h+='<div>📄 <a href="/api/download?path='+encodeURIComponent(fp)+'" download>'+
-              f.name+'</a> <span style="color:#888;font-size:.8em">('+f.size+' B)</span></div>';
-          }
-        });
-        el.innerHTML=h||'<i style="color:#888">Пусто</i>';
-      })
-      .catch(function(){document.getElementById('fm_list').innerHTML='<span style="color:red">Ошибка чтения SD</span>';});
-  }
-  </script>
+  <!-- Modem -->
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Модем / UART</h2><span class="acc-arrow">▶</span>
+    </div>
+    <div class="acc-body" id="sec-modem">
+      <div class="form-row">
+        <div class="form-field"><label>APN</label><input type="text" id="c-apn"></div>
+        <div class="form-field"><label>Baudrate</label><input type="number" id="c-baud"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Логин</label><input type="text" id="c-modem-user"></div>
+        <div class="form-field"><label>Пароль</label><input type="password" id="c-modem-pass" placeholder="(без изменений)"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Таймаут подключения (с)</label><input type="number" id="c-modem-timeout"></div>
+        <div class="form-field"><label>Retry интервал (с)</label><input type="number" id="c-modem-retry"></div>
+      </div>
+    </div>
+  </div>
 
-</body></html>
+  <!-- Iridium -->
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Iridium SBD</h2><span class="acc-arrow">▶</span>
+    </div>
+    <div class="acc-body" id="sec-iridium">
+      <div class="form-row">
+        <div class="form-field"><label>Интервал (с)</label><input type="number" id="c-sbd-interval"></div>
+        <div class="form-field"><label>Макс. попыток</label><input type="number" id="c-sbd-retries"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Таймаут сессии (с)</label><input type="number" id="c-sbd-timeout"></div>
+        <div class="form-field"><label>Формат сообщения</label>
+          <select id="c-sbd-fmt"><option value="raw">raw</option><option value="json">json</option><option value="csv">csv</option></select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sensors -->
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Датчики</h2><span class="acc-arrow">▶</span>
+    </div>
+    <div class="acc-body" id="sec-sensors">
+      <div class="form-row three">
+        <div class="form-field"><label>Период опроса (мс)</label><input type="number" id="c-sensor-period"></div>
+        <div class="form-field"><label>Порог звука (дБ)</label><input type="number" id="c-sound-thr"></div>
+        <div class="form-field"><label>Усреднение (кол-во)</label><input type="number" id="c-avg-cnt"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SD / Logging -->
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>SD / Логирование</h2><span class="acc-arrow">▶</span>
+    </div>
+    <div class="acc-body" id="sec-sd">
+      <div class="form-row">
+        <div class="form-field"><label>Папка логов</label><input type="text" id="c-log-dir"></div>
+        <div class="form-field"><label>Макс. размер файла (КБ)</label><input type="number" id="c-log-maxsize"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Уровень лога</label>
+          <select id="c-log-level"><option value="0">DEBUG</option><option value="1">INFO</option><option value="2">WARN</option><option value="3">ERROR</option></select>
+        </div>
+        <div class="form-field"><label>Период сохранения конфига (с)</label><input type="number" id="c-cfg-save-period"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System -->
+  <div class="card section-gap">
+    <div class="acc-hdr" onclick="toggle(this)">
+      <h2>Система</h2><span class="acc-arrow">▶</span>
+    </div>
+    <div class="acc-body" id="sec-sys">
+      <div class="form-row">
+        <div class="form-field"><label>Watchdog таймаут (с)</label><input type="number" id="c-wdg"></div>
+        <div class="form-field"><label>Имя устройства</label><input type="text" id="c-devname"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Web-порт</label><input type="number" id="c-webport"></div>
+        <div class="form-field"><label>Часовой пояс (UTC+N)</label><input type="number" id="c-tz"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <button class="btn btn-primary" onclick="save()">💾 Сохранить</button>
+    <button class="btn btn-ghost" onclick="reload()">↺ Перечитать</button>
+    <span class="save-status" id="save-status"></span>
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:var(--faint);font-family:var(--mono)" id="save-path"></span>
+  </div>
+</main>
+<div id="toast"></div>
+<script>
+
+function toast(msg,type,ms){
+  type=type||'ok'; ms=ms||6000;
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(t._tid);
+  t._tid=setTimeout(function(){t.className=type;},ms);
+}
+
+function toggle(hdr){
+  var arr=hdr.querySelector('.acc-arrow');
+  var body=hdr.nextElementSibling;
+  var open=body.classList.contains('open');
+  body.classList.toggle('open',!open);
+  arr.classList.toggle('open',!open);
+}
+var F={
+  ssid:'c-ssid',pass:'c-pass',ip:'c-ip',mask:'c-mask',gw:'c-gw',dns:'c-dns',
+  apn:'c-apn',baud:'c-baud',modem_user:'c-modem-user',modem_pass:'c-modem-pass',
+  modem_timeout:'c-modem-timeout',modem_retry:'c-modem-retry',
+  sbd_interval:'c-sbd-interval',sbd_retries:'c-sbd-retries',sbd_timeout:'c-sbd-timeout',sbd_fmt:'c-sbd-fmt',
+  sensor_period:'c-sensor-period',sound_thr:'c-sound-thr',avg_cnt:'c-avg-cnt',
+  log_dir:'c-log-dir',log_maxsize:'c-log-maxsize',log_level:'c-log-level',cfg_save_period:'c-cfg-save-period',
+  wdg:'c-wdg',devname:'c-devname',webport:'c-webport',tz:'c-tz'
+};
+function fillForm(d){
+  for(var k in F){
+    var el=document.getElementById(F[k]);
+    if(!el) continue;
+    if(k==='pass'||k==='modem_pass') continue;
+    if(d[k]!==undefined && d[k]!==null) el.value=d[k];
+  }
+  if(d.ip_address) document.getElementById('c-ip').value=d.ip_address;
+  if(d.config_path) document.getElementById('save-path').textContent=d.config_path;
+  if(d.ip) document.getElementById('nav-ip').textContent=d.ip;
+}
+function reload(){
+  fetch('/api/config').then(r=>r.json()).then(function(d){
+    fillForm(d);
+    showStatus('ok','↺ Загружено с устройства');
+  }).catch(function(){toast('Нет связи','err');});
+}
+function getForm(){
+  var out={};
+  for(var k in F){
+    var el=document.getElementById(F[k]);
+    if(!el) continue;
+    if((k==='pass'||k==='modem_pass')&&!el.value) continue;
+    out[k]=el.value;
+  }
+  return out;
+}
+function showStatus(type,msg){
+  var el=document.getElementById('save-status');
+  el.className='save-status '+type; el.textContent=msg;
+  clearTimeout(el._tid);
+  el._tid=setTimeout(function(){el.className='save-status';},6000);
+}
+function save(){
+  var payload=getForm();
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  .then(r=>r.json()).then(function(d){
+    if(d.status!=='ok'){ showStatus('err','✗ '+( d.message||'Ошибка'))); return; }
+    if(d.saved_to_sd)  showStatus('ok','✓ Сохранено на SD');
+    else               showStatus('warn','⚠ Применено в RAM (SD недоступна)');
+    reload();
+  }).catch(function(){showStatus('err','✗ Нет связи с устройством');});
+}
+reload();
+</script>
+</body>
+</html>
