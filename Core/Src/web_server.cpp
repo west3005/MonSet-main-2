@@ -3823,6 +3823,10 @@ void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
         else if(std::strcmp(cleanPath,"/api/logs/export")==0)handleApiLogsExport(sn);
         else if(std::strncmp(cleanPath,"/api/logs",9)==0) handleApiLogs(sn,queryStr);
         else if(std::strcmp(cleanPath,"/api/sd-test")==0)  handleApiSdTest(sn);
+        else if(std::strcmp(cleanPath,"/files")==0||
+                std::strcmp(cleanPath,"/files.html")==0)         handleFiles(sn);
+        else if(std::strncmp(cleanPath,"/api/files",10)==0)      handleApiFiles(sn,queryStr,request);
+        else if(std::strncmp(cleanPath,"/api/download",13)==0)   handleApiDownload(sn,queryStr,request);
         else{
             const char* ext=std::strrchr(cleanPath,'.');
             const char* ct="text/plain";
@@ -3843,9 +3847,191 @@ void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
         else if(std::strcmp(cleanPath,"/api/test_send")==0)  handleApiTestSend(sn);
         else if(std::strcmp(cleanPath,"/api/logs/clear")==0) handleApiLogsClear(sn);
     else if(std::strcmp(cleanPath,"/api/backup/download")==0) handleApiBackupDownload(sn);
+        else if(std::strcmp(cleanPath,"/api/upload")==0)  handleApiUpload(sn,body,request);
+        else if(std::strcmp(cleanPath,"/api/delete")==0)  handleApiDelete(sn,queryStr);
         else send404(sn);
     }
     else send404(sn);
+}
+
+
+// ── File Manager API ─────────────────────────────────────────────────────────
+
+// Вспомогательная: извлечь значение параметра из query-string
+// Пример: queryStr="path=0%3A%2Flogs&x=1", key="path" → "0:/logs"
+static void urlDecode(const char* src, char* dst, size_t dstSz){
+    size_t o=0;
+    while(*src && o<dstSz-1){
+        if(*src=='%' && src[1] && src[2]){
+            char hex[3]={src[1],src[2],0};
+            dst[o++]=(char)std::strtol(hex,nullptr,16);
+            src+=3;
+        } else if(*src=='+'){
+            dst[o++]=' '; src++;
+        } else {
+            dst[o++]=*src++;
+        }
+    }
+    dst[o]='\0';
+}
+
+static bool getQueryParam(const char* qs, const char* key, char* out, size_t outSz){
+    size_t klen=std::strlen(key);
+    const char* p=qs;
+    while(p && *p){
+        if(std::strncmp(p,key,klen)==0 && p[klen]=='='){
+            const char* v=p+klen+1;
+            const char* e=std::strchr(v,'&');
+            size_t vlen=e?(size_t)(e-v):std::strlen(v);
+            if(vlen>=outSz) vlen=outSz-1;
+            std::strncpy(out,v,vlen); out[vlen]='\0';
+            urlDecode(out,out,outSz);
+            return true;
+        }
+        p=std::strchr(p,'&');
+        if(p) p++;
+    }
+    return false;
+}
+
+// GET /files — отдаём files.html с SD или встроенный минимальный UI
+void WebServer::handleFiles(uint8_t sn){
+    if(serveFile(sn,"/files.html","text/html")) return;
+    // Встроенный минимальный fallback
+    const char* html=
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        "<title>Files — MonSet</title></head><body>"
+        "<h2>File Manager</h2>"
+        "<p>files.html not found on SD. Place files.html at 0:/files.html</p>"
+        "<a href='/'>← Back</a></body></html>";
+    sendResponse(sn,200,"text/html",html,(uint16_t)std::strlen(html));
+}
+
+// GET /api/files?path=0:/  — JSON список файлов/папок
+void WebServer::handleApiFiles(uint8_t sn, const char* queryStr, const char* /*request*/){
+    char dirPath[64]="0:/";
+    getQueryParam(queryStr,"path",dirPath,sizeof(dirPath));
+
+    char resp[4096]; int n=0;
+    n+=std::snprintf(resp+n,sizeof(resp)-n,"{\"path\":\"%s\",\"items\":[",dirPath);
+
+    DIR dir; FILINFO fno;
+    FRESULT fr=f_opendir(&dir,dirPath);
+    if(fr!=FR_OK){
+        std::snprintf(resp,sizeof(resp),"{\"error\":\"opendir failed fr=%d\"}",(int)fr);
+        sendResponse(sn,200,"application/json",resp,(uint16_t)std::strlen(resp));
+        return;
+    }
+    bool first=true;
+    while(f_readdir(&dir,&fno)==FR_OK && fno.fname[0]){
+        if(!first) n+=std::snprintf(resp+n,sizeof(resp)-n,",");
+        first=false;
+        bool isDir=(fno.fattrib & AM_DIR)!=0;
+        n+=std::snprintf(resp+n,sizeof(resp)-n,
+            "{\"name\":\"%s\",\"size\":%lu,\"dir\":%s}",
+            fno.fname,(unsigned long)fno.fsize, isDir?"true":"false");
+        if(n>(int)sizeof(resp)-128) break; // защита от переполнения
+    }
+    f_closedir(&dir);
+    n+=std::snprintf(resp+n,sizeof(resp)-n,"]}");
+    sendResponse(sn,200,"application/json",resp,(uint16_t)n);
+}
+
+// GET /api/download?path=0:/file.txt — отдаём файл с SD побайтово
+void WebServer::handleApiDownload(uint8_t sn, const char* queryStr, const char* /*request*/){
+    char filePath[128]="";
+    if(!getQueryParam(queryStr,"path",filePath,sizeof(filePath))||!filePath[0]){
+        const char* e="{\"error\":\"no path\"}";
+        sendResponse(sn,400,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+
+    FIL f; FRESULT fr=f_open(&f,filePath,FA_READ);
+    if(fr!=FR_OK){
+        char e[64]; std::snprintf(e,sizeof(e),"{\"error\":\"open failed fr=%d\"}",(int)fr);
+        sendResponse(sn,404,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+
+    // Имя файла для Content-Disposition
+    const char* slash=std::strrchr(filePath,'/');
+    const char* fname=slash?(slash+1):filePath;
+
+    // Заголовок
+    char hdr[256];
+    int hl=std::snprintf(hdr,sizeof(hdr),
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: application/octet-stream\r\n"
+        "Content-Disposition: attachment; filename=\"%s\"\r\n"
+        "Connection: close\r\n\r\n", fname);
+    send(sn,(uint8_t*)hdr,(uint16_t)hl);
+
+    // Стриминг чанками
+    static uint8_t chunk[1024];
+    UINT br=0;
+    while(f_read(&f,chunk,sizeof(chunk),&br)==FR_OK && br>0){
+        uint32_t sent=0;
+        while(sent<br){
+            int32_t r=send(sn,chunk+sent,(uint16_t)(br-sent));
+            if(r<=0) break;
+            sent+=(uint32_t)r;
+        }
+    }
+    f_close(&f);
+}
+
+// POST /api/upload?path=0:/filename.txt  body=raw bytes
+void WebServer::handleApiUpload(uint8_t sn, const char* body, const char* request){
+    char filePath[128]="";
+    // Извлекаем path из строки запроса (не из тела)
+    char method[8]{}, urlBuf[128]{};
+    std::sscanf(request,"%7s %127s",method,urlBuf);
+    const char* qs=std::strchr(urlBuf,'?');
+    if(qs) qs++;
+    if(!qs||!getQueryParam(qs,"path",filePath,sizeof(filePath))||!filePath[0]){
+        const char* e="{\"error\":\"no path in query\"}";
+        sendResponse(sn,400,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+
+    // Длина тела из Content-Length
+    const char* clHdr=std::strstr(request,"Content-Length: ");
+    int bodyLen=0;
+    if(clHdr) bodyLen=std::atoi(clHdr+16);
+    if(!body||bodyLen<=0){
+        const char* e="{\"error\":\"empty body\"}";
+        sendResponse(sn,400,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+
+    FIL f; FRESULT fr=f_open(&f,filePath,FA_CREATE_ALWAYS|FA_WRITE);
+    if(fr!=FR_OK){
+        char e[64]; std::snprintf(e,sizeof(e),"{\"error\":\"create failed fr=%d\"}",(int)fr);
+        sendResponse(sn,500,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+    UINT bw=0;
+    fr=f_write(&f,(const void*)body,(UINT)bodyLen,&bw);
+    f_close(&f);
+    if(fr!=FR_OK||bw==0){
+        char e[64]; std::snprintf(e,sizeof(e),"{\"error\":\"write failed fr=%d bw=%u\"}",(int)fr,(unsigned)bw);
+        sendResponse(sn,500,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+    char ok[64]; std::snprintf(ok,sizeof(ok),"{\"status\":\"ok\",\"bytes\":%u}",(unsigned)bw);
+    sendResponse(sn,200,"application/json",ok,(uint16_t)std::strlen(ok));
+    DBG.info("WebServer: upload %s (%u bytes)",filePath,(unsigned)bw);
+}
+
+// POST /api/delete?path=0:/file.txt
+void WebServer::handleApiDelete(uint8_t sn, const char* queryStr){
+    char filePath[128]="";
+    if(!getQueryParam(queryStr,"path",filePath,sizeof(filePath))||!filePath[0]){
+        const char* e="{\"error\":\"no path\"}";
+        sendResponse(sn,400,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+    FRESULT fr=f_unlink(filePath);
+    if(fr!=FR_OK){
+        char e[64]; std::snprintf(e,sizeof(e),"{\"error\":\"unlink failed fr=%d\"}",(int)fr);
+        sendResponse(sn,500,"application/json",e,(uint16_t)std::strlen(e)); return;
+    }
+    const char* ok="{\"status\":\"ok\"}";
+    sendResponse(sn,200,"application/json",ok,(uint16_t)std::strlen(ok));
+    DBG.info("WebServer: deleted %s",filePath);
 }
 
 // ── tick ──────────────────────────────────────────────────────────────────────
