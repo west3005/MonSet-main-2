@@ -3366,6 +3366,14 @@ void WebServer::handleApiSensors(uint8_t sn){
 // ── GET /api/config (JSON) ────────────────────────────────────────────────────
 // FIX: ProtocolMode::HTTPS → ProtocolMode::HTTPS_THINGSBOARD
 void WebServer::handleApiConfig(uint8_t sn){
+    // Перечитываем конфиг с SD перед отдачей — форма всегда показывает
+    // то что реально сохранено на диске, а не снимок в RAM.
+    if (m_sdOk) {
+        RuntimeConfig fresh;
+        if (fresh.loadFromSd(RUNTIME_CONFIG_FILENAME)) {
+            Cfg() = fresh;
+        }
+    }
     const RuntimeConfig& c = Cfg();
 
     char sip[16],ssn[16],sgw[16],sdns[16];
