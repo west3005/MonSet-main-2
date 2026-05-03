@@ -635,7 +635,22 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
             DBG.info("...wake");
             wokeFromStop = true;
         } else {
-            CfgUartBridge_DelayMs(Cfg().poll_interval_sec * 1000UL);
+            // Обычное ожидание между опросами.
+            // tick() вызывается каждые 5 мс — браузер получает мгновенный
+            // отклик даже если открыл страницу в середине 60-секундного цикла.
+            uint32_t dlStart = HAL_GetTick();
+            const uint32_t dlMs = Cfg().poll_interval_sec * 1000UL;
+            while ((HAL_GetTick() - dlStart) < dlMs) {
+                CfgUartBridge_Tick();
+                if (eth.ready()) eth.tick();
+                if (m_webServer.isRunning()) m_webServer.tick();
+                if (m_webActive) {
+                    // Веб стал активен — выходим из ожидания и идём в tight loop
+                    break;
+                }
+                IWDG->KR = 0xAAAA;
+                HAL_Delay(5);
+            }
             wokeFromStop = false;
         }
 
