@@ -104,6 +104,8 @@ private:
     // POST
     void handlePostConfig(uint8_t sn, const char* body);
     void handleApiSdTest(uint8_t sn);   ///< GET /api/sd-test — пошаговая диагностика записи на SD
+    void handleApiFiles(uint8_t sn, const char* path, const char* request);   ///< GET /api/files — листинг SD
+    void handleApiDownload(uint8_t sn, const char* path, const char* request); ///< GET /api/download — скачать файл с SD
 
     static int base64Decode(const char* in, uint8_t* out, int outMax);
 };
