@@ -1,440 +1,213 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MonSet — Тест</title>
+<title>MonSet — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0e1117;--surface:#161b22;--border:#30363d;
-  --accent:#2dd4bf;--text:#c9d1d9;--muted:#8b949e;
-  --green:#3fb950;--yellow:#d29922;--red:#f85149;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:system-ui,'Segoe UI',Inter,sans-serif;font-size:14px;min-width:320px}
-a{color:var(--text);text-decoration:none}
-/* NAV */
-nav{display:flex;align-items:center;gap:0;background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:44px;position:sticky;top:0;z-index:10}
-.brand{font-weight:700;letter-spacing:.04em;margin-right:auto;font-size:15px;white-space:nowrap}
-.brand-dot{color:var(--red)}
-.nav-tabs{display:flex;gap:0}
-.nav-tab{padding:0 14px;height:44px;display:flex;align-items:center;font-size:13px;border-bottom:2px solid transparent;color:var(--muted);transition:color .15s}
-.nav-tab:hover{color:var(--text)}
-.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-/* STATUS BAR */
-.status-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:6px 16px;font-size:12px;font-family:'Courier New',Courier,monospace;display:flex;align-items:center;gap:8px}
-.dot-red{color:var(--red)}
-.dot-green{color:var(--green)}
-/* MAIN */
-main{padding:16px;max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-/* CARD */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
-.card-head{padding:10px 16px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:.1em;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:8px}
-.card-body{padding:14px 16px}
-/* SENSORS */
-.sensor-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
-.sensor-row:last-child{border-bottom:0}
-.sensor-name{flex:1;color:var(--muted);font-size:13px}
-.sensor-val{font-family:'Courier New',Courier,monospace;font-size:16px;font-weight:700;color:var(--text);min-width:90px;text-align:right}
-.sensor-unit{font-family:'Courier New',Courier,monospace;font-size:11px;color:var(--muted);min-width:32px}
-.badge{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:.05em}
-.badge-ok{background:#1a3a2a;color:var(--green)}
-.badge-err{background:#3a1a1a;color:var(--red)}
-/* BATTERY */
-.batt-row{display:flex;align-items:center;gap:10px;padding:8px 0}
-.batt-label{color:var(--muted);font-size:13px;min-width:70px}
-.batt-bar{flex:1;height:8px;background:#0e1117;border-radius:4px;border:1px solid var(--border);overflow:hidden}
-.batt-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .4s}
-.batt-pct{font-family:'Courier New',Courier,monospace;font-size:13px;min-width:36px;text-align:right}
-.batt-v{font-family:'Courier New',Courier,monospace;font-size:12px;color:var(--muted);min-width:48px}
-.ts-row{padding-top:8px;font-family:'Courier New',Courier,monospace;font-size:11px;color:var(--muted)}
-/* CHANNELS */
-.ch-table{width:100%;border-collapse:collapse}
-.ch-table td{padding:7px 8px;font-size:13px;border-bottom:1px solid var(--border)}
-.ch-table tr:last-child td{border-bottom:0}
-.ch-dot{font-size:14px;width:20px}
-.ch-name{font-weight:600}
-.ch-status{font-family:'Courier New',Courier,monospace;font-size:12px;font-weight:700;letter-spacing:.05em}
-.ch-prio{color:var(--muted);font-size:12px}
-.st-active{color:var(--green)}
-.st-standby{color:var(--yellow)}
-.st-disabled{color:#444}
-/* ACTIONS */
-.btn-test{width:100%;padding:14px;background:#1a3028;border:2px solid var(--accent);border-radius:5px;color:var(--accent);font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:background .15s}
-.btn-test:hover{background:#1f3d32}
-.btn-test:active{background:#0e1117}
-.btn-test:disabled{opacity:.5;cursor:not-allowed}
-.progress-steps{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
-.step{font-size:11px;padding:3px 8px;border-radius:3px;font-family:'Courier New',Courier,monospace;letter-spacing:.05em;background:#0e1117;color:#444;border:1px solid #222}
-.step.done{background:#1a3a2a;color:var(--green);border-color:#2a4a3a}
-.step.active{background:#1a2a3a;color:var(--accent);border-color:var(--accent)}
-.step.fail{background:#3a1a1a;color:var(--red);border-color:#5a2a2a}
-.result-row{margin-top:12px;font-family:'Courier New',Courier,monospace;font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
-.result-row span b{color:var(--text)}
-.web-status{margin-top:14px;padding:8px 12px;border-radius:4px;border:1px solid var(--border);font-size:13px;font-family:'Courier New',Courier,monospace}
-.ws-active{color:var(--red)}
-.ws-online{color:var(--green)}
-.err-msg{color:var(--red);font-size:12px;margin-top:8px;font-family:'Courier New',Courier,monospace}
-/* REFRESH indicator */
-.refresh-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;margin-left:auto;transition:background .2s}
-.refresh-dot.pulse{background:var(--accent)}
+
+  :root {
+    --bg:#0d0f12; --surface:#141720; --surface2:#1a1e2a;
+    --border:oklch(from #e0c97a 0.7 0.1 85 / 0.15);
+    --text:#e8e6e0; --muted:#8a8880; --faint:#4a4846;
+    --gold:#c8963c; --gold-h:#e0b060;
+    --green:#4a9460; --yellow:#b89030; --red:#9c4040;
+    --green-bg:oklch(from #4a9460 0.25 0.08 145 / 0.25);
+    --yellow-bg:oklch(from #b89030 0.3 0.1 85 / 0.25);
+    --red-bg:oklch(from #9c4040 0.25 0.1 25 / 0.25);
+    --radius:6px; --radius-lg:10px;
+    --mono:'Geist Mono','Courier New',monospace;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:14px;-webkit-font-smoothing:antialiased}
+  body{background:var(--bg);color:var(--text);font-family:'Inter','Helvetica Neue',sans-serif;min-height:100dvh;display:flex;flex-direction:column}
+  a{color:var(--gold);text-decoration:none} a:hover{color:var(--gold-h)}
+  button{cursor:pointer;border:none;font:inherit}
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:52px;position:sticky;top:0;z-index:100}
+  .nav-logo{display:flex;align-items:center;gap:10px;margin-right:32px;color:var(--gold);font-weight:700;font-size:15px;letter-spacing:.03em}
+  nav a{color:var(--muted);font-size:13px;font-weight:500;padding:0 14px;height:52px;display:flex;align-items:center;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  nav a:hover{color:var(--text)} nav a.active{color:var(--gold);border-bottom-color:var(--gold)}
+  .nav-spacer{flex:1}
+  .nav-status{font-size:11px;color:var(--faint);font-family:var(--mono)}
+  main{flex:1;padding:24px;max-width:960px;margin:0 auto;width:100%}
+  .page-title{font-size:20px;font-weight:600;color:var(--text);margin-bottom:20px;letter-spacing:-.01em}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+  .card+.card{margin-top:16px}
+  .card-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:500}
+  input[type=text],input[type=number],input[type=password],select,textarea{width:100%;padding:8px 11px;background:var(--bg);border:1px solid oklch(from var(--text) 0.5 0 0 / 0.15);border-radius:var(--radius);color:var(--text);font:inherit;font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-row.three{grid-template-columns:1fr 1fr 1fr}
+  .form-field{display:flex;flex-direction:column}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;transition:background .15s,color .15s,border-color .15s}
+  .btn-primary{background:var(--gold);color:#0d0f12} .btn-primary:hover{background:var(--gold-h)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)} .btn-ghost:hover{color:var(--text)}
+  .btn-danger{background:var(--red-bg);color:#d06060;border:1px solid oklch(from #9c4040 0.5 0.1 25 / 0.3)} .btn-danger:hover{background:oklch(from #9c4040 0.3 0.1 25 / 0.35)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500}
+  .badge-ok{background:var(--green-bg);color:#70c490} .badge-warn{background:var(--yellow-bg);color:#d0a840} .badge-err{background:var(--red-bg);color:#d07070}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);padding:10px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;transition:transform .25s cubic-bezier(.16,1,.3,1),opacity .25s;opacity:0;pointer-events:none;z-index:9999;white-space:nowrap}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  #toast.ok{background:var(--green-bg);color:#70c490;border:1px solid oklch(from #4a9460 0.4 0.08 145 / 0.4)}
+  #toast.warn{background:var(--yellow-bg);color:#d0a840;border:1px solid oklch(from #b89030 0.4 0.1 85 / 0.4)}
+  #toast.err{background:var(--red-bg);color:#d07070;border:1px solid oklch(from #9c4040 0.4 0.1 25 / 0.4)}
+  .acc-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:14px 20px;margin:-20px -20px 0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;user-select:none;transition:background .15s}
+  .acc-hdr:hover{background:oklch(from var(--text) 0.15 0 0 / 0.05)}
+  .acc-hdr h2{font-size:13px;font-weight:600;color:var(--text)}
+  .acc-arrow{color:var(--muted);transition:transform .2s;font-size:11px}
+  .acc-arrow.open{transform:rotate(90deg)}
+  .acc-body{margin-top:20px;display:none} .acc-body.open{display:block}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+  .kpi-value{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--gold);letter-spacing:-.02em;line-height:1}
+  .kpi-value.ok{color:#70c490} .kpi-value.warn{color:#d0a840} .kpi-value.err{color:#d07070}
+  .kpi-unit{font-size:12px;color:var(--muted);margin-top:4px}
+  #log-output{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;height:480px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .log-info{color:#7898b8} .log-warn{color:#c8a840} .log-error{color:#c06060} .log-data{color:#60a878} .log-debug{color:#888}
+  .file-table{width:100%;border-collapse:collapse}
+  .file-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .file-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+  .file-table tr:last-child td{border-bottom:none}
+  .file-table tr:hover td{background:oklch(from var(--text) 0.15 0 0 / 0.04)}
+  .file-icon{margin-right:6px;color:var(--gold)}
+  .file-size{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .drop-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px;text-align:center;color:var(--muted);transition:border-color .15s,background .15s;cursor:pointer}
+  .drop-zone.drag-over{border-color:var(--gold);background:var(--yellow-bg)}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+  .progress-fill{height:100%;background:var(--gold);width:0;transition:width .1s;border-radius:2px}
+  @media(max-width:600px){main{padding:16px}.form-row,.form-row.three{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.stat-row:last-child{border-bottom:none}
+.stat-key{color:var(--muted)}
+.stat-val{font-family:var(--mono);font-size:12px;color:var(--text)}
+#mini-log{height:90px;font-size:11px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:8px;font-family:var(--mono);line-height:1.5}
 </style>
 </head>
 <body>
-
 <nav>
-  <span class="brand">Mon<span style="color:var(--accent)">Set</span></span>
-  <div class="nav-tabs">
-    <a class="nav-tab" href="/config">Конфиг</a>
-    <a class="nav-tab active" href="/">Тест</a>
-    <a class="nav-tab" href="/logs">Лог</a>
-  </div>
+<div class="nav-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-label="MonSet"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="7 10 10 7 13 10 16 7"/></svg>MonSet</div>
+<a href="/" class="active">Dashboard</a><a href="/config">Config</a><a href="/logs">Logs</a><a href="/files">Files</a>
+<div class="nav-spacer"></div>
+<span class="nav-status" id="nav-ip">—</span>
 </nav>
-
-<div class="status-bar">
-  <span class="dot-red" id="hdr-dot">●</span>
-  <span id="hdr-text">WEB ACTIVE — передача приостановлена</span>
-</div>
-
 <main>
-
-  <!-- SECTION 1: ТЕКУЩЕЕ ИЗМЕРЕНИЕ -->
-  <div class="card">
-    <div class="card-head">
-      ТЕКУЩЕЕ ИЗМЕРЕНИЕ
-      <span class="refresh-dot" id="rdot1"></span>
+  <h1 class="page-title">Dashboard</h1>
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Uptime</div><div class="kpi-value" id="kpi-uptime">—</div><div class="kpi-unit">hh:mm:ss</div></div>
+    <div class="kpi"><div class="kpi-label">SD Card</div><div class="kpi-value" id="kpi-sd">—</div><div class="kpi-unit" id="kpi-sd-size">—</div></div>
+    <div class="kpi"><div class="kpi-label">Free Heap</div><div class="kpi-value" id="kpi-heap">—</div><div class="kpi-unit">bytes</div></div>
+    <div class="kpi"><div class="kpi-label">IP Address</div><div class="kpi-value" id="kpi-ip" style="font-size:16px">—</div><div class="kpi-unit" id="kpi-net-mode">—</div></div>
+    <div class="kpi"><div class="kpi-label">RSSI</div><div class="kpi-value" id="kpi-rssi">—</div><div class="kpi-unit">dBm</div></div>
+    <div class="kpi"><div class="kpi-label">Last Save</div><div class="kpi-value" id="kpi-save" style="font-size:14px">—</div><div class="kpi-unit" id="kpi-save-status">—</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Сеть</div>
+      <div class="stat-row"><span class="stat-key">SSID</span><span class="stat-val" id="s-ssid">—</span></div>
+      <div class="stat-row"><span class="stat-key">MAC</span><span class="stat-val" id="s-mac">—</span></div>
+      <div class="stat-row"><span class="stat-key">Gateway</span><span class="stat-val" id="s-gw">—</span></div>
+      <div class="stat-row"><span class="stat-key">DNS</span><span class="stat-val" id="s-dns">—</span></div>
+      <div class="stat-row"><span class="stat-key">Соединений</span><span class="stat-val" id="s-conn">—</span></div>
+      <div class="stat-row"><span class="stat-key">Rx / Tx</span><span class="stat-val" id="s-rxtx">—</span></div>
     </div>
-    <div class="card-body">
-      <div id="sensors-list">
-        <div class="sensor-row">
-          <span class="sensor-name">Датчик 0</span>
-          <span class="sensor-val" style="color:var(--muted)">—</span>
-          <span class="sensor-unit"></span>
-          <span class="badge">…</span>
-        </div>
-        <div class="sensor-row">
-          <span class="sensor-name">Датчик 1</span>
-          <span class="sensor-val" style="color:var(--muted)">—</span>
-          <span class="sensor-unit"></span>
-          <span class="badge">…</span>
-        </div>
-        <div class="sensor-row">
-          <span class="sensor-name">Датчик 2</span>
-          <span class="sensor-val" style="color:var(--muted)">—</span>
-          <span class="sensor-unit"></span>
-          <span class="badge">…</span>
-        </div>
-        <div class="sensor-row">
-          <span class="sensor-name">Датчик 3</span>
-          <span class="sensor-val" style="color:var(--muted)">—</span>
-          <span class="sensor-unit"></span>
-          <span class="badge">…</span>
-        </div>
-        <div class="batt-row">
-          <span class="batt-label">Батарея</span>
-          <div class="batt-bar"><div class="batt-fill" id="batt-fill" style="width:0%"></div></div>
-          <span class="batt-pct" id="batt-pct">—%</span>
-          <span class="batt-v" id="batt-v">—V</span>
-        </div>
-      </div>
-      <div class="ts-row" id="sens-ts">Обновлено: —</div>
-      <div class="err-msg" id="sens-err" style="display:none"></div>
+    <div class="card">
+      <div class="card-title">Система</div>
+      <div class="stat-row"><span class="stat-key">CPU</span><span class="stat-val" id="s-cpu">—</span></div>
+      <div class="stat-row"><span class="stat-key">Температура</span><span class="stat-val" id="s-temp">—</span></div>
+      <div class="stat-row"><span class="stat-key">SD путь конфига</span><span class="stat-val" id="s-cfgpath">—</span></div>
+      <div class="stat-row"><span class="stat-key">SD записей</span><span class="stat-val" id="s-sdwrites">—</span></div>
+      <div class="stat-row"><span class="stat-key">Прошивка</span><span class="stat-val" id="s-fw">—</span></div>
+      <div class="stat-row"><span class="stat-key">Дата сборки</span><span class="stat-val" id="s-built">—</span></div>
     </div>
   </div>
-
-  <!-- SECTION 2: СТАТУС КАНАЛОВ -->
-  <div class="card">
-    <div class="card-head">
-      СТАТУС КАНАЛОВ
-      <span class="refresh-dot" id="rdot2"></span>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Последние события</div>
+      <a href="/logs" style="font-size:12px;color:var(--gold)">все логи →</a>
     </div>
-    <div class="card-body" style="padding:0">
-      <table class="ch-table">
-        <tbody id="channels-tbody">
-          <tr>
-            <td class="ch-dot st-active">●</td>
-            <td class="ch-name">Ethernet W5500</td>
-            <td class="ch-status st-active">ACTIVE</td>
-            <td class="ch-prio">приоритет 1</td>
-          </tr>
-          <tr>
-            <td class="ch-dot st-standby">○</td>
-            <td class="ch-name">GSM Air780E</td>
-            <td class="ch-status st-standby">STANDBY</td>
-            <td class="ch-prio">приоритет 2</td>
-          </tr>
-          <tr>
-            <td class="ch-dot st-disabled">○</td>
-            <td class="ch-name">WiFi ESP8266</td>
-            <td class="ch-status st-disabled">DISABLED</td>
-            <td class="ch-prio">—</td>
-          </tr>
-          <tr>
-            <td class="ch-dot st-disabled">○</td>
-            <td class="ch-name">Iridium SBD</td>
-            <td class="ch-status st-disabled">DISABLED</td>
-            <td class="ch-prio">—</td>
-          </tr>
-          <tr>
-            <td class="ch-dot st-disabled">○</td>
-            <td class="ch-name">Modbus TCP Master</td>
-            <td class="ch-status st-disabled">0 устройств</td>
-            <td class="ch-prio">—</td>
-          </tr>
-          <tr>
-            <td class="ch-dot st-active">○</td>
-            <td class="ch-name">Modbus TCP Slave</td>
-            <td class="ch-status" style="color:var(--accent)">слушает :502</td>
-            <td class="ch-prio">—</td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="err-msg" id="ch-err" style="display:none;padding:8px 16px"></div>
-    </div>
+    <div id="mini-log"></div>
   </div>
-
-  <!-- SECTION 3: ДЕЙСТВИЯ -->
-  <div class="card">
-    <div class="card-head">ДЕЙСТВИЯ</div>
-    <div class="card-body">
-      <button class="btn-test" id="btn-test" onclick="startTest()">▶ ТЕСТ — отправить текущее измерение на сервер</button>
-      <div class="progress-steps" id="steps">
-        <span class="step" id="s-wait">ОЖИДАНИЕ</span>
-        <span class="step" id="s-read">ЧТЕНИЕ</span>
-        <span class="step" id="s-build">СБОРКА</span>
-        <span class="step" id="s-send">ОТПРАВКА</span>
-        <span class="step" id="s-done">УСПЕХ/ОШИБКА</span>
-      </div>
-      <div class="result-row" id="result-row" style="display:none">
-        <span>Канал: <b id="r-ch">—</b></span>
-        <span>Ответ: <b id="r-resp">—</b></span>
-        <span>Время: <b id="r-time">—</b></span>
-      </div>
-      <div class="err-msg" id="test-err" style="display:none"></div>
-      <div class="web-status" id="web-status">
-        <span class="ws-active">● ВЕБ АКТИВЕН — загрузка...</span>
-      </div>
-    </div>
-  </div>
-
 </main>
-
+<div id="toast"></div>
 <script>
-(function(){
-'use strict';
 
-var TEST_RUNNING=false;
-var TEST_TIMER=null;
-
-/* ---- fetch with timeout ---- */
-function ftch(url,opts){
-  var ctrl=new AbortController();
-  var tid=setTimeout(function(){ctrl.abort();},3000);
-  var o=Object.assign({signal:ctrl.signal},opts||{});
-  return fetch(url,o).finally(function(){clearTimeout(tid);});
+function toast(msg,type,ms){
+  type=type||'ok'; ms=ms||6000;
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='show '+type;
+  clearTimeout(t._tid);
+  t._tid=setTimeout(function(){t.className=type;},ms);
 }
 
-/* ---- pulse dot ---- */
-function pulse(id){
-  var d=document.getElementById(id);
-  if(!d)return;
-  d.classList.add('pulse');
-  setTimeout(function(){d.classList.remove('pulse');},400);
+function colorKpi(id,val,okMin,warnMin){
+  var el=document.getElementById(id);
+  if(!el) return;
+  var cls='err';
+  if(val>=okMin) cls='ok';
+  else if(val>=warnMin) cls='warn';
+  el.className='kpi-value '+cls;
 }
-
-/* ---- SENSORS ---- */
-function renderSensors(data){
-  var rows=document.querySelectorAll('#sensors-list .sensor-row');
-  var sensors=data.sensors||[];
-  for(var i=0;i<4;i++){
-    var row=rows[i];if(!row)continue;
-    var s=sensors[i]||{};
-    var nm=row.querySelector('.sensor-name');
-    var vl=row.querySelector('.sensor-val');
-    var un=row.querySelector('.sensor-unit');
-    var bd=row.querySelector('.badge');
-    nm.textContent=s.name||('Датчик '+i);
-    var valid=s.valid!==false&&s.value!==null&&s.value!==undefined;
-    vl.textContent=valid?s.value:'ERR';
-    vl.style.color=valid?'var(--text)':'var(--red)';
-    un.textContent=s.unit||'';
-    bd.textContent=valid?'OK':'ERR';
-    bd.className='badge '+(valid?'badge-ok':'badge-err');
-  }
-  var bp=data.battery||{};
-  var pct=bp.percent!=null?bp.percent:null;
-  var volt=bp.voltage!=null?bp.voltage:null;
-  document.getElementById('batt-fill').style.width=(pct!=null?pct:0)+'%';
-  document.getElementById('batt-pct').textContent=(pct!=null?pct+'%':'—%');
-  document.getElementById('batt-v').textContent=(volt!=null?volt.toFixed(2)+'V':'—V');
-  document.getElementById('sens-ts').textContent='Обновлено: '+(data.timestamp||'—');
+function fmt(s){
+  if(s===undefined||s===null||s==='') return '—';
+  return String(s);
 }
-
-function loadSensors(){
-  ftch('/api/sensors').then(function(r){return r.json();}).then(function(d){
-    document.getElementById('sens-err').style.display='none';
-    renderSensors(d);
-    pulse('rdot1');
-  }).catch(function(){
-    var e=document.getElementById('sens-err');
-    e.textContent='⚠ Нет связи с устройством';
-    e.style.display='block';
-    pulse('rdot1');
-  });
+function fmtUptime(s){
+  s=parseInt(s)||0;
+  var h=Math.floor(s/3600), m=Math.floor(s%3600/60), sec=s%60;
+  return (h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
 }
-
-/* ---- CHANNELS ---- */
-var CH_STATUS_CLS={
-  'ACTIVE':'st-active','STANDBY':'st-standby','DISABLED':'st-disabled'
-};
-var CH_DOT={
-  'ACTIVE':'●','STANDBY':'○','DISABLED':'○'
-};
-
-function renderChannels(data){
-  var chs=data.channels||[];
-  if(!chs.length)return;
-  var tbody=document.getElementById('channels-tbody');
-  tbody.innerHTML='';
-  for(var i=0;i<chs.length;i++){
-    var c=chs[i];
-    var st=c.status||'DISABLED';
-    var cls=CH_STATUS_CLS[st]||'st-disabled';
-    var dot=CH_DOT[st]||'○';
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td class="ch-dot '+cls+'">'+dot+'</td>'+
-      '<td class="ch-name">'+esc(c.name||'')+'</td>'+
-      '<td class="ch-status '+cls+'">'+esc(c.label||st)+'</td>'+
-      '<td class="ch-prio">'+esc(c.priority||'—')+'</td>';
-    tbody.appendChild(tr);
-  }
+function colorLog(line){
+  if(/\[ERR/i.test(line)||/ERROR/i.test(line)) return '<span class="log-error">'+line+'</span>';
+  if(/\[WRN/i.test(line)||/WARN/i.test(line))  return '<span class="log-warn">'+line+'</span>';
+  if(/\[DATA/i.test(line))  return '<span class="log-data">'+line+'</span>';
+  if(/\[DBG/i.test(line))   return '<span class="log-debug">'+line+'</span>';
+  return '<span class="log-info">'+line+'</span>';
 }
-
-function loadChannels(){
-  ftch('/api/channels').then(function(r){return r.json();}).then(function(d){
-    document.getElementById('ch-err').style.display='none';
-    renderChannels(d);
-    pulse('rdot2');
-  }).catch(function(){
-    var e=document.getElementById('ch-err');
-    e.textContent='⚠ Нет связи с устройством';
-    e.style.display='block';
-    pulse('rdot2');
-  });
-}
-
-/* ---- WEB MODE ---- */
-function loadWebMode(){
-  ftch('/api/web_mode').then(function(r){return r.json();}).then(function(d){
-    var ws=document.getElementById('web-status');
-    var hd=document.getElementById('hdr-dot');
-    var ht=document.getElementById('hdr-text');
-    if(d.web_active){
-      var rem=d.remaining!=null?' (ещё '+d.remaining+' с)':'';
-      ws.innerHTML='<span class="ws-active">● ВЕБ АКТИВЕН — передача приостановлена'+esc(rem)+'</span>';
-      hd.className='dot-red';hd.textContent='●';
-      ht.textContent='WEB ACTIVE — передача приостановлена';
-    }else{
-      ws.innerHTML='<span class="ws-online">○ ОНЛАЙН</span>';
-      hd.className='dot-green';hd.textContent='○';
-      ht.textContent='ОНЛАЙН';
+function poll(){
+  fetch('/api/status').then(r=>r.json()).then(function(d){
+    document.getElementById('kpi-uptime').textContent=fmtUptime(d.uptime_s);
+    var sdOk=d.sd_ok||d.sd_status==='ok';
+    var sdEl=document.getElementById('kpi-sd');
+    sdEl.textContent=sdOk?'OK':'FAIL';
+    sdEl.className='kpi-value '+(sdOk?'ok':'err');
+    document.getElementById('kpi-sd-size').textContent=d.sd_free?d.sd_free+' free':'—';
+    var heap=parseInt(d.free_heap)||0;
+    document.getElementById('kpi-heap').textContent=heap?heap.toLocaleString():'—';
+    colorKpi('kpi-heap',heap,40000,15000);
+    var ip=d.ip||d.ip_address||'—';
+    document.getElementById('kpi-ip').textContent=ip;
+    document.getElementById('kpi-net-mode').textContent=d.net_mode||d.mode||'—';
+    document.getElementById('nav-ip').textContent=ip;
+    var rssi=parseInt(d.rssi)||0;
+    document.getElementById('kpi-rssi').textContent=rssi?rssi:'—';
+    colorKpi('kpi-rssi',rssi,-60,-80);
+    document.getElementById('kpi-save').textContent=d.last_save_time||'—';
+    document.getElementById('kpi-save-status').textContent=d.last_save_ok?'на SD':'в RAM';
+    document.getElementById('s-ssid').textContent=fmt(d.ssid);
+    document.getElementById('s-mac').textContent=fmt(d.mac);
+    document.getElementById('s-gw').textContent=fmt(d.gateway);
+    document.getElementById('s-dns').textContent=fmt(d.dns);
+    document.getElementById('s-conn').textContent=fmt(d.connections);
+    document.getElementById('s-rxtx').textContent=(d.rx_bytes||'?')+' / '+(d.tx_bytes||'?');
+    document.getElementById('s-cpu').textContent=d.cpu_load!==undefined?d.cpu_load+'%':'—';
+    document.getElementById('s-temp').textContent=d.temp_c!==undefined?d.temp_c+' °C':'—';
+    document.getElementById('s-cfgpath').textContent=fmt(d.config_path);
+    document.getElementById('s-sdwrites').textContent=fmt(d.sd_writes);
+    document.getElementById('s-fw').textContent=fmt(d.firmware);
+    document.getElementById('s-built').textContent=fmt(d.build_date);
+    var log=document.getElementById('mini-log');
+    if(d.last_lines&&Array.isArray(d.last_lines)){
+      log.innerHTML=d.last_lines.slice(-6).map(colorLog).join('\n');
+      log.scrollTop=log.scrollHeight;
     }
-  }).catch(function(){});
+  }).catch(function(){toast('Нет связи с устройством','err');});
 }
-
-/* ---- TEST ---- */
-var STEPS=['wait','read','build','send','done'];
-var STEP_MAP={
-  'idle':0,'waiting':0,'reading':1,'building':2,'sending':3,
-  'success':4,'error':4,'fail':4
-};
-
-function setStep(state,failed){
-  var idx=STEP_MAP[state]!=null?STEP_MAP[state]:0;
-  var ids=['s-wait','s-read','s-build','s-send','s-done'];
-  var labels=['ОЖИДАНИЕ','ЧТЕНИЕ','СБОРКА','ОТПРАВКА',
-    failed?'ОШИБКА':'УСПЕХ'];
-  for(var i=0;i<ids.length;i++){
-    var el=document.getElementById(ids[i]);
-    el.textContent=labels[i];
-    el.className='step';
-    if(i<idx)el.classList.add('done');
-    else if(i===idx){
-      if((state==='success')&&i===4)el.classList.add('done');
-      else if((state==='error'||state==='fail')&&i===4)el.classList.add('fail');
-      else el.classList.add('active');
-    }
-  }
-}
-
-function startTest(){
-  if(TEST_RUNNING)return;
-  TEST_RUNNING=true;
-  var btn=document.getElementById('btn-test');
-  btn.disabled=true;
-  document.getElementById('result-row').style.display='none';
-  document.getElementById('test-err').style.display='none';
-  setStep('waiting',false);
-  ftch('/api/test_send',{method:'POST'}).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    return r.json();
-  }).then(function(){
-    TEST_TIMER=setInterval(pollResult,500);
-  }).catch(function(e){
-    showTestErr('⚠ Ошибка запуска теста: '+e.message);
-    stopTest();
-  });
-}
-
-function pollResult(){
-  ftch('/api/test_result').then(function(r){return r.json();}).then(function(d){
-    var st=d.state||'idle';
-    var failed=st==='error'||st==='fail';
-    setStep(st,failed);
-    if(st==='success'||failed){
-      if(d.channel||d.response||d.time_ms!=null){
-        document.getElementById('r-ch').textContent=d.channel||'—';
-        document.getElementById('r-resp').textContent=d.response||'—';
-        document.getElementById('r-time').textContent=d.time_ms!=null?d.time_ms+' мс':'—';
-        document.getElementById('result-row').style.display='flex';
-      }
-      if(failed&&d.error){
-        var e=document.getElementById('test-err');
-        e.textContent='⚠ '+d.error;e.style.display='block';
-      }
-      stopTest();
-    }
-  }).catch(function(){
-    showTestErr('⚠ Нет связи с устройством');
-    stopTest();
-  });
-}
-
-function stopTest(){
-  TEST_RUNNING=false;
-  if(TEST_TIMER){clearInterval(TEST_TIMER);TEST_TIMER=null;}
-  var btn=document.getElementById('btn-test');
-  btn.disabled=false;
-}
-
-function showTestErr(msg){
-  var e=document.getElementById('test-err');
-  e.textContent=msg;e.style.display='block';
-}
-
-function esc(s){
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-/* ---- INIT ---- */
-loadSensors();
-loadChannels();
-loadWebMode();
-setInterval(loadSensors,5000);
-setInterval(loadChannels,5000);
-setInterval(loadWebMode,5000);
-
-})();
+poll(); setInterval(poll,5000);
 </script>
 </body>
 </html>
