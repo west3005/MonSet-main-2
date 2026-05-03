@@ -877,7 +877,7 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
     /* Log BEFORE enabling DPSM: uart_log_info takes hundreds of us via UART,
      * which drains the empty FIFO before the while-loop starts -> TXUNDERR.
      * Especially critical for multiblock (cnt>1, DLEN>512). */
-    uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v11-dctrl blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
+    uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v12-diag blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
     uart_log_info("[HAL_SD] Write CMD24: err=0x%lX RESP1=0x%08lX STA=0x%08lX",
                   (unsigned long)errorstate,
                   (unsigned long)hsd->Instance->RESP1,
@@ -898,12 +898,25 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
 
     /* Write block(s) in polling mode */
     dataremaining = config.DataLength;
+    uart_log_info("[HAL_SD] DPSM ON: STA=0x%08lX DCTRL=0x%08lX dataremaining=%lu",
+                  (unsigned long)hsd->Instance->STA,
+                  (unsigned long)hsd->Instance->DCTRL,
+                  (unsigned long)dataremaining);
+    uint32_t dbg_iter = 0U;
 #if defined(SDIO_STA_STBITERR)
     while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND | SDIO_FLAG_STBITERR))
 #else
     while(!__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXUNDERR | SDIO_FLAG_DCRCFAIL | SDIO_FLAG_DTIMEOUT | SDIO_FLAG_DATAEND))
 #endif /* SDIO_STA_STBITERR */
     {
+      dbg_iter++;
+      if(dbg_iter == 1U)
+      {
+        uart_log_info("[HAL_SD] while#1: STA=0x%08lX TXFIFOHE=%d dataremaining=%lu",
+                      (unsigned long)hsd->Instance->STA,
+                      (int)__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXFIFOHE),
+                      (unsigned long)dataremaining);
+      }
       if(__HAL_SD_GET_FLAG(hsd, SDIO_FLAG_TXFIFOHE) && (dataremaining > 0U))
       {
         /* Write data to SDIO Tx FIFO */
