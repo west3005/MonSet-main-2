@@ -644,7 +644,18 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
             DBG.info("...wake");
             wokeFromStop = true;
         } else {
-            CfgUartBridge_DelayMs(Cfg().poll_interval_sec * 1000UL);
+            // Debug mode: wait poll_interval but keep web + IWDG alive
+            uint32_t t0 = HAL_GetTick();
+            const uint32_t waitMs = Cfg().poll_interval_sec * 1000UL;
+            while ((HAL_GetTick() - t0) < waitMs) {
+                CfgUartBridge_Tick();
+                if (eth.ready()) eth.tick();
+                if (m_webServer.isRunning()) m_webServer.tick();
+                checkWebTimeout();
+                IWDG->KR = 0xAAAAU;
+                if (m_webActive) break;   /* browser connected — go to tight loop */
+                HAL_Delay(5);
+            }
             wokeFromStop = false;
         }
 
