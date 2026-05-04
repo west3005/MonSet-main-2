@@ -769,6 +769,10 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint3
     __HAL_SD_CLEAR_FLAG(hsd, SDIO_STATIC_DATA_FLAGS);
 
     hsd->State = HAL_SD_STATE_READY;
+    /* Clear diagnostic error bits accumulated in the polling while-loop.
+     * Without this, SD_CheckStatus -> GetCardState -> SD_SendStatus sees
+     * a non-zero ErrorCode and may return a wrong card state. */
+    hsd->ErrorCode = HAL_SD_ERROR_NONE;
 
     return HAL_OK;
   }
