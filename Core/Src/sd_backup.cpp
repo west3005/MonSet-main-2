@@ -70,15 +70,10 @@ bool SdBackup::init()
     char drive[3];
     make_drive(drive, sizeof(drive));
 
-    /*
-     * Полный сброс SDIO перед монтированием — гарантирует чистое
-     * состояние HAL после предыдущей сессии или ошибки.
-     * НЕ переопределяем ClockDiv вручную — sd_diskio.c сам установит
-     * рабочую скорость (ClockDiv=0, 24 МГц) после HAL_SD_Init().
-     */
-    HAL_SD_DeInit(&hsd);
-    MX_SDIO_SD_Init();
-    HAL_Delay(10);
+    // HAL_SD already initialised in main.cpp before SdBackup::init() is called.
+    // Re-running DeInit/Init here resets the SDIO peripheral mid-flight and
+    // causes the card to need extra settle time, leading to FR_DISK_ERR on
+    // the first f_getfree / f_open call. Just mount the already-ready card.
 
     const uint32_t t0        = HAL_GetTick();
     const uint32_t timeoutMs = 5000;
