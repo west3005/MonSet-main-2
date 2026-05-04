@@ -143,13 +143,6 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
 
     SD_ClearFlags();
 
-    /* Остаёмся на 400 кГц (ClockDiv=118) — не меняем скорость после Init.
-     * Обеспечиваем CLKEN=1. ClockDiv=118: 48/(118+2)=400 кГц — надёжно для любой карты. */
-    MODIFY_REG(SDIO->CLKCR,
-               SDIO_CLKCR_CLKDIV | SDIO_CLKCR_CLKEN,
-               (118U) | SDIO_CLKCR_CLKEN);
-    HAL_Delay(2);
-
     /* Сброс data path перед новой транзакцией */
     SDIO->DCTRL = 0U;
     __DSB(); __ISB();
