@@ -799,8 +799,6 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
   uint32_t count, data, dataremaining;
   uint32_t add = BlockAdd;
   uint8_t *tempbuff = pData;
-  extern void uart_log_info(const char *fmt, ...);
-  extern void uart_log_error(const char *fmt, ...);
 
   if(NULL == pData)
   {
@@ -873,15 +871,6 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
       hsd->Context = SD_CONTEXT_NONE;
       return HAL_ERROR;
     }
-
-    /* Log BEFORE enabling DPSM: uart_log_info takes hundreds of us via UART,
-     * which drains the empty FIFO before the while-loop starts -> TXUNDERR.
-     * Especially critical for multiblock (cnt>1, DLEN>512). */
-    uart_log_info("[HAL_SD] WriteBlocks ENTRY patch-v12-diag blk=%lu n=%lu", (unsigned long)BlockAdd, (unsigned long)NumberOfBlocks);
-    uart_log_info("[HAL_SD] Write CMD24: err=0x%lX RESP1=0x%08lX STA=0x%08lX",
-                  (unsigned long)errorstate,
-                  (unsigned long)hsd->Instance->RESP1,
-                  (unsigned long)hsd->Instance->STA);
 
     /* Reset DCTRL and flush FIFO before enabling DPSM.
      * Without this, stale FIFO state from a previous transaction can cause
