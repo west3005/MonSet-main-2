@@ -66,7 +66,7 @@
 <div class="r"><div class="tg"><input type="checkbox" id="web_auth_enabled" onchange="c('web_auth_enabled',this.checked)"><span>Аутентификация</span></div><div class="tg"><input type="checkbox" id="web_exclusive_mode" onchange="c('web_exclusive_mode',this.checked)"><span>Эксклюзивный режим</span></div><div class="f" style="max-width:150px"><label>Таймаут простоя (с)</label><input type="number" id="web_idle_timeout_s" value="300" onchange="c('web_idle_timeout_s',+this.value)"></div></div>
 </div></details>
 <details><summary>J: Оповещения</summary><div class="sc">
-<div class="r"><div class="tg"><input type="checkbox" id="alerts_enabled" onchange="c('alerts_enabled',this.checked)"><span>Оповещения</span></div><div class="f" style="max-width:150px"><label>Батарея мин. (%)</label><input type="number" id="batt_low" value="20" onchange="c('battery_low_threshold_pct',+this.value)"></div></div>
+<div class="r"><div class="tg"><input type="checkbox" id="alerts_enabled" onchange="c('alerts_enabled',this.checked)"><span>Оповещения</span></div><div class="f" style="max-width:150px"><label>Батарея мин. (%)</label><input type="number" id="batt_low" value="20" onchange="c('batt_low',+this.value)"></div></div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px"><div id="sns_min"></div><div id="sns_max"></div></div>
 <div class="r"><div class="tg"><input type="checkbox" id="alert_ch_fail" onchange="c('alert_on_channel_fail',this.checked)"><span>Сбой канала</span></div><div class="tg"><input type="checkbox" id="alert_sn_fail" onchange="c('alert_on_sensor_fail',this.checked)"><span>Сбой датчика</span></div></div>
 <div class="f" style="margin-top:6px"><label>Webhook оповещений</label><input type="text" id="alert_webhook_url" onchange="c('alert_webhook_url',this.value)"></div>
@@ -256,17 +256,22 @@ function save(){
           'alert_on_sensor_fail','mqtt_tls','eth_dhcp'];
   bk.forEach(function(k){var e=document.getElementById(k);if(e)cfg[k]=e.checked});
   // text/number/password inputs
-  var tx=['tb_host','tb_token','tb_port','mqtt_host','mqtt_port','mqtt_user','mqtt_topic',
-          'mqtt_pass','webhook_url','poll_interval_s','send_interval_s','backup_retry_s',
-          'avg_count','deep_sleep_s','schedule_start','schedule_stop','sl_port','sl_uid',
-          'sl_sock','sl_ctms','eth_ip','eth_sn','eth_gw','eth_dns','gsm_apn','gsm_user',
-          'gsm_pass','wifi_ssid','wifi_pass','ntp_server','web_user','web_pass','web_port',
-          'web_idle_timeout_s','batt_low','alert_webhook_url','channel_timeout_s',
-          'channel_retry_s','channel_max_retries'];
+  var tx=['tb_host','tb_token','mqtt_host','mqtt_user','mqtt_topic',
+          'mqtt_pass','webhook_url','schedule_start','schedule_stop','eth_ip','eth_sn',
+          'eth_gw','eth_dns','gsm_apn','gsm_user','gsm_pass','wifi_ssid','wifi_pass',
+          'ntp_server','web_user','web_pass','alert_webhook_url'];
   tx.forEach(function(k){var e=document.getElementById(k);if(e)cfg[k]=e.value});
+  var ni=['tb_port','mqtt_port','poll_interval_s','send_interval_s','backup_retry_s',
+          'avg_count','deep_sleep_s','sl_port','sl_uid','sl_sock','sl_ctms',
+          'web_port','web_idle_timeout_s','batt_low','channel_timeout_s',
+          'channel_retry_s','channel_max_retries'];
+  ni.forEach(function(k){var e=document.getElementById(k);if(e)cfg[k]=parseInt(e.value,10)||0});
   // selects
-  ['proto','mqtt_qos','webhook_method','tz_off'].forEach(function(k){
+  ['proto','webhook_method'].forEach(function(k){
     var e=document.getElementById(k);if(e)cfg[k]=e.value;
+  });
+  ['mqtt_qos','tz_off'].forEach(function(k){
+    var e=document.getElementById(k);if(e)cfg[k]=parseInt(e.value,10)||0;
   });
   var out=Object.assign({},cfg,{rtu:rtu,tcp_devs:tcpd,regs:regs,chain_order:cord,co_en:coen});
   fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(out)})

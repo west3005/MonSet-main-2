@@ -75,7 +75,11 @@ static DSTATUS SD_CheckStatus(BYTE lun)
 {
     (void)lun;
     Stat = STA_NOINIT;
-    if (HAL_SD_GetCardState(&hsd) == HAL_SD_CARD_TRANSFER) {
+    HAL_SD_CardStateTypeDef cs = HAL_SD_GetCardState(&hsd);
+    /* ErrorCode accumulates diagnostic bits during ReadBlocks while-loop.
+     * Clear it here so the next CMD13 is not masked by stale error flags. */
+    hsd.ErrorCode = HAL_SD_ERROR_NONE;
+    if (cs == HAL_SD_CARD_TRANSFER) {
         Stat &= (DSTATUS)~STA_NOINIT;
     }
     return Stat;
@@ -142,13 +146,6 @@ DRESULT SD_read(BYTE lun, BYTE *buff, DWORD sector, UINT count)
     uart_log_info("[DISKIO] read: sec=%lu cnt=%u", (unsigned long)sector, (unsigned)count);
 
     SD_ClearFlags();
-
-    /* Остаёмся на 400 кГц (ClockDiv=118) — не меняем скорость после Init.
-     * Обеспечиваем CLKEN=1. ClockDiv=118: 48/(118+2)=400 кГц — надёжно для любой карты. */
-    MODIFY_REG(SDIO->CLKCR,
-               SDIO_CLKCR_CLKDIV | SDIO_CLKCR_CLKEN,
-               (118U) | SDIO_CLKCR_CLKEN);
-    HAL_Delay(2);
 
     /* Сброс data path перед новой транзакцией */
     SDIO->DCTRL = 0U;

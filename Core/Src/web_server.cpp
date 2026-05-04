@@ -3710,11 +3710,11 @@ void WebServer::handleApiConfig(uint8_t sn){
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, ",\"rtu\":[");
     for (int i = 0; i < MAX_RTU_PORTS; i++) {
         const ModbusRtuPortConfig& rp = c.rtu_ports[i];
-        const char* parStr = (rp.parity == 1) ? "Odd" :
-                             (rp.parity == 2) ? "Even" : "None";
+        const char* parStr = (rp.parity == 1) ? "Even" :
+                             (rp.parity == 2) ? "Odd"  : "None";
         n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
             "%s{\"en\":%s,\"baud\":%lu,\"sb\":%u,\"par\":\"%s\","
-            "\"rms\":%u,\"fms\":%u,\"devs\":[]}",
+            "\"rms\":%u,\"fms\":%u,\"devs\":[",
             i==0?"":",",
             rp.enabled?"true":"false",
             (unsigned long)rp.baudrate,
@@ -3723,6 +3723,23 @@ void WebServer::handleApiConfig(uint8_t sn){
             (unsigned)rp.response_timeout_ms,
             (unsigned)rp.inter_frame_ms
         );
+        for (int j = 0; j < rp.device_count && j < (int)ModbusRtuPortConfig::MAX_DEVICES; j++) {
+            const ModbusDeviceCfg& d = rp.devices[j];
+            static const char* DT_STR[] = {"INT16","UINT16","INT32_BE","UINT32_BE","FLOAT32_BE"};
+            const char* dtStr = (d.data_type < 5) ? DT_STR[d.data_type] : "INT16";
+            n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n,
+                "%s{\"en\":%s,\"sa\":%u,\"nm\":\"%s\",\"fc\":%u,"
+                "\"rs\":%u,\"rc\":%u,\"dt\":\"%s\","
+                "\"sc\":%f,\"of\":%f,\"un\":\"%s\",\"ci\":%u}",
+                j==0?"":",",
+                d.enabled?"true":"false",
+                (unsigned)d.slave_addr, d.name, (unsigned)d.func_code,
+                (unsigned)d.reg_start, (unsigned)d.reg_count, dtStr,
+                (double)d.scale, (double)d.offset,
+                d.unit, (unsigned)d.channel_idx
+            );
+        }
+        n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "]}");
     }
     n += std::snprintf(m_respBuf+n, RESP_BUF_SIZE-n, "]");
 

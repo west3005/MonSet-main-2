@@ -333,7 +333,93 @@ static uint8_t parseObjectArray(const char* json, const char* key,
     return count;
 }
 static void parseUartCb  (const char* obj, void* dest) { parseUartPortCfg  (obj, *(UartPortCfg*)dest); }
+
 static void parseModbusCb(const char* obj, void* dest) { parseModbusRegEntry(obj, *(ModbusRegEntry*)dest); }
+
+// -----------------------------------------------------------------------------
+// RTU device / port parsers
+// -----------------------------------------------------------------------------
+static const char* dtToStr(uint8_t dt) {
+    switch(dt) {
+        case 0: return "INT16";
+        case 1: return "UINT16";
+        case 2: return "INT32_BE";
+        case 3: return "UINT32_BE";
+        case 4: return "FLOAT32_BE";
+        default: return "INT16";
+    }
+}
+static uint8_t strToDt(const char* s) {
+    if (std::strcmp(s,"UINT16")    ==0) return 1;
+    if (std::strcmp(s,"INT32_BE")  ==0) return 2;
+    if (std::strcmp(s,"UINT32_BE") ==0) return 3;
+    if (std::strcmp(s,"FLOAT32_BE")==0) return 4;
+    return 0; // INT16 default
+}
+
+static void parseRtuDeviceCfg(const char* obj, ModbusDeviceCfg& d) {
+    jsonGetBool(obj, "en", d.enabled);
+    jsonGetU8  (obj, "sa", d.slave_addr);
+    jsonGetString(obj, "nm", d.name, sizeof(d.name));
+    jsonGetU8  (obj, "fc", d.func_code);
+    jsonGetU16 (obj, "rs", d.reg_start);
+    jsonGetU8  (obj, "rc", d.reg_count);
+    jsonGetF32 (obj, "sc", d.scale);
+    jsonGetF32 (obj, "of", d.offset);
+    jsonGetString(obj, "un", d.unit, sizeof(d.unit));
+    jsonGetU8  (obj, "ci", d.channel_idx);
+    char dtStr[16]{};
+    if (jsonGetString(obj, "dt", dtStr, sizeof(dtStr)))
+        d.data_type = strToDt(dtStr);
+}
+
+static void parseRtuPortInner(const char* obj, ModbusRtuPortConfig& rp) {
+    jsonGetBool(obj, "en",  rp.enabled);
+    jsonGetU32 (obj, "baud",rp.baudrate);
+    jsonGetU8  (obj, "sb",  rp.stop_bits);
+    jsonGetU16 (obj, "rms", rp.response_timeout_ms);
+    jsonGetU16 (obj, "fms", rp.inter_frame_ms);
+    char parStr[8]{};
+    if (jsonGetString(obj, "par", parStr, sizeof(parStr))) {
+        if      (std::strcmp(parStr,"None")==0 || std::strcmp(parStr,"none")==0) rp.parity = 0;
+        else if (std::strcmp(parStr,"Even")==0 || std::strcmp(parStr,"even")==0) rp.parity = 1;
+        else if (std::strcmp(parStr,"Odd") ==0 || std::strcmp(parStr,"odd") ==0) rp.parity = 2;
+    }
+    // parse devs[] array inline
+    const char* devsKey = "\"devs\"";
+    const char* dp = std::strstr(obj, devsKey);
+    if (!dp) return;
+    dp += std::strlen(devsKey);
+    while (*dp && *dp != '[') dp++;
+    if (!dp || *dp != '[') return;
+    dp++;
+    rp.device_count = 0;
+    while (*dp && *dp != ']' && rp.device_count < ModbusRtuPortConfig::MAX_DEVICES) {
+        while (*dp && *dp != '{' && *dp != ']') dp++;
+        if (!*dp || *dp == ']') break;
+        // find matching '}'
+        const char* objStart = dp;
+        int depth = 0;
+        const char* p = dp;
+        while (*p) {
+            if (*p == '{') depth++;
+            else if (*p == '}') { depth--; if (depth==0){p++;break;} }
+            p++;
+        }
+        static char devBuf[256];
+        size_t devLen = (size_t)(p - objStart);
+        if (devLen >= sizeof(devBuf)) devLen = sizeof(devBuf)-1;
+        std::memcpy(devBuf, objStart, devLen);
+        devBuf[devLen] = '\0';
+        parseRtuDeviceCfg(devBuf, rp.devices[rp.device_count]);
+        rp.device_count++;
+        dp = p;
+        while (*dp && *dp == ',') dp++;
+    }
+}
+static void parseRtuPortCb(const char* obj, void* dest) {
+    parseRtuPortInner(obj, *(ModbusRtuPortConfig*)dest);
+}
 
 static uint8_t parseU8Array(const char* json, const char* key, uint8_t* out, uint8_t maxCount) {
     const char* p = findKey(json, key);
@@ -483,6 +569,11 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
         uartCnt = parseObjectArray(json, "rtu", parseUartCb,
                                    tmp.uart_ports, sizeof(UartPortCfg), MAX_UART_PORTS);
     (void)uartCnt;
+
+    // rtu[] -> rtu_ports[] (ModbusRtuPortConfig — new structure)
+    { uint8_t rtuCnt = parseObjectArray(json, "rtu", parseRtuPortCb,
+                                        tmp.rtu_ports, sizeof(ModbusRtuPortConfig), MAX_RTU_PORTS);
+      (void)rtuCnt; }
 
     // Modbus map — canonical name, then UI alias "regs"
     tmp.modbus_map_count = parseObjectArray(json, "modbus_map", parseModbusCb,
@@ -654,7 +745,7 @@ bool RuntimeConfig::loadFromSd(const char* filename) {
         validateAndFix();
         return false;
     }
-    static char buf[6144];
+    static char buf[10240];
     UINT br = 0;
     fr = f_read(&f, buf, sizeof(buf) - 1, &br);
     f_close(&f);
@@ -698,7 +789,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     ftoa6(sensor_zero_level, zStr, sizeof(zStr));
     ftoa6(sensor_divider,    dStr, sizeof(dStr));
 
-    static char json[6144];
+    static char json[10240];
     int n = 0;
 
     n += std::snprintf(json+n, sizeof(json)-n,
@@ -800,6 +891,42 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
             (unsigned)uart_ports[i].parity,
             (unsigned)uart_ports[i].stopbits,
             (unsigned)uart_ports[i].mode);
+    n += std::snprintf(json+n,sizeof(json)-n,"],");
+    if (n<0||n>=(int)sizeof(json)) goto overflow;
+
+    // rtu[] from rtu_ports[] (ModbusRtuPortConfig — new structure with devices)
+    n += std::snprintf(json+n,sizeof(json)-n,"\"rtu\":[");
+    for (uint8_t i=0;i<MAX_RTU_PORTS;i++) {
+        const ModbusRtuPortConfig& rp = rtu_ports[i];
+        const char* parStr = (rp.parity==1)?"Even":(rp.parity==2)?"Odd":"None";
+        n += std::snprintf(json+n,sizeof(json)-n,
+            "%s{\"en\":%s,\"baud\":%lu,\"sb\":%u,\"par\":\"%s\","
+            "\"rms\":%u,\"fms\":%u,\"devs\":[",
+            i==0?"":",",
+            rp.enabled?"true":"false",
+            (unsigned long)rp.baudrate,
+            (unsigned)rp.stop_bits, parStr,
+            (unsigned)rp.response_timeout_ms,
+            (unsigned)rp.inter_frame_ms);
+        if (n<0||n>=(int)sizeof(json)) goto overflow;
+        for (uint8_t j=0;j<rp.device_count && j<ModbusRtuPortConfig::MAX_DEVICES;j++) {
+            const ModbusDeviceCfg& d = rp.devices[j];
+            n += std::snprintf(json+n,sizeof(json)-n,
+                "%s{\"en\":%s,\"sa\":%u,\"nm\":\"%s\",\"fc\":%u,"
+                "\"rs\":%u,\"rc\":%u,\"dt\":\"%s\","
+                "\"sc\":%f,\"of\":%f,\"un\":\"%s\",\"ci\":%u}",
+                j==0?"":",",
+                d.enabled?"true":"false",
+                (unsigned)d.slave_addr, d.name, (unsigned)d.func_code,
+                (unsigned)d.reg_start, (unsigned)d.reg_count,
+                dtToStr(d.data_type),
+                (double)d.scale, (double)d.offset,
+                d.unit, (unsigned)d.channel_idx);
+            if (n<0||n>=(int)sizeof(json)) goto overflow;
+        }
+        n += std::snprintf(json+n,sizeof(json)-n,"]}");
+        if (n<0||n>=(int)sizeof(json)) goto overflow;
+    }
     n += std::snprintf(json+n,sizeof(json)-n,"],");
     if (n<0||n>=(int)sizeof(json)) goto overflow;
 
