@@ -75,7 +75,11 @@ static DSTATUS SD_CheckStatus(BYTE lun)
 {
     (void)lun;
     Stat = STA_NOINIT;
-    if (HAL_SD_GetCardState(&hsd) == HAL_SD_CARD_TRANSFER) {
+    HAL_SD_CardStateTypeDef cs = HAL_SD_GetCardState(&hsd);
+    /* ErrorCode accumulates diagnostic bits during ReadBlocks while-loop.
+     * Clear it here so the next CMD13 is not masked by stale error flags. */
+    hsd.ErrorCode = HAL_SD_ERROR_NONE;
+    if (cs == HAL_SD_CARD_TRANSFER) {
         Stat &= (DSTATUS)~STA_NOINIT;
     }
     return Stat;
