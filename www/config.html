@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MonSet — Config</title>
+<title>MonSet — Конфигурация</title>
 <style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0e1117;color:#c9d1d9;font:14px/1.5 system-ui,sans-serif;padding-bottom:70px}a{color:#2dd4bf;text-decoration:none}.nav{background:#161b22;border-bottom:1px solid #30363d;display:flex;gap:4px;padding:8px 12px}.nav a{padding:6px 14px;border-radius:6px;color:#c9d1d9;font-size:13px}.nav a.act{background:#2dd4bf;color:#0e1117;font-weight:600}.hdr{padding:14px 16px;border-bottom:1px solid #30363d;background:#161b22;font-size:18px;font-weight:700;color:#2dd4bf}details{background:#161b22;border:1px solid #30363d;border-radius:8px;margin:10px}summary{padding:10px 14px;cursor:pointer;font-weight:600;font-size:13px;color:#2dd4bf;user-select:none;list-style:none;display:flex;align-items:center;gap:6px}summary::before{content:"▶";font-size:10px;transition:transform .2s}details[open]>summary::before{transform:rotate(90deg)}.sc{padding:12px 14px 14px}.r{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center}.f{display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px}label{font-size:11px;color:#8b949e}input[type=text],input[type=number],input[type=password],select{background:#0e1117;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;padding:5px 8px;font-size:13px;width:100%}input:focus,select:focus{outline:none;border-color:#2dd4bf}.tg{display:flex;align-items:center;gap:8px}.tg input[type=checkbox]{appearance:none;width:36px;height:20px;background:#30363d;border-radius:10px;cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}.tg input[type=checkbox]:checked{background:#2dd4bf}.tg input[type=checkbox]::after{content:"";position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s}.tg input[type=checkbox]:checked::after{left:19px}.tg span{font-size:13px;white-space:nowrap}.btn{background:#2dd4bf;color:#0e1117;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600}.btn:hover{opacity:.85}.btn.s{background:#30363d;color:#c9d1d9}.cd{background:#0e1117;border:1px solid #30363d;border-radius:6px;padding:10px;margin-bottom:8px}.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.tabs{display:flex;gap:4px;margin-bottom:10px}.tab{padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;background:#0e1117;border:1px solid #30363d;color:#c9d1d9}.tab.act{background:#2dd4bf;color:#0e1117;border-color:#2dd4bf;font-weight:600}.tp{display:none}.tp.act{display:block}.bar{position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:10px 16px;display:flex;gap:8px;z-index:99}.dr{display:flex;align-items:center;gap:6px;background:#0e1117;border:1px solid #30363d;border-radius:5px;padding:5px 8px;margin-bottom:5px}.dr span{flex:1;font-size:12px}.dr button{background:none;border:none;color:#8b949e;cursor:pointer;font-size:14px;padding:0 2px}.dr button:hover{color:#2dd4bf}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0e1117;color:#8b949e;padding:5px 6px;text-align:left;border-bottom:1px solid #30363d}td{padding:4px 5px;border-bottom:1px solid #1c2128}td input,td select{padding:3px 5px;font-size:12px}.msg{display:none;padding:6px 12px;border-radius:5px;font-size:13px;font-weight:600}.ok{background:#1a3a2e;color:#2dd4bf}.er{background:#3a1a1a;color:#f87171}.warn{background:#2a2200;color:#e3b341}.sh{font-size:12px;color:#8b949e;margin:8px 0 4px;font-weight:600}
 
 /* ── layout shell (sidebar + wrap) ─────────────────── */
@@ -129,7 +129,6 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 <span class="topbar-title">Config</span>
 <span class="topbar-ip" id="nav-ip">—</span>
 </div>
-<div style="padding-bottom:70px">
 <details open><summary>A: Каналы передачи, привет Дипсик</summary><div class="sc">
 <div class="r">
 <div class="tg"><input type="checkbox" id="ch_eth" onchange="c('ch_eth',this.checked)"><span>Ethernet W5500</span></div>
@@ -202,62 +201,7 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 <div class="f" style="margin-top:6px"><label>Webhook оповещений</label><input type="text" id="alert_webhook_url" onchange="c('alert_webhook_url',this.value)"></div>
 </div></details>
 <div class="bar"><button class="btn" onclick="save()">💾 Сохранить</button><button class="btn s" onclick="rst()">↺ Сброс</button><button class="btn s" onclick="exp()">⬇ Экспорт JSON</button><span class="msg" id="msg"></span></div>
-<script>
-var cfg={};
-var DT=['INT16','UINT16','INT32_BE','UINT32_BE','FLOAT32_BE'];
-var SRC=['Датчик 0','Датчик 1','Датчик 2','Датчик 3','Батарея%','Батарея V','Статус каналов'];
-var CHN=['Ethernet W5500','GSM','WiFi ESP8266','Iridium SBD'];
-var cord=[0,1,2,3],coen=[false,false,false,false];
-
-function c(k,v){cfg[k]=v}
-function sh(id,v){document.getElementById(id).style.display=v?'flex':'none'}
-
-function sp(v){
-  document.getElementById('g_tb').style.display=(v==='https_tb'||v==='mqtt_tb')?'block':'none';
-  document.getElementById('g_mqtt').style.display=(v==='mqtt_gen'||v==='mqtt_tb')?'block':'none';
-  document.getElementById('g_wh').style.display=(v==='webhook')?'block':'none';
-  cfg.proto=v;
-}
-
-function st(el,id){
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('act')});
-  document.querySelectorAll('.tp').forEach(function(t){t.classList.remove('act')});
-  el.classList.add('act');document.getElementById(id).classList.add('act');
-}
-
-function mv(i,d){
-  var j=i+d;if(j<0||j>3)return;
-  var t=cord[i];cord[i]=cord[j];cord[j]=t;
-  var t2=coen[i];coen[i]=coen[j];coen[j]=t2;
-  rndOrd();
-}
-
-function rndOrd(){
-  var h='';
-  for(var i=0;i<4;i++){
-    h+='<div class="dr"><input type="checkbox" style="width:auto"'+(coen[i]?' checked':'')
-      +' onchange="coen['+i+']=this.checked"><span>'+CHN[cord[i]]+'</span>'
-      +'<button onclick="mv('+i+',-1)">▲</button><button onclick="mv('+i+',1)">▼</button></div>';
-  }
-  document.getElementById('cord').innerHTML=h;
-}
-
-var BD=['2400','4800','9600','19200','38400','115200'];
-var rtu=[];
-
-function rtuH(p){
-  var x=rtu[p];
-  var h='<div class="r"><div class="tg"><input type="checkbox"'+(x.en?' checked':'')+' onchange="rtu['+p+'].en=this.checked"><span>Включить</span></div>'
-    +'<div class="f" style="max-width:100px"><label>Бодрейт</label><select onchange="rtu['+p+'].baud=+this.value">';
-  BD.forEach(function(b){h+='<option'+(x.baud==b?' selected':'')+'>'+b+'</option>'});
-  h+='</select></div><div class="f" style="max-width:80px"><label>Стоп-биты</label><select onchange="rtu['+p+'].sb=+this.value"><option'+(x.sb==1?' selected':'')+'>1</option><option'+(x.sb==2?' selected':'')+'>2</option></select></div>'
-    +'<div class="f" style="max-width:100px"><label>Чётность</label><select onchange="rtu['+p+'].par=this.value"><option'+(x.par=="None"?' selected':'')+'>None</option><option'+(x.par=="Even"?' selected':'')+'>Even</option><option'+(x.par=="Odd"?' selected':'')+'>Odd</option></select></div>'
-    +'<div class="f" style="max-width:120px"><label>Таймаут отв.(мс)</label><input type="number" value="'+x.rms+'" onchange="rtu['+p+'].rms=+this.value"></div>'
-    +'<div class="f" style="max-width:120px"><label>Межфреймовый(мс)</label><input type="number" value="'+x.fms+'" onchange="rtu['+p+'].fms=+this.value"></div>'
-    +'</div><details open><summary style="cursor:pointer;font-size:12px;color:#aaa;margin:.4rem 0" id="rds'+p+'">&#9658; Устройства (0)</summary><div id="rd'+p+'"></div></details>
-</div>
-<div class="bar"><button class="btn" onclick="save()">💾 Сохранить</button><button class="btn s" onclick="rst()">↺ Сброс</button><button class="btn s" onclick="exp()">⬇ Экспорт JSON</button><span class="msg" id="msg"></span></div>
-</div><!-- wrap -->
+</div><!-- /wrap -->
 <div id="toast"></div>
 <script>
 var cfg={};
@@ -489,7 +433,24 @@ window.addEventListener('DOMContentLoaded',function(){
   reloadCfg();setNow();setTimeout(updateCurRtc,500);
 });
 </script>
-<script>
+  <!-- ── Кнопки SD / файловый менеджер ──────────────────────────── -->
+  <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
+    <button type="button" onclick="dlCfg()"
+      style="padding:.45rem 1.1rem;background:#2a7a4a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">
+      ⬇ Скачать конфиг</button>
+    <button type="button" onclick="toggleFm()"
+      style="padding:.45rem 1.1rem;background:#4a6a99;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem">
+      📂 Файлы SD</button>
+  </div>
+
+  <div id="fm" style="display:none;margin-top:1rem;border:1px solid #bbb;border-radius:8px;padding:1rem;background:#f8f9fa">
+    <div style="font-weight:600;margin-bottom:.5rem">
+      📂 SD: <span id="fm_path" style="font-family:monospace">/</span>
+    </div>
+    <div id="fm_list" style="font-family:monospace;font-size:.88rem;line-height:1.8"></div>
+  </div>
+
+  <script>
   function dlCfg(){
     var a=document.createElement('a');
     a.href='/api/download?path=/runtime_config.json';
