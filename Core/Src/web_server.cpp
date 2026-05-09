@@ -4042,6 +4042,7 @@ void WebServer::handleLogs(uint8_t sn){
 
 // ── GET /test ─────────────────────────────────────────────────────────────────
 void WebServer::handleTestPage(uint8_t sn){
+    if(serveFile(sn,"/test.html","text/html")) return;
     char* buf=m_respBuf; const int bsz=RESP_BUF_SIZE; int n=0;
     writeHead(buf,n,bsz,"Test Send");
     SNCAT("<h2>&#9654; Test Send</h2>");
