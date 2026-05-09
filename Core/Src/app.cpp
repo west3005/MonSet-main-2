@@ -444,6 +444,7 @@ void App::init() {
     // Если W5500 ещё не поднят (DHCP не ответил) — init() выставит m_running=false
     // и флаг m_webStartPending=true. Повторная попытка каждую итерацию run().
     m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+    m_webServer.setRtc(&m_rtc);
     m_webServer.setSdOk(m_sdOk);
     if (!m_webServer.isRunning()) {
         DBG.info("[9/9] WebServer: deferred start pending (eth not ready)");
@@ -500,6 +501,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
         if (m_webStartPending) {
             if (ensureEthReady()) {
                 m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+                m_webServer.setRtc(&m_rtc);
                 m_webServer.setSdOk(m_sdOk);
                 if (m_webServer.isRunning()) {
                     m_webStartPending = false;
