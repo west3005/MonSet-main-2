@@ -129,121 +129,289 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 <span class="topbar-title">Dashboard</span>
 <span class="topbar-ip" id="nav-ip">—</span>
 </div>
-<main>
+
+<main style="padding:0 0 20px">
   <h1 class="page-title">Dashboard</h1>
+
+  <!-- KPI: uptime + battery + web mode -->
   <div class="kpi-grid" id="kpi-grid">
-    <div class="kpi"><div class="kpi-label">Uptime</div><div class="kpi-value" id="kpi-uptime">—</div><div class="kpi-unit">hh:mm:ss</div></div>
-    <div class="kpi"><div class="kpi-label">SD Card</div><div class="kpi-value" id="kpi-sd">—</div><div class="kpi-unit" id="kpi-sd-size">—</div></div>
-    <div class="kpi"><div class="kpi-label">Free Heap</div><div class="kpi-value" id="kpi-heap">—</div><div class="kpi-unit">bytes</div></div>
-    <div class="kpi"><div class="kpi-label">IP Address</div><div class="kpi-value" id="kpi-ip" style="font-size:16px">—</div><div class="kpi-unit" id="kpi-net-mode">—</div></div>
-    <div class="kpi"><div class="kpi-label">RSSI</div><div class="kpi-value" id="kpi-rssi">—</div><div class="kpi-unit">dBm</div></div>
-    <div class="kpi"><div class="kpi-label">Last Save</div><div class="kpi-value" id="kpi-save" style="font-size:14px">—</div><div class="kpi-unit" id="kpi-save-status">—</div></div>
+    <div class="kpi">
+      <div class="kpi-label">Uptime</div>
+      <div class="kpi-value" id="kpi-uptime">—</div>
+      <div class="kpi-unit">hh:mm:ss</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Батарея</div>
+      <div class="kpi-value" id="kpi-batt">—</div>
+      <div class="kpi-unit" id="kpi-batt-v">— V</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Ethernet</div>
+      <div class="kpi-value" id="kpi-eth">—</div>
+      <div class="kpi-unit" id="kpi-eth-ip">—</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">GSM</div>
+      <div class="kpi-value" id="kpi-gsm">—</div>
+      <div class="kpi-unit">SIM7020</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">WiFi</div>
+      <div class="kpi-value" id="kpi-wifi">—</div>
+      <div class="kpi-unit">ESP8266</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Iridium</div>
+      <div class="kpi-value" id="kpi-iridium">—</div>
+      <div class="kpi-unit">SBD NR9602G</div>
+    </div>
   </div>
+
+  <!-- Датчики Modbus -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Датчики Modbus</div>
+      <span style="font-size:11px;color:#8b949e" id="sensors-upd">—</span>
+    </div>
+    <div id="sensors-grid" class="kpi-grid" style="margin:0">
+      <div style="color:#8b949e;font-size:13px;grid-column:1/-1;padding:10px 0">Загрузка…</div>
+    </div>
+  </div>
+
+  <!-- Конфиг + Сеть -->
   <div class="two-col">
     <div class="card">
-      <div class="card-title">Сеть</div>
-      <div class="stat-row"><span class="stat-key">SSID</span><span class="stat-val" id="s-ssid">—</span></div>
-      <div class="stat-row"><span class="stat-key">MAC</span><span class="stat-val" id="s-mac">—</span></div>
-      <div class="stat-row"><span class="stat-key">Gateway</span><span class="stat-val" id="s-gw">—</span></div>
-      <div class="stat-row"><span class="stat-key">DNS</span><span class="stat-val" id="s-dns">—</span></div>
-      <div class="stat-row"><span class="stat-key">Соединений</span><span class="stat-val" id="s-conn">—</span></div>
-      <div class="stat-row"><span class="stat-key">Rx / Tx</span><span class="stat-val" id="s-rxtx">—</span></div>
+      <div class="card-title">Конфигурация</div>
+      <div class="stat-row"><span class="stat-key">Протокол</span><span class="stat-val" id="c-proto">—</span></div>
+      <div class="stat-row"><span class="stat-key">Сервер</span><span class="stat-val" id="c-server" style="max-width:160px;overflow:hidden;text-overflow:ellipsis">—</span></div>
+      <div class="stat-row"><span class="stat-key">Опрос / отправка</span><span class="stat-val" id="c-poll">—</span></div>
+      <div class="stat-row"><span class="stat-key">NTP</span><span class="stat-val" id="c-ntp">—</span></div>
+      <div class="stat-row"><span class="stat-key">Web-режим</span><span class="stat-val" id="c-webmode">—</span></div>
+      <div class="stat-row"><span class="stat-key">Web-таймаут</span><span class="stat-val" id="c-webtout">—</span></div>
+      <div class="stat-row"><span class="stat-key">Авторизация</span><span class="stat-val" id="c-auth">—</span></div>
+      <div class="stat-row"><span class="stat-key">Modbus TCP Master</span><span class="stat-val" id="c-tcpm">—</span></div>
+      <div class="stat-row"><span class="stat-key">Modbus TCP Slave</span><span class="stat-val" id="c-tcps">—</span></div>
+      <div class="stat-row"><span class="stat-key">Оповещения</span><span class="stat-val" id="c-alerts">—</span></div>
     </div>
     <div class="card">
-      <div class="card-title">Система</div>
-      <div class="stat-row"><span class="stat-key">CPU</span><span class="stat-val" id="s-cpu">—</span></div>
-      <div class="stat-row"><span class="stat-key">Температура</span><span class="stat-val" id="s-temp">—</span></div>
-      <div class="stat-row"><span class="stat-key">SD путь конфига</span><span class="stat-val" id="s-cfgpath">—</span></div>
-      <div class="stat-row"><span class="stat-key">SD записей</span><span class="stat-val" id="s-sdwrites">—</span></div>
-      <div class="stat-row"><span class="stat-key">Прошивка</span><span class="stat-val" id="s-fw">—</span></div>
-      <div class="stat-row"><span class="stat-key">Дата сборки</span><span class="stat-val" id="s-built">—</span></div>
+      <div class="card-title">Сеть</div>
+      <div class="stat-row"><span class="stat-key">Ethernet IP</span><span class="stat-val" id="s-eth-ip">—</span></div>
+      <div class="stat-row"><span class="stat-key">DHCP</span><span class="stat-val" id="s-dhcp">—</span></div>
+      <div class="stat-row"><span class="stat-key">Gateway</span><span class="stat-val" id="s-gw">—</span></div>
+      <div class="stat-row"><span class="stat-key">DNS</span><span class="stat-val" id="s-dns">—</span></div>
+      <div class="stat-row"><span class="stat-key">WiFi SSID</span><span class="stat-val" id="s-ssid">—</span></div>
+      <div class="stat-row"><span class="stat-key">GSM APN</span><span class="stat-val" id="s-apn">—</span></div>
+      <div class="stat-row"><span class="stat-key">Приоритет цепочки</span><span class="stat-val" id="s-chain">—</span></div>
     </div>
   </div>
-  <div class="card" style="margin-top:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="card-title" style="margin-bottom:0">Последние события</div>
-      <a href="/logs" style="font-size:12px;color:var(--gold)">все логи →</a>
-    </div>
-    <div id="mini-log"></div>
-  </div>
-</main>
-<div id="toast"></div>
-</div>
-<div id="toast"></div>
-<script>
 
+  <!-- Каналы: таблица -->
+  <div class="card">
+    <div class="card-title">Каналы передачи</div>
+    <table style="font-size:13px">
+      <thead>
+        <tr>
+          <th>Канал</th>
+          <th>Статус</th>
+          <th>Приоритет</th>
+        </tr>
+      </thead>
+      <tbody id="channels-tbody">
+        <tr><td colspan="3" style="color:#8b949e;padding:10px">Загрузка…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Последние события + тест отправки -->
+  <div class="two-col">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0">Последние события</div>
+        <a href="/logs" style="font-size:12px;color:#2dd4bf">все логи →</a>
+      </div>
+      <div id="mini-log" style="font-family:monospace;font-size:12px;line-height:1.8;color:#8b949e;min-height:60px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Тест отправки</div>
+      <div class="stat-row"><span class="stat-key">Статус</span><span class="stat-val" id="test-status">—</span></div>
+      <div class="stat-row"><span class="stat-key">Канал</span><span class="stat-val" id="test-channel">—</span></div>
+      <div class="stat-row"><span class="stat-key">HTTP код</span><span class="stat-val" id="test-http">—</span></div>
+      <div class="stat-row"><span class="stat-key">Время</span><span class="stat-val" id="test-elapsed">—</span></div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn-primary btn-sm" onclick="triggerTest()">▶ Отправить</button>
+        <button class="btn-ghost btn-sm" onclick="pollTest()">↻ Обновить</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+</div><!-- /wrap -->
+
+<script>
 function toast(msg,type,ms){
-  type=type||'ok'; ms=ms||6000;
+  type=type||'ok'; ms=ms||4000;
   var t=document.getElementById('toast');
   t.textContent=msg; t.className='show '+type;
   clearTimeout(t._tid);
   t._tid=setTimeout(function(){t.className=type;},ms);
 }
-
-function colorKpi(id,val,okMin,warnMin){
-  var el=document.getElementById(id);
-  if(!el) return;
-  var cls='err';
-  if(val>=okMin) cls='ok';
-  else if(val>=warnMin) cls='warn';
-  el.className='kpi-value '+cls;
-}
-function fmt(s){
-  if(s===undefined||s===null||s==='') return '—';
-  return String(s);
-}
+function fmt(v){ return (v===undefined||v===null||v==='')?'—':String(v); }
 function fmtUptime(s){
   s=parseInt(s)||0;
-  var h=Math.floor(s/3600), m=Math.floor(s%3600/60), sec=s%60;
+  var h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;
   return (h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+function clsChannel(st){
+  if(st==='ACTIVE')  return 'ok';
+  if(st==='STANDBY') return 'warn';
+  return 'err';
 }
 function colorLog(line){
   if(/\[ERR/i.test(line)||/ERROR/i.test(line)) return '<span class="log-error">'+line+'</span>';
   if(/\[WRN/i.test(line)||/WARN/i.test(line))  return '<span class="log-warn">'+line+'</span>';
-  if(/\[DATA/i.test(line))  return '<span class="log-data">'+line+'</span>';
-  if(/\[DBG/i.test(line))   return '<span class="log-debug">'+line+'</span>';
+  if(/\[DATA/i.test(line)) return '<span class="log-data">'+line+'</span>';
+  if(/\[DBG/i.test(line))  return '<span class="log-debug">'+line+'</span>';
   return '<span class="log-info">'+line+'</span>';
 }
-function poll(){
-  fetch('/api/status').then(r=>r.json()).then(function(d){
-    document.getElementById('kpi-uptime').textContent=fmtUptime(d.uptime_s);
-    var sdOk=d.sd_ok||d.sd_status==='ok';
-    var sdEl=document.getElementById('kpi-sd');
-    sdEl.textContent=sdOk?'OK':'FAIL';
-    sdEl.className='kpi-value '+(sdOk?'ok':'err');
-    document.getElementById('kpi-sd-size').textContent=d.sd_free?d.sd_free+' free':'—';
-    var heap=parseInt(d.free_heap)||0;
-    document.getElementById('kpi-heap').textContent=heap?heap.toLocaleString():'—';
-    colorKpi('kpi-heap',heap,40000,15000);
-    var ip=d.ip||d.ip_address||'—';
-    document.getElementById('kpi-ip').textContent=ip;
-    document.getElementById('kpi-net-mode').textContent=d.net_mode||d.mode||'—';
-    document.getElementById('nav-ip').textContent=ip;
-    var rssi=parseInt(d.rssi)||0;
-    document.getElementById('kpi-rssi').textContent=rssi?rssi:'—';
-    colorKpi('kpi-rssi',rssi,-60,-80);
-    document.getElementById('kpi-save').textContent=d.last_save_time||'—';
-    document.getElementById('kpi-save-status').textContent=d.last_save_ok?'на SD':'в RAM';
-    document.getElementById('s-ssid').textContent=fmt(d.ssid);
-    document.getElementById('s-mac').textContent=fmt(d.mac);
-    document.getElementById('s-gw').textContent=fmt(d.gateway);
-    document.getElementById('s-dns').textContent=fmt(d.dns);
-    document.getElementById('s-conn').textContent=fmt(d.connections);
-    document.getElementById('s-rxtx').textContent=(d.rx_bytes||'?')+' / '+(d.tx_bytes||'?');
-    document.getElementById('s-cpu').textContent=d.cpu_load!==undefined?d.cpu_load+'%':'—';
-    document.getElementById('s-temp').textContent=d.temp_c!==undefined?d.temp_c+' °C':'—';
-    document.getElementById('s-cfgpath').textContent=fmt(d.config_path);
-    document.getElementById('s-sdwrites').textContent=fmt(d.sd_writes);
-    document.getElementById('s-fw').textContent=fmt(d.firmware);
-    document.getElementById('s-built').textContent=fmt(d.build_date);
-    var log=document.getElementById('mini-log');
-    if(d.last_lines&&Array.isArray(d.last_lines)){
-      log.innerHTML=d.last_lines.slice(-6).map(colorLog).join('\n');
-      log.scrollTop=log.scrollHeight;
+
+/* ── /api/sensors ── */
+function pollSensors(){
+  fetch('/api/sensors').then(function(r){return r.json();}).then(function(d){
+    // uptime
+    document.getElementById('kpi-uptime').textContent = fmtUptime(d.uptime_s);
+
+    // battery
+    if(d.battery){
+      var bp=parseInt(d.battery.percent)||0;
+      var bv=(parseFloat(d.battery.voltage)||0).toFixed(2);
+      var bel=document.getElementById('kpi-batt');
+      bel.textContent=bp+'%';
+      bel.className='kpi-value '+(bp>40?'ok':bp>20?'warn':'err');
+      document.getElementById('kpi-batt-v').textContent=bv+' V'+(d.battery.low?' ⚠':'');
     }
-  }).catch(function(){toast('Нет связи с устройством','err');});
+
+    // sensors grid
+    var grid=document.getElementById('sensors-grid');
+    var now=new Date(); 
+    document.getElementById('sensors-upd').textContent='обновлено '+now.toLocaleTimeString();
+    if(!d.sensors||!d.sensors.length){
+      grid.innerHTML='<div style="color:#8b949e;font-size:13px;grid-column:1/-1;padding:10px 0">Нет данных с датчиков</div>';
+      return;
+    }
+    var html='';
+    d.sensors.forEach(function(s){
+      var cls=s.valid?'ok':'err';
+      var val=s.valid?(parseFloat(s.value).toFixed(2)):'ERR';
+      html+='<div class="kpi">'
+           +'<div class="kpi-label">'+s.name+'</div>'
+           +'<div class="kpi-value '+cls+'" style="font-size:22px">'+val+'</div>'
+           +'<div class="kpi-unit">'+fmt(s.unit)+'</div>'
+           +'</div>';
+    });
+    grid.innerHTML=html;
+  }).catch(function(){ document.getElementById('kpi-uptime').textContent='ERR'; });
 }
-poll(); setInterval(poll,5000);
+
+/* ── /api/channels ── */
+function pollChannels(){
+  fetch('/api/channels').then(function(r){return r.json();}).then(function(d){
+    var ch=d.channels||[];
+    // KPI карточки
+    var kpiMap={'Ethernet W5500':'kpi-eth','GSM Air780E':'kpi-gsm','WiFi ESP8266':'kpi-wifi','Iridium SBD':'kpi-iridium'};
+    ch.forEach(function(c){
+      var id=kpiMap[c.name];
+      if(!id) return;
+      var el=document.getElementById(id);
+      el.textContent=c.status;
+      el.className='kpi-value '+clsChannel(c.status);
+    });
+    // IP в ETH kpi-unit
+    if(d.eth_ip) document.getElementById('kpi-eth-ip').textContent=d.eth_ip;
+    document.getElementById('nav-ip').textContent=d.eth_ip||d.ip||'—';
+    // таблица каналов
+    var tbody=document.getElementById('channels-tbody');
+    if(!ch.length){ tbody.innerHTML='<tr><td colspan="3" style="color:#8b949e">Нет данных</td></tr>'; return; }
+    var rows='';
+    ch.forEach(function(c){
+      var cls=clsChannel(c.status);
+      rows+='<tr>'
+           +'<td>'+c.name+'</td>'
+           +'<td><span class="badge badge-'+cls+'">'+c.status+'</span></td>'
+           +'<td style="color:#8b949e">'+fmt(c.priority)+'</td>'
+           +'</tr>';
+    });
+    tbody.innerHTML=rows;
+  }).catch(function(){});
+}
+
+/* ── /api/config ── */
+function pollConfig(){
+  fetch('/api/config').then(function(r){return r.json();}).then(function(d){
+    // конфиг блок
+    var protoMap={'https_tb':'HTTPS ThingsBoard','mqtt_tb':'MQTT ThingsBoard',
+      'mqtt_gen':'MQTT Generic','webhook':'HTTP Webhook'};
+    document.getElementById('c-proto').textContent  = protoMap[d.proto||d.protocol]||fmt(d.proto||d.protocol);
+    document.getElementById('c-server').textContent = fmt(d.server_url||d.tb_host||d.mqtt_host||d.webhook_url);
+    document.getElementById('c-poll').textContent   = fmt(d.poll_interval_s||d.poll_interval_sec)+'s / '+fmt(d.send_interval_polls)+' опросов';
+    document.getElementById('c-ntp').textContent    = (d.ntp_enabled?'✓ ':'✗ ')+fmt(d.ntp_server);
+    document.getElementById('c-webmode').textContent= d.web_exclusive_mode?'Эксклюзивный':'Фоновый';
+    document.getElementById('c-webtout').textContent= fmt(d.web_idle_timeout_s)+' с';
+    document.getElementById('c-auth').textContent   = d.web_auth_enabled?'✓ Включена':'✗ Отключена';
+    document.getElementById('c-tcpm').textContent   = d.mtcpm_en?'✓ Включён':'—';
+    document.getElementById('c-tcps').textContent   = d.mtcps_en?('✓ порт '+fmt(d.sl_port)):'—';
+    document.getElementById('c-alerts').textContent = d.alerts_enabled?'✓ Включены':'—';
+    // сеть блок
+    document.getElementById('s-eth-ip').textContent = fmt(d.eth_ip);
+    document.getElementById('s-dhcp').textContent   = d.eth_dhcp?'DHCP':'Static';
+    document.getElementById('s-gw').textContent     = fmt(d.eth_gw);
+    document.getElementById('s-dns').textContent    = fmt(d.eth_dns);
+    document.getElementById('s-ssid').textContent   = fmt(d.wifi_ssid)||'—';
+    document.getElementById('s-apn').textContent    = fmt(d.gsm_apn)||'—';
+    var ord=d.chain_order;
+    document.getElementById('s-chain').textContent  = Array.isArray(ord)?ord.join('→'):fmt(ord);
+  }).catch(function(){});
+}
+
+/* ── /api/logs ── */
+function pollLogs(){
+  fetch('/api/logs?count=6').then(function(r){return r.json();}).then(function(d){
+    var log=document.getElementById('mini-log');
+    var lines=d.lines||d.last_lines||[];
+    if(lines.length) log.innerHTML=lines.slice(-6).map(colorLog).join('<br>');
+  }).catch(function(){});
+}
+
+/* ── /api/test_result ── */
+function pollTest(){
+  fetch('/api/test_result').then(function(r){return r.json();}).then(function(d){
+    document.getElementById('test-status').textContent  = fmt(d.status);
+    document.getElementById('test-channel').textContent = fmt(d.channel);
+    document.getElementById('test-http').textContent    = d.http_code||'—';
+    document.getElementById('test-elapsed').textContent = d.elapsed_ms?d.elapsed_ms+' ms':'—';
+  }).catch(function(){});
+}
+function triggerTest(){
+  fetch('/api/test_send',{method:'POST'}).then(function(){
+    toast('Тест запущен…','ok');
+    setTimeout(pollTest, 3000);
+  }).catch(function(){toast('Нет связи','err');});
+}
+
+/* ── главный цикл ── */
+function pollAll(){
+  pollSensors();
+  pollChannels();
+  pollConfig();
+  pollLogs();
+  pollTest();
+}
+
+pollAll();
+setInterval(function(){ pollSensors(); pollChannels(); pollLogs(); }, 5000);
+setInterval(pollConfig, 30000);
+setInterval(pollTest,   10000);
 </script>
 </body>
 </html>
