@@ -488,6 +488,7 @@ struct RuntimeConfig
 /// @brief Access the singleton RuntimeConfig instance.
 /// @return Reference to the global Cfg singleton.
 RuntimeConfig& Cfg();
+RuntimeConfig& CfgBackup();  ///< Second singleton used as scratch/rollback buffer in handlePostConfig
 
 /// Default filename used for SD card persistence.
 constexpr const char* RUNTIME_CONFIG_FILENAME = "0:/runtime_config.json";
