@@ -867,7 +867,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     ftoa6(sensor_zero_level, zStr, sizeof(zStr));
     ftoa6(sensor_divider,    dStr, sizeof(dStr));
 
-    static char json[10240];
+    static char json[20480];
     int n = 0;
 
     n += std::snprintf(json+n, sizeof(json)-n,
@@ -1124,6 +1124,54 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     }
     if (n<=0||n>=(int)sizeof(json)) goto overflow;
 
+    // ── tcp_devs[] ────────────────────────────────────────────────────────────
+    {
+        char tb[256];
+        int k = std::snprintf(json+n, sizeof(json)-n, ",\"tcp_devs\":[");
+        if (k<0||n+k>=(int)sizeof(json)) goto overflow; n+=k;
+        for (uint8_t i=0; i<tcp_master.device_count && i<ModbusTcpMasterConfig::MAX_TCP_DEVICES; i++) {
+            const ModbusTcpDeviceCfg& d = tcp_master.devices[i];
+            k = std::snprintf(tb, sizeof(tb),
+                "%s{\"en\":%s,\"ip\":\"%s\",\"port\":%u,\"uid\":%u,\"nm\":\"%s\","
+                "\"fc\":%u,\"rs\":%u,\"rc\":%u,\"dt\":%u,\"sc\":%.6g,\"of\":%.6g,"
+                "\"un\":\"%s\",\"ci\":%u,\"pms\":%u,\"cms\":%u,\"sk\":%u}",
+                i==0?"":",",
+                d.enabled?"true":"false", d.ip,
+                (unsigned)d.port, (unsigned)d.unit_id, d.name,
+                (unsigned)d.func_code, (unsigned)d.reg_start, (unsigned)d.reg_count,
+                (unsigned)d.data_type, (double)d.scale, (double)d.offset,
+                d.unit, (unsigned)d.channel_idx,
+                (unsigned)d.poll_timeout_ms, (unsigned)d.connect_timeout_ms,
+                (unsigned)d.w5500_socket);
+            if (k<0||n+k>=(int)sizeof(json)) goto overflow;
+            std::memcpy(json+n, tb, (size_t)k); n+=k;
+        }
+        k = std::snprintf(json+n, sizeof(json)-n, "]");
+        if (k<0||n+k>=(int)sizeof(json)) goto overflow; n+=k;
+    }
+
+    // ── sl_regs[] ─────────────────────────────────────────────────────────────
+    {
+        char rb[128];
+        int k = std::snprintf(json+n, sizeof(json)-n, ",\"sl_regs\":[");
+        if (k<0||n+k>=(int)sizeof(json)) goto overflow; n+=k;
+        for (uint8_t i=0; i<tcp_slave.reg_count && i<ModbusTcpSlaveConfig::MAX_REGS; i++) {
+            const ModbusTcpSlaveRegEntry& re = tcp_slave.reg_map[i];
+            k = std::snprintf(rb, sizeof(rb),
+                "%s{\"ad\":%u,\"si\":%u,\"dt\":%u,\"sc\":%.6g,\"un\":\"%s\",\"nm\":\"%s\"}",
+                i==0?"":",",
+                (unsigned)re.reg_addr, (unsigned)re.source, (unsigned)re.data_type,
+                (double)re.scale, re.unit, re.name);
+            if (k<0||n+k>=(int)sizeof(json)) goto overflow;
+            std::memcpy(json+n, rb, (size_t)k); n+=k;
+        }
+        k = std::snprintf(json+n, sizeof(json)-n, "]");
+        if (k<0||n+k>=(int)sizeof(json)) goto overflow; n+=k;
+    }
+
+    if (n<=0||n>=(int)sizeof(json)) goto overflow;
+
+    // ── Запись на SD по чанкам 512 байт ──────────────────────────────────────
     {
         FIL f;
         char tmpName[64];
@@ -1131,18 +1179,29 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
         f_unlink(tmpName);
         FRESULT fr = f_open(&f, tmpName, FA_CREATE_ALWAYS|FA_WRITE);
         if (fr != FR_OK) { DBG.error("CFG: open temp file fail fr=%d",(int)fr); return false; }
-        UINT bw=0;
-        fr = f_write(&f, json, (UINT)std::strlen(json), &bw);
+        const uint32_t total = (uint32_t)n;
+        uint32_t written = 0;
+        bool wok = true;
+        while (written < total) {
+            UINT chunk = (UINT)((total - written) > 512u ? 512u : (total - written));
+            UINT bw = 0;
+            fr = f_write(&f, json + written, chunk, &bw);
+            if (fr != FR_OK || bw != chunk) {
+                DBG.error("CFG: write fail at %lu fr=%d bw=%u", (unsigned long)written, (int)fr, (unsigned)bw);
+                wok = false; break;
+            }
+            written += bw;
+        }
         f_close(&f);
-        if (fr!=FR_OK||bw==0) { DBG.error("CFG: write fail fr=%d bw=%u",(int)fr,(unsigned)bw); f_unlink(tmpName); return false; }
+        if (!wok) { f_unlink(tmpName); return false; }
         f_unlink(filename);
         fr = f_rename(tmpName, filename);
         if (fr!=FR_OK) { DBG.error("CFG: rename fail %s->%s fr=%d",tmpName,filename,(int)fr); return false; }
-        DBG.info("CFG: saved %s (%u bytes)", filename,(unsigned)bw);
+        DBG.info("CFG: saved %s (%lu bytes)", filename, (unsigned long)written);
         return true;
     }
 overflow:
-    DBG.error("CFG: save JSON overflow");
+    DBG.error("CFG: save JSON overflow (n=%d max=%d)", n, (int)sizeof(json));
     return false;
 }
 
