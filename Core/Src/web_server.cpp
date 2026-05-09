@@ -4000,7 +4000,9 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
         const char* r="{\"error\":\"empty body\"}";
         sendResponse(sn,400,"application/json",r,(uint16_t)std::strlen(r)); return;
     }
-    RuntimeConfig newCfg=Cfg();
+    // RuntimeConfig (~5KB) must NOT live on the stack (8KB total) — use static .bss storage
+    static RuntimeConfig newCfg;
+    newCfg = Cfg();
     if(newCfg.loadFromJson(body,std::strlen(body))){
         Cfg()=newCfg;
         bool sdSaved = Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
