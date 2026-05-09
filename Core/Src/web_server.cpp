@@ -4000,11 +4000,9 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
         const char* r="{\"error\":\"empty body\"}";
         sendResponse(sn,400,"application/json",r,(uint16_t)std::strlen(r)); return;
     }
-    // RuntimeConfig (~5KB) must NOT live on the stack (8KB total) — use static .bss storage
-    static RuntimeConfig newCfg;
-    newCfg = Cfg();
-    if(newCfg.loadFromJson(body,std::strlen(body))){
-        Cfg()=newCfg;
+    // Use CfgBackup() as rollback buffer — both singletons live in .bss, never on stack
+    CfgBackup() = Cfg();
+    if(Cfg().loadFromJson(body,std::strlen(body))){
         bool sdSaved = Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
         if (sdSaved) m_sdOk = true;
 
@@ -4021,6 +4019,7 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
         sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
         DBG.info("WebServer: config updated in RAM, sd_saved=%d", (int)sdSaved);
     }else{
+        Cfg() = CfgBackup();  // rollback — parse failed
         const char* r="{\"error\":\"JSON parse failed\"}";
         sendResponse(sn,400,"application/json",r,(uint16_t)std::strlen(r));
     }
