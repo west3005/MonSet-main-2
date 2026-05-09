@@ -188,6 +188,16 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 </div></details>
 <details><summary>H: Время и NTP</summary><div class="sc">
 <div class="r"><div class="tg"><input type="checkbox" id="ntp_enabled" onchange="c('ntp_enabled',this.checked)"><span>NTP</span></div><div class="f"><label>Сервер</label><input type="text" id="ntp_server" value="pool.ntp.org" onchange="c('ntp_server',this.value)"></div><div class="f" style="max-width:130px"><label>Часовой пояс</label><select id="tz_off" onchange="c('tz_off',+this.value)"></select></div></div>
+<div style="border-top:1px solid #30363d;margin:10px 0 8px"></div>
+<div style="font-size:11px;font-weight:600;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Ручная установка времени (DS3231)</div>
+<div class="r" style="align-items:flex-end;gap:8px">
+  <div class="f"><label>Дата и время</label><input type="datetime-local" id="manual_dt" style="max-width:220px"></div>
+  <button class="btn" onclick="setManualTime()" style="margin-bottom:0;flex-shrink:0">Установить</button>
+  <span id="settime_msg" class="msg" style="display:inline-block"></span>
+</div>
+<div style="font-size:11px;color:#8b949e;margin-top:6px">Текущее время RTC: <span id="rtc_now" style="font-family:monospace;color:#c9d1d9">—</span>
+  <button class="btn s" style="padding:2px 8px;font-size:11px;margin-left:8px" onclick="loadRtcTime()">↻</button>
+</div>
 </div></details>
 <details><summary>I: Веб и безопасность</summary><div class="sc">
 <div class="r"><div class="f"><label>Пользователь</label><input type="text" id="web_user" value="admin" onchange="c('web_user',this.value)"></div><div class="f"><label>Пароль</label><input type="password" id="web_pass" onchange="c('web_pass',this.value)"></div><div class="f" style="max-width:80px"><label>Порт</label><input type="number" id="web_port" value="80" onchange="c('web_port',+this.value)"></div></div>
@@ -425,6 +435,8 @@ function exp(){
 }
 
 window.addEventListener('DOMContentLoaded',function(){
+  var now=new Date();var pad=function(n){return n<10?"0"+n:n};document.getElementById("manual_dt").value=now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate())+"T"+pad(now.getHours())+":"+pad(now.getMinutes());loadRtcTime();
+
   initTZ();rndOrd();
   for(var p=0;p<3;p++){rtu.push({en:false,baud:9600,sb:1,par:'None',rms:500,fms:3,devs:[]});document.getElementById('tp'+p).innerHTML=rtuH(p)}
   initSns(4);
