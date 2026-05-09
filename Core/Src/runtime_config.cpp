@@ -696,6 +696,84 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     { uint16_t v16=0;
       if (jsonGetU16(json,"sl_ctms",v16))           tmp.tcp_slave.connection_timeout_ms = v16; }
 
+    // Modbus TCP Master devices array
+    {
+        const char* tcpKey = "\"tcp_devs\":[";
+        const char* tp = std::strstr(json, tcpKey);
+        if (tp) {
+            tp += std::strlen(tcpKey);
+            tmp.tcp_master.device_count = 0;
+            while (*tp && *tp != ']' &&
+                   tmp.tcp_master.device_count < ModbusTcpMasterConfig::MAX_TCP_DEVICES) {
+                while (*tp && *tp != '{' && *tp != ']') tp++;
+                if (!*tp || *tp == ']') break;
+                const char* os = tp; int dep = 0; const char* q = tp;
+                while (*q) {
+                    if (*q=='{') dep++;
+                    else if (*q=='}') { dep--; if(dep==0){q++;break;} }
+                    q++;
+                }
+                static char tb[512];
+                size_t tl = (size_t)(q-os); if(tl>=sizeof(tb)) tl=sizeof(tb)-1;
+                std::memcpy(tb,os,tl); tb[tl]='\0';
+                ModbusTcpDeviceCfg& d = tmp.tcp_master.devices[tmp.tcp_master.device_count];
+                jsonGetBool  (tb,"en",   d.enabled);
+                jsonGetString(tb,"ip",   d.ip,   sizeof(d.ip));
+                jsonGetU16   (tb,"port", d.port);
+                jsonGetU8    (tb,"uid",  d.unit_id);
+                jsonGetString(tb,"nm",   d.name, sizeof(d.name));
+                jsonGetString(tb,"un",   d.unit, sizeof(d.unit));
+                jsonGetU8    (tb,"fc",   d.func_code);
+                jsonGetU16   (tb,"rs",   d.reg_start);
+                jsonGetU8    (tb,"rc",   d.reg_count);
+                { uint8_t dtv=0; if(jsonGetU8(tb,"dt",dtv)) d.data_type=dtv; }
+                jsonGetF32   (tb,"sc",   d.scale);
+                jsonGetF32   (tb,"of",   d.offset);
+                jsonGetU8    (tb,"ci",   d.channel_idx);
+                jsonGetU16   (tb,"pms",  d.poll_timeout_ms);
+                jsonGetU16   (tb,"cms",  d.connect_timeout_ms);
+                jsonGetU8    (tb,"sk",   d.w5500_socket);
+                tmp.tcp_master.device_count++;
+                tp = q;
+                while (*tp == ',') tp++;
+            }
+        }
+    }
+
+    // Modbus TCP Slave register map
+    {
+        const char* slKey = "\"sl_regs\":[";
+        const char* sp = std::strstr(json, slKey);
+        if (sp) {
+            sp += std::strlen(slKey);
+            tmp.tcp_slave.reg_count = 0;
+            while (*sp && *sp != ']' &&
+                   tmp.tcp_slave.reg_count < ModbusTcpSlaveConfig::MAX_REGS) {
+                while (*sp && *sp != '{' && *sp != ']') sp++;
+                if (!*sp || *sp == ']') break;
+                const char* os2 = sp; int dep2 = 0; const char* q2 = sp;
+                while (*q2) {
+                    if (*q2=='{') dep2++;
+                    else if (*q2=='}') { dep2--; if(dep2==0){q2++;break;} }
+                    q2++;
+                }
+                static char rb[256];
+                size_t rl = (size_t)(q2-os2); if(rl>=sizeof(rb)) rl=sizeof(rb)-1;
+                std::memcpy(rb,os2,rl); rb[rl]='\0';
+                ModbusTcpSlaveRegEntry& re = tmp.tcp_slave.reg_map[tmp.tcp_slave.reg_count];
+                jsonGetU16   (rb,"ad", re.reg_addr);
+                jsonGetU8    (rb,"si", re.source);
+                { uint8_t dtv=0; if(jsonGetU8(rb,"dt",dtv)) re.data_type=dtv; }
+                jsonGetF32   (rb,"sc", re.scale);
+                jsonGetString(rb,"un", re.unit, sizeof(re.unit));
+                jsonGetString(rb,"nm", re.name, sizeof(re.name));
+                tmp.tcp_slave.reg_count++;
+                sp = q2;
+                while (*sp == ',') sp++;
+            }
+        }
+    }
+
     // Alerts
     { bool en=false;  if(jsonGetBool  (json,"alerts_enabled",          en)) tmp.alerts.alerts_enabled           = en; }
     { float fv=0.0f;  if(jsonGetF32   (json,"batt_low",               fv)) tmp.alerts.battery_low_threshold_pct= fv; }
