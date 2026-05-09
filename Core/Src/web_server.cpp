@@ -4698,6 +4698,8 @@ void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
         else if(std::strcmp(cleanPath,"/api/sd-test")==0)  handleApiSdTest(sn);
         else if(std::strcmp(cleanPath,"/files")==0||
                 std::strcmp(cleanPath,"/files.html")==0)         handleFiles(sn);
+        else if(std::strcmp(cleanPath,"/test")==0||
+                std::strcmp(cleanPath,"/test.html")==0)           serveFile(sn,"0:/www/test.html","text/html");
         else if(std::strncmp(cleanPath,"/api/files",10)==0)      handleApiFiles(sn,queryStr,request);
         else if(std::strncmp(cleanPath,"/api/download",13)==0)   handleApiDownload(sn,queryStr,request);
         else{
