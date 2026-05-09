@@ -444,6 +444,7 @@ void App::init() {
     // Если W5500 ещё не поднят (DHCP не ответил) — init() выставит m_running=false
     // и флаг m_webStartPending=true. Повторная попытка каждую итерацию run().
     m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+    m_webServer.setRtc(&m_rtc);
     m_webServer.setSdOk(m_sdOk);
     if (!m_webServer.isRunning()) {
         DBG.info("[9/9] WebServer: deferred start pending (eth not ready)");
@@ -500,6 +501,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
         if (m_webStartPending) {
             if (ensureEthReady()) {
                 m_webServer.init(&m_sensor, &m_sdBackup, &m_battery, this);
+                m_webServer.setRtc(&m_rtc);
                 m_webServer.setSdOk(m_sdOk);
                 if (m_webServer.isRunning()) {
                     m_webStartPending = false;
@@ -644,7 +646,22 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
             DBG.info("...wake");
             wokeFromStop = true;
         } else {
-            CfgUartBridge_DelayMs(Cfg().poll_interval_sec * 1000UL);
+            // Debug mode: wait poll_interval but keep web + IWDG alive
+            uint32_t t0 = HAL_GetTick();
+            const uint32_t waitMs = Cfg().poll_interval_sec * 1000UL;
+            while ((HAL_GetTick() - t0) < waitMs) {
+                CfgUartBridge_Tick();
+                if (eth.ready()) eth.tick();
+                if (m_webServer.isRunning()) m_webServer.tick();
+                checkWebTimeout();
+                IWDG->KR = 0xAAAAU;
+                // Выходим немедленно при входящем TCP-соединении (до первого запроса)
+                // или когда браузер уже активен (m_webActive выставлен handleRequest)
+                if (m_webActive
+                    || getSn_SR(WebServer::HTTP_SOCKET) == SOCK_ESTABLISHED
+                    || getSn_RX_RSR(WebServer::HTTP_SOCKET) > 0) break;
+                HAL_Delay(5);
+            }
             wokeFromStop = false;
         }
 

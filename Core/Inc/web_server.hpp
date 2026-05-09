@@ -7,6 +7,7 @@
 #pragma once
 
 #include "runtime_config.hpp"
+#include "ds3231.hpp"
 #include "sensor_reader.hpp"
 #include "sd_backup.hpp"
 #include <cstdint>
@@ -29,6 +30,7 @@ public:
      *  Call after App::init() once m_sdOk is known.
      *  When false, POST /api/config applies changes in RAM only. */
     void setSdOk(bool ok) { m_sdOk = ok; }
+    void setRtc(DS3231* rtc) { m_rtc = rtc; }  ///< Bind DS3231 for /api/settime
 
     /**
      * sendResponse — public.
@@ -40,18 +42,20 @@ public:
     void sendResponse(uint8_t sn, int code, const char* contentType,
                       const char* body, uint16_t bodyLen);
 
+    static constexpr uint8_t HTTP_SOCKET = 5;  ///< W5500 socket number (public for break-on-connect)
+
 private:
     SensorReader*   m_sensor  = nullptr;
     SdBackup*       m_backup  = nullptr;
     BatteryMonitor* m_battery = nullptr;
     App*            m_app     = nullptr;
+    DS3231*         m_rtc     = nullptr;  ///< RTC for /api/settime
     bool            m_running = false;
     bool            m_sdOk    = false;  ///< SD card available (set via setSdOk)
 
     void (*m_activityCb)(void*) = nullptr;
     void*  m_activityCtx        = nullptr;
 
-    static constexpr uint8_t  HTTP_SOCKET = 5;
     static constexpr uint16_t HTTP_PORT   = 80;
 
     static constexpr uint16_t REQ_BUF_SIZE  = 12288;
@@ -103,6 +107,7 @@ private:
 
     // POST
     void handlePostConfig(uint8_t sn, const char* body);
+    void handleApiSetTime(uint8_t sn, const char* body);  ///< POST /api/settime
     void handleApiSdTest(uint8_t sn);   ///< GET /api/sd-test — пошаговая диагностика записи на SD
     void handleFiles(uint8_t sn);
     void handleApiFiles(uint8_t sn, const char* path, const char* request);   ///< GET /api/files?path= — листинг SD
