@@ -19,7 +19,9 @@ extern "C" {
 }
 
 static RuntimeConfig g_cfg;
-RuntimeConfig& Cfg() { return g_cfg; }
+static RuntimeConfig g_cfg_backup;  // scratch buffer for handlePostConfig rollback
+RuntimeConfig& Cfg()       { return g_cfg; }
+RuntimeConfig& CfgBackup() { return g_cfg_backup; }
 
 // -----------------------------------------------------------------------------
 // Helpers
@@ -867,7 +869,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     ftoa6(sensor_zero_level, zStr, sizeof(zStr));
     ftoa6(sensor_divider,    dStr, sizeof(dStr));
 
-    static char json[20480];
+    static char json[10240];
     int n = 0;
 
     n += std::snprintf(json+n, sizeof(json)-n,
