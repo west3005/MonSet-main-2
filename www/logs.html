@@ -115,110 +115,216 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 #toast.warn{background:#2a2200;color:#e3b341;border:1px solid #e3b34144}
 #toast.err{background:#3a1a1a;color:#f87171;border:1px solid #f8717144}
 @media(max-width:600px){.two-col,.kpi-grid{grid-template-columns:1fr}.sidebar{width:44px;min-width:44px}}
+
+
+/* ── Log-specific styles ── */
+.log-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 10px 0}
+.filter-btn{padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #1e3a5f;background:transparent;color:#8b949e;transition:all .15s;white-space:nowrap}
+.filter-btn:hover{border-color:#2dd4bf;color:#c9d1d9}
+.filter-btn.active{color:#0e1117;border-color:transparent}
+.filter-btn.f-all.active,.filter-btn.f-info.active{background:#4a9fd4}
+.filter-btn.f-data.active{background:#2dd4bf;color:#0e1117}
+.filter-btn.f-warn.active{background:#e3b341;color:#0e1117}
+.filter-btn.f-err.active{background:#f87171;color:#0e1117}
+.search-box{flex:1;min-width:140px;max-width:280px;background:#09111e;border:1px solid #1e3a5f;border-radius:6px;color:#c9d1d9;padding:5px 10px;font-size:12px}
+.search-box:focus{outline:none;border-color:#2dd4bf}
+.search-box::placeholder{color:#4a6070}
+.log-stats{font-size:11px;color:#8b949e;margin-left:auto;white-space:nowrap}
+.log-table-wrap{margin:10px;border:1px solid #1e3a5f;border-radius:8px;overflow:hidden}
+.log-table{width:100%;border-collapse:collapse;font-size:12px;font-family:monospace}
+.log-table thead th{background:#09111e;color:#8b949e;padding:7px 10px;text-align:left;border-bottom:1px solid #1e3a5f;font-family:system-ui,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;position:sticky;top:0;z-index:2}
+.log-table tbody tr{border-bottom:1px solid #0d1e30}
+.log-table tbody tr:last-child{border-bottom:none}
+.log-table tbody tr:hover td{background:rgba(74,159,212,0.05)}
+.log-table td{padding:5px 10px;vertical-align:top;line-height:1.5}
+.td-idx{color:#4a6070;width:46px;text-align:right;padding-right:14px;user-select:none}
+.td-time{color:#4a9fd4;width:80px;white-space:nowrap}
+.td-lvl{width:46px}
+.td-msg{color:#c9d1d9;word-break:break-all}
+tr.lvl-WARN td{background:rgba(227,179,65,0.04)}
+tr.lvl-ERR  td{background:rgba(248,113,113,0.06)}
+tr.lvl-DATA td{background:rgba(45,212,191,0.03)}
+.lvl-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.lvl-INFO{background:#0d2040;color:#4a9fd4}
+.lvl-WARN{background:#2a2200;color:#e3b341}
+.lvl-ERR{background:#3a1a1a;color:#f87171}
+.lvl-DATA{background:#0d3028;color:#2dd4bf}
+.lvl-DBG{background:#1c2535;color:#8b949e}
+mark{background:#e3b34133;color:inherit;border-radius:2px}
+.log-footer{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#09111e;border-top:1px solid #1e3a5f;font-size:12px;color:#8b949e}
+.log-scroll{height:calc(100dvh - 220px);min-height:300px;overflow-y:auto}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#2dd4bf;display:inline-block;margin-right:4px;animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.live-dot.paused{animation:none;background:#4a6070}
 </style>
 </head>
 <body>
 <aside class="sidebar">
 <div class="sidebar-logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><polygon points="12,2 15.5,8.5 22,9.5 17,14.5 18.5,21 12,17.5 5.5,21 7,14.5 2,9.5 8.5,8.5" stroke="#2dd4bf" stroke-width="1.5" fill="rgba(45,212,191,0.1)"/></svg></div>
-<a href="/" title="Dashboard"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></a><a href="/config" title="Config"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></a><a href="/logs" class="act" title="Logs"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h4"/></svg></a><a href="/files" title="Files"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></a>
+<a href="/" title="Dashboard"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg></a>
+<a href="/config" title="Config"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></a>
+<a href="/logs" class="act" title="Logs"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></a>
+<a href="/files" title="Files"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></a>
 <a href="/test" title="Test"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></a>
 <div class="sidebar-spacer"></div>
-<span class="sidebar-ver">v2</span>
+<div class="sidebar-ver">MonSet</div>
 </aside>
 <div class="wrap">
-<div class="topbar">
-<span class="topbar-title">Logs</span>
-<span class="topbar-ip" id="nav-ip">—</span>
-</div>
-<main style="max-width:1200px">
-  <h1 class="page-title">Logs</h1>
-  <div class="log-toolbar">
-    <label style="margin:0;white-space:nowrap">Уровень:</label>
-    <select id="ll-filter" style="width:110px">
-      <option value="">Все</option>
-      <option value="ERR">ERROR</option>
-      <option value="WRN">WARN</option>
-      <option value="INF">INFO</option>
-      <option value="DBG">DEBUG</option>
-      <option value="DATA">DATA</option>
-    </select>
-    <label style="margin:0;white-space:nowrap">Строк:</label>
-    <select id="ll-lines">
-      <option value="100">100</option>
-      <option value="250" selected>250</option>
-      <option value="500">500</option>
-      <option value="1000">1000</option>
-    </select>
-    <button class="btn btn-ghost btn-sm" id="btn-pause" onclick="togglePause()">⏸ Пауза</button>
-    <button class="btn btn-ghost btn-sm" onclick="saveLog()">💾 Скачать</button>
-    <button class="btn btn-ghost btn-sm" onclick="clearView()">✕ Очистить</button>
-    <label id="autoscroll-lbl" style="margin:0;display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--muted)">
-      <input type="checkbox" id="cb-autoscroll" checked> авто-скролл
-    </label>
-    <span style="flex:1"></span>
-    <span id="log-count" style="font-size:11px;color:var(--faint);font-family:var(--mono)"></span>
+  <div class="topbar">
+    <span class="topbar-title">Logs</span>
+    <span class="topbar-ip" id="nav-ip">—</span>
   </div>
-  <div id="log-output" class="log-data"></div>
-</main>
-<div id="toast"></div>
+  <main style="padding:0 0 10px">
+    <h1 class="page-title">Журнал событий</h1>
+    <div class="log-toolbar">
+      <button class="filter-btn f-all active" onclick="setFilter('ALL')" id="fb-ALL">Все</button>
+      <button class="filter-btn f-info"        onclick="setFilter('INFO')" id="fb-INFO">INFO</button>
+      <button class="filter-btn f-data"        onclick="setFilter('DATA')" id="fb-DATA">DATA</button>
+      <button class="filter-btn f-warn"        onclick="setFilter('WARN')" id="fb-WARN">WARN</button>
+      <button class="filter-btn f-err"         onclick="setFilter('ERR')"  id="fb-ERR">ERR</button>
+      <input class="search-box" id="search-box" type="text" placeholder="Поиск…" oninput="onSearch()" autocomplete="off">
+      <span class="log-stats" id="log-stats">— строк</span>
+    </div>
+    <div style="display:flex;gap:8px;padding:8px 10px 0;flex-wrap:wrap;align-items:center">
+      <button class="btn-ghost btn-sm" onclick="toggleLive()" id="btn-live"><span class="live-dot" id="live-dot"></span>Live</button>
+      <button class="btn-ghost btn-sm" onclick="loadAll()">↻ Обновить</button>
+      <button class="btn-ghost btn-sm" onclick="scrollBottom()">↓ В конец</button>
+      <a href="/api/logs/export" class="btn-ghost btn-sm" style="text-decoration:none">⬇ Скачать .log</a>
+      <button class="btn-danger btn-sm" onclick="clearLog()" style="margin-left:auto">✕ Очистить</button>
+    </div>
+    <div class="log-table-wrap" style="margin-top:10px">
+      <div class="log-scroll" id="log-scroll">
+        <table class="log-table">
+          <thead><tr>
+            <th class="td-idx">#</th>
+            <th class="td-time">Время</th>
+            <th class="td-lvl">Уровень</th>
+            <th>Сообщение</th>
+          </tr></thead>
+          <tbody id="log-tbody">
+            <tr><td colspan="4" style="color:#8b949e;padding:16px 10px">Загрузка…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="log-footer">
+        <span id="footer-info">—</span>
+        <span style="margin-left:auto"><span class="live-dot" id="live-dot2"></span><span id="live-label">Live</span></span>
+      </div>
+    </div>
+  </main>
 </div>
 <div id="toast"></div>
 <script>
+var allLines=[],filter='ALL',searchQ='',liveActive=true,liveTimer=null,lastTotal=0,BATCH=100;
 
 function toast(msg,type,ms){
-  type=type||'ok'; ms=ms||6000;
+  type=type||'ok';ms=ms||3000;
   var t=document.getElementById('toast');
-  t.textContent=msg; t.className='show '+type;
-  clearTimeout(t._tid);
-  t._tid=setTimeout(function(){t.className=type;},ms);
+  t.textContent=msg;t.className='show '+type;
+  clearTimeout(t._tid);t._tid=setTimeout(function(){t.className=type;},ms);
 }
-
-var paused=false;
-var lastRaw=[];
-function togglePause(){
-  paused=!paused;
-  document.getElementById('btn-pause').textContent=paused?'▶ Продолжить':'⏸ Пауза';
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function highlight(text,q){
+  if(!q) return escHtml(text);
+  var re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  return escHtml(text).replace(re,'<mark>$1</mark>');
 }
-function colorLine(line){
-  var t=line.toUpperCase();
-  if(/\[ERR/.test(t)||/ERROR/.test(t)) return '<span class="log-error">'+escH(line)+'</span>';
-  if(/\[WRN/.test(t)||/WARN/.test(t))  return '<span class="log-warn">'+escH(line)+'</span>';
-  if(/\[DATA/.test(t))                 return '<span class="log-data">'+escH(line)+'</span>';
-  if(/\[DBG/.test(t)||/DEBUG/.test(t)) return '<span class="log-debug">'+escH(line)+'</span>';
-  return '<span class="log-info">'+escH(line)+'</span>';
+function parseLine(raw,idx){
+  var m=raw.match(/^\[([\d:]+)\]\s+(\S+)\s+(.*)$/);
+  if(m) return {i:idx,t:m[1],l:m[2].trim(),m:m[3]};
+  return {i:idx,t:'',l:'INFO',m:raw};
 }
-function escH(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function applyFilter(lines){
-  var f=document.getElementById('ll-filter').value.toUpperCase();
-  if(!f) return lines;
-  return lines.filter(function(l){return l.toUpperCase().indexOf(f)>=0;});
+function lvlBadge(lvl){
+  var l=lvl.trim();
+  var c=l==='WARN'?'lvl-WARN':l==='ERR'?'lvl-ERR':l==='DATA'?'lvl-DATA':l==='DBG'?'lvl-DBG':'lvl-INFO';
+  return '<span class="lvl-badge '+c+'">'+l+'</span>';
 }
-function poll(){
-  if(paused) return;
-  var n=document.getElementById('ll-lines').value;
-  fetch('/api/logs?n='+n+'&format=array').then(r=>r.json()).then(function(d){
-    var lines=Array.isArray(d)?d:(d.lines||[]);
-    lastRaw=lines;
-    render(lines);
+function lineOk(o){
+  var l=o.l.trim();
+  if(filter!=='ALL'&&l!==filter) return false;
+  if(searchQ&&o.m.toLowerCase().indexOf(searchQ)<0&&o.t.indexOf(searchQ)<0&&l.toLowerCase().indexOf(searchQ)<0) return false;
+  return true;
+}
+function makeRow(o){
+  var l=o.l.trim();
+  var rc=l==='WARN'?'lvl-WARN':l==='ERR'?'lvl-ERR':l==='DATA'?'lvl-DATA':'';
+  return '<tr class="'+rc+'"><td class="td-idx">'+o.i+'</td><td class="td-time">'+escHtml(o.t)+'</td><td class="td-lvl">'+lvlBadge(o.l)+'</td><td class="td-msg">'+highlight(o.m,searchQ)+'</td></tr>';
+}
+function render(){
+  var rows='',shown=0;
+  for(var i=0;i<allLines.length;i++){if(lineOk(allLines[i])){rows+=makeRow(allLines[i]);shown++;}}
+  document.getElementById('log-tbody').innerHTML=rows||'<tr><td colspan="4" style="color:#8b949e;padding:16px 10px">Нет записей</td></tr>';
+  document.getElementById('log-stats').textContent=shown+' / '+allLines.length+' строк';
+  document.getElementById('footer-info').textContent='Показано '+shown+' из '+allLines.length+' · всего: '+lastTotal;
+}
+function loadAll(){
+  fetch('/api/logs?count='+BATCH+'&offset=0').then(function(r){return r.json();}).then(function(d){
+    lastTotal=parseInt(d.total)||0;
+    allLines=(d.lines||[]).map(function(l,i){return parseLine(l,i);});
+    render();
+    if(lastTotal>BATCH) fetchPage(BATCH,lastTotal);
+  }).catch(function(){toast('Ошибка загрузки','err');});
+  fetch('/api/config').then(function(r){return r.json();}).then(function(d){if(d.eth_ip)document.getElementById('nav-ip').textContent=d.eth_ip;}).catch(function(){});
+}
+function fetchPage(from,total){
+  if(from>=total) return;
+  var cnt=Math.min(BATCH,total-from);
+  fetch('/api/logs?count='+cnt+'&offset='+from).then(function(r){return r.json();}).then(function(d){
+    (d.lines||[]).forEach(function(l,i){allLines.push(parseLine(l,from+i));});
+    render();fetchPage(from+cnt,total);
   }).catch(function(){});
 }
-function render(lines){
-  var filtered=applyFilter(lines);
-  var out=document.getElementById('log-output');
-  out.innerHTML=filtered.map(colorLine).join('\n');
-  document.getElementById('log-count').textContent=filtered.length+' строк';
-  if(document.getElementById('cb-autoscroll').checked) out.scrollTop=out.scrollHeight;
+function pollNew(){
+  fetch('/api/logs?count=50&offset='+allLines.length).then(function(r){return r.json();}).then(function(d){
+    var lines=d.lines||[];if(!lines.length) return;
+    var base=allLines.length;
+    lines.forEach(function(l,i){allLines.push(parseLine(l,base+i));});
+    lastTotal=parseInt(d.total)||lastTotal;
+    var atBot=isAtBot();
+    if(filter==='ALL'&&!searchQ){
+      var frag='';lines.forEach(function(l,i){frag+=makeRow(allLines[base+i]);});
+      var tb=document.getElementById('log-tbody');
+      var emp=tb.querySelector('td[colspan]');if(emp)tb.innerHTML='';
+      tb.insertAdjacentHTML('beforeend',frag);
+    } else {render();}
+    document.getElementById('log-stats').textContent=allLines.length+' / '+allLines.length+' строк';
+    document.getElementById('footer-info').textContent='Строк: '+allLines.length+' · всего: '+lastTotal;
+    if(atBot) scrollBottom();
+  }).catch(function(){});
 }
-function clearView(){ document.getElementById('log-output').innerHTML=''; lastRaw=[]; }
-function saveLog(){
-  var txt=(lastRaw||[]).join('\n');
-  var b=new Blob([txt],{type:'text/plain'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(b);
-  a.download='monset_log_'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.txt';
-  a.click();
+function isAtBot(){var s=document.getElementById('log-scroll');return s.scrollHeight-s.scrollTop-s.clientHeight<80;}
+function scrollBottom(){var s=document.getElementById('log-scroll');s.scrollTop=s.scrollHeight;}
+function setFilter(f){
+  filter=f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('fb-'+f).classList.add('active');
+  render();
 }
-document.getElementById('ll-filter').addEventListener('change',function(){render(lastRaw);});
-poll(); setInterval(poll,3000);
+function onSearch(){searchQ=document.getElementById('search-box').value.trim().toLowerCase();render();}
+function toggleLive(){
+  liveActive=!liveActive;
+  var d1=document.getElementById('live-dot'),d2=document.getElementById('live-dot2');
+  var ll=document.getElementById('live-label');
+  var btn=document.getElementById('btn-live');
+  if(liveActive){
+    d1.className='live-dot';d2.className='live-dot';ll.textContent='Live';
+    btn.innerHTML='<span class="live-dot" id="live-dot"></span>Live';
+    startLive();
+  } else {
+    d1.className='live-dot paused';d2.className='live-dot paused';ll.textContent='Пауза';
+    btn.innerHTML='<span class="live-dot paused" id="live-dot"></span>Пауза';
+    clearInterval(liveTimer);
+  }
+}
+function startLive(){clearInterval(liveTimer);liveTimer=setInterval(pollNew,3000);}
+function clearLog(){
+  if(!confirm('Очистить лог в RAM?')) return;
+  fetch('/api/logs/clear',{method:'POST'})
+    .then(function(r){return r.ok?r.json():Promise.reject(r.status);})
+    .then(function(){allLines=[];lastTotal=0;render();toast('Лог очищен','ok');})
+    .catch(function(){allLines=[];lastTotal=0;render();toast('Отображение очищено (API /api/logs/clear не реализован)','warn',5000);});
+}
+loadAll();startLive();setTimeout(scrollBottom,600);
 </script>
 </body>
 </html>
