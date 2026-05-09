@@ -40,6 +40,8 @@ public:
     void sendResponse(uint8_t sn, int code, const char* contentType,
                       const char* body, uint16_t bodyLen);
 
+    static constexpr uint8_t HTTP_SOCKET = 5;  ///< W5500 socket number (public for break-on-connect)
+
 private:
     SensorReader*   m_sensor  = nullptr;
     SdBackup*       m_backup  = nullptr;
@@ -51,7 +53,6 @@ private:
     void (*m_activityCb)(void*) = nullptr;
     void*  m_activityCtx        = nullptr;
 
-    static constexpr uint8_t  HTTP_SOCKET = 5;
     static constexpr uint16_t HTTP_PORT   = 80;
 
     static constexpr uint16_t REQ_BUF_SIZE  = 12288;
