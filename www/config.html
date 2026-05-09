@@ -129,7 +129,8 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 <span class="topbar-title">Config</span>
 <span class="topbar-ip" id="nav-ip">—</span>
 </div>
-<div style="padding-bottom:70px"><details open><summary>A: Каналы передачи, привет Дипсик</summary><div class="sc">
+<div style="padding-bottom:70px">
+<details open><summary>A: Каналы передачи, привет Дипсик</summary><div class="sc">
 <div class="r">
 <div class="tg"><input type="checkbox" id="ch_eth" onchange="c('ch_eth',this.checked)"><span>Ethernet W5500</span></div>
 <div class="tg"><input type="checkbox" id="ch_gsm" onchange="c('ch_gsm',this.checked)"><span>GSM</span></div>
@@ -169,7 +170,7 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 </div></details>
 <details><summary>E: Modbus TCP Master</summary><div class="sc">
 <div class="tg" style="margin-bottom:10px"><input type="checkbox" id="mtcpm_en" onchange="c('mtcpm_en',this.checked)"><span>Включить</span></div>
-<div id="tcp_devs"></div><button class="btn s" onclick="addTD()">+ Добавить устройство TCP</button>
+<details open><summary style="cursor:pointer;font-size:12px;color:#aaa;margin:.4rem 0" id="tcp_devs_hdr">&#9658; Устройства (0)</summary><div id="tcp_devs"></div></details><button class="btn s" onclick="addTD()">+ Добавить устройство TCP</button>
 </div></details>
 <details><summary>F: Modbus TCP Slave</summary><div class="sc">
 <div class="tg" style="margin-bottom:10px"><input type="checkbox" id="mtcps_en" onchange="c('mtcps_en',this.checked)"><span>Включить</span></div>
@@ -188,16 +189,7 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 </div></details>
 <details><summary>H: Время и NTP</summary><div class="sc">
 <div class="r"><div class="tg"><input type="checkbox" id="ntp_enabled" onchange="c('ntp_enabled',this.checked)"><span>NTP</span></div><div class="f"><label>Сервер</label><input type="text" id="ntp_server" value="pool.ntp.org" onchange="c('ntp_server',this.value)"></div><div class="f" style="max-width:130px"><label>Часовой пояс</label><select id="tz_off" onchange="c('tz_off',+this.value)"></select></div></div>
-<div style="border-top:1px solid #30363d;margin:10px 0 8px"></div>
-<div style="font-size:11px;font-weight:600;color:#8b949e;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Ручная установка времени (DS3231)</div>
-<div class="r" style="align-items:flex-end;gap:8px">
-  <div class="f"><label>Дата и время</label><input type="datetime-local" id="manual_dt" style="max-width:220px"></div>
-  <button class="btn" onclick="setManualTime()" style="margin-bottom:0;flex-shrink:0">Установить</button>
-  <span id="settime_msg" class="msg" style="display:inline-block"></span>
-</div>
-<div style="font-size:11px;color:#8b949e;margin-top:6px">Текущее время RTC: <span id="rtc_now" style="font-family:monospace;color:#c9d1d9">—</span>
-  <button class="btn s" style="padding:2px 8px;font-size:11px;margin-left:8px" onclick="loadRtcTime()">↻</button>
-</div>
+<div class="r" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid #333;flex-wrap:wrap;gap:.5rem"><div class="f" style="max-width:240px"><label>Ручная установка времени</label><input type="datetime-local" id="manual_dt" step="1" style="width:100%;padding:4px 6px;background:#1e1e1e;color:#e0e0e0;border:1px solid #444;border-radius:4px"></div><div class="f" style="max-width:90px;align-self:flex-end"><button type="button" onclick="setNow()" style="width:100%;padding:5px 6px;background:#2a4a2a;color:#6fcf6f;border:1px solid #3a6a3a;border-radius:4px;cursor:pointer;font-size:12px">&#11015; Сейчас</button></div><div class="f" style="max-width:120px;align-self:flex-end"><button type="button" onclick="setManualTime()" style="width:100%;padding:5px 6px;background:#1e3a4a;color:#6fb8cf;border:1px solid #2a5a6a;border-radius:4px;cursor:pointer;font-size:12px">&#9201; Установить</button></div><div style="align-self:flex-end;padding-bottom:6px"><span id="cur_rtc" style="font-size:11px;color:#777">RTC: —</span></div></div>
 </div></details>
 <details><summary>I: Веб и безопасность</summary><div class="sc">
 <div class="r"><div class="f"><label>Пользователь</label><input type="text" id="web_user" value="admin" onchange="c('web_user',this.value)"></div><div class="f"><label>Пароль</label><input type="password" id="web_pass" onchange="c('web_pass',this.value)"></div><div class="f" style="max-width:80px"><label>Порт</label><input type="number" id="web_port" value="80" onchange="c('web_port',+this.value)"></div></div>
@@ -209,8 +201,63 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
 <div class="r"><div class="tg"><input type="checkbox" id="alert_ch_fail" onchange="c('alert_on_channel_fail',this.checked)"><span>Сбой канала</span></div><div class="tg"><input type="checkbox" id="alert_sn_fail" onchange="c('alert_on_sensor_fail',this.checked)"><span>Сбой датчика</span></div></div>
 <div class="f" style="margin-top:6px"><label>Webhook оповещений</label><input type="text" id="alert_webhook_url" onchange="c('alert_webhook_url',this.value)"></div>
 </div></details>
-<div class="bar"><button class="btn" onclick="save()">💾 Сохранить</button><button class="btn s" onclick="rst()">↺ Сброс</button><button class="btn s" onclick="exp()">⬇ Экспорт JSON</button><span class="msg" id="msg"></span></div></div>
+<div class="bar"><button class="btn" onclick="save()">💾 Сохранить</button><button class="btn s" onclick="rst()">↺ Сброс</button><button class="btn s" onclick="exp()">⬇ Экспорт JSON</button><span class="msg" id="msg"></span></div>
+<script>
+var cfg={};
+var DT=['INT16','UINT16','INT32_BE','UINT32_BE','FLOAT32_BE'];
+var SRC=['Датчик 0','Датчик 1','Датчик 2','Датчик 3','Батарея%','Батарея V','Статус каналов'];
+var CHN=['Ethernet W5500','GSM','WiFi ESP8266','Iridium SBD'];
+var cord=[0,1,2,3],coen=[false,false,false,false];
+
+function c(k,v){cfg[k]=v}
+function sh(id,v){document.getElementById(id).style.display=v?'flex':'none'}
+
+function sp(v){
+  document.getElementById('g_tb').style.display=(v==='https_tb'||v==='mqtt_tb')?'block':'none';
+  document.getElementById('g_mqtt').style.display=(v==='mqtt_gen'||v==='mqtt_tb')?'block':'none';
+  document.getElementById('g_wh').style.display=(v==='webhook')?'block':'none';
+  cfg.proto=v;
+}
+
+function st(el,id){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('act')});
+  document.querySelectorAll('.tp').forEach(function(t){t.classList.remove('act')});
+  el.classList.add('act');document.getElementById(id).classList.add('act');
+}
+
+function mv(i,d){
+  var j=i+d;if(j<0||j>3)return;
+  var t=cord[i];cord[i]=cord[j];cord[j]=t;
+  var t2=coen[i];coen[i]=coen[j];coen[j]=t2;
+  rndOrd();
+}
+
+function rndOrd(){
+  var h='';
+  for(var i=0;i<4;i++){
+    h+='<div class="dr"><input type="checkbox" style="width:auto"'+(coen[i]?' checked':'')
+      +' onchange="coen['+i+']=this.checked"><span>'+CHN[cord[i]]+'</span>'
+      +'<button onclick="mv('+i+',-1)">▲</button><button onclick="mv('+i+',1)">▼</button></div>';
+  }
+  document.getElementById('cord').innerHTML=h;
+}
+
+var BD=['2400','4800','9600','19200','38400','115200'];
+var rtu=[];
+
+function rtuH(p){
+  var x=rtu[p];
+  var h='<div class="r"><div class="tg"><input type="checkbox"'+(x.en?' checked':'')+' onchange="rtu['+p+'].en=this.checked"><span>Включить</span></div>'
+    +'<div class="f" style="max-width:100px"><label>Бодрейт</label><select onchange="rtu['+p+'].baud=+this.value">';
+  BD.forEach(function(b){h+='<option'+(x.baud==b?' selected':'')+'>'+b+'</option>'});
+  h+='</select></div><div class="f" style="max-width:80px"><label>Стоп-биты</label><select onchange="rtu['+p+'].sb=+this.value"><option'+(x.sb==1?' selected':'')+'>1</option><option'+(x.sb==2?' selected':'')+'>2</option></select></div>'
+    +'<div class="f" style="max-width:100px"><label>Чётность</label><select onchange="rtu['+p+'].par=this.value"><option'+(x.par=="None"?' selected':'')+'>None</option><option'+(x.par=="Even"?' selected':'')+'>Even</option><option'+(x.par=="Odd"?' selected':'')+'>Odd</option></select></div>'
+    +'<div class="f" style="max-width:120px"><label>Таймаут отв.(мс)</label><input type="number" value="'+x.rms+'" onchange="rtu['+p+'].rms=+this.value"></div>'
+    +'<div class="f" style="max-width:120px"><label>Межфреймовый(мс)</label><input type="number" value="'+x.fms+'" onchange="rtu['+p+'].fms=+this.value"></div>'
+    +'</div><details open><summary style="cursor:pointer;font-size:12px;color:#aaa;margin:.4rem 0" id="rds'+p+'">&#9658; Устройства (0)</summary><div id="rd'+p+'"></div></details>
 </div>
+<div class="bar"><button class="btn" onclick="save()">💾 Сохранить</button><button class="btn s" onclick="rst()">↺ Сброс</button><button class="btn s" onclick="exp()">⬇ Экспорт JSON</button><span class="msg" id="msg"></span></div>
+</div><!-- wrap -->
 <div id="toast"></div>
 <script>
 var cfg={};
@@ -264,7 +311,7 @@ function rtuH(p){
     +'<div class="f" style="max-width:100px"><label>Чётность</label><select onchange="rtu['+p+'].par=this.value"><option'+(x.par=="None"?' selected':'')+'>None</option><option'+(x.par=="Even"?' selected':'')+'>Even</option><option'+(x.par=="Odd"?' selected':'')+'>Odd</option></select></div>'
     +'<div class="f" style="max-width:120px"><label>Таймаут отв.(мс)</label><input type="number" value="'+x.rms+'" onchange="rtu['+p+'].rms=+this.value"></div>'
     +'<div class="f" style="max-width:120px"><label>Межфреймовый(мс)</label><input type="number" value="'+x.fms+'" onchange="rtu['+p+'].fms=+this.value"></div>'
-    +'</div><div id="rd'+p+'"></div>'
+    +'</div><details open><summary style="cursor:pointer;font-size:12px;color:#aaa;margin:.4rem 0" id="rds'+p+'">&#9658; Устройства (0)</summary><div id="rd'+p+'"></div></details>'
     +'<button class="btn s" onclick="addRD('+p+')">+ Добавить устройство</button>';
   return h;
 }
@@ -290,7 +337,7 @@ function rtuDH(p,i){
 
 function addRD(p){if(rtu[p].devs.length<8){rtu[p].devs.push({en:false,sa:1,nm:'',fc:3,rs:0,rc:1,dt:'INT16',sc:1,of:0,un:'',ci:0});rndRD(p)}}
 function delRD(p,i){rtu[p].devs.splice(i,1);rndRD(p)}
-function rndRD(p){var h='';rtu[p].devs.forEach(function(_,i){h+=rtuDH(p,i)});document.getElementById('rd'+p).innerHTML=h}
+function rndRD(p){var h='';rtu[p].devs.forEach(function(_,i){h+=rtuDH(p,i)});document.getElementById('rd'+p).innerHTML=h;var s=document.getElementById('rds'+p);if(s)s.textContent='\u25b8 Устройства ('+rtu[p].devs.length+')'}
 
 var tcpd=[];
 function tcpDH(i){
@@ -321,7 +368,7 @@ function tcpDH(i){
 
 function addTD(){if(tcpd.length<8){tcpd.push({en:false,ip:'',port:502,uid:1,nm:'',un:'',fc:3,rs:0,rc:1,dt:'INT16',sc:1,of:0,ci:0,pms:1000,cms:3000,sk:1});rndTD()}}
 function delTD(i){tcpd.splice(i,1);rndTD()}
-function rndTD(){var h='';tcpd.forEach(function(_,i){h+=tcpDH(i)});document.getElementById('tcp_devs').innerHTML=h}
+function rndTD(){var h='';tcpd.forEach(function(_,i){h+=tcpDH(i)});document.getElementById('tcp_devs').innerHTML=h;var s=document.getElementById('tcp_devs_hdr');if(s)s.textContent='\u25b8 Устройства ('+tcpd.length+')'}
 
 var regs=[];
 function regR(i){
@@ -380,7 +427,7 @@ function reloadCfg(){
     if(d.proto){var ep=document.getElementById('proto');if(ep)ep.value=d.proto;sp(d.proto);}
     if(d.chain_order){cord=d.chain_order;coen=d.co_en||coen;rndOrd()}
     if(d.tcp_devs){tcpd=d.tcp_devs;rndTD()}
-    if(d.regs){regs=d.regs;rndRegs()}
+    if(d.regs){regs=(d.sl_regs||d.regs||[]).map(function(r){return{ad:r.ad||0,src:(typeof r.si==='number'&&r.si>=0&&r.si<SRC.length)?SRC[r.si]:(r.src||SRC[0]),dt:r.dt||'INT16',sc:(r.sc||1),un:(r.un||''),nm:(r.nm||'')}});rndRegs()}
     if(d.rtu){d.rtu.forEach(function(r,p){if(rtu[p]){Object.assign(rtu[p],r);document.getElementById('tp'+p).innerHTML=rtuH(p);}})}
     sh('ds_f',!!d.deep_sleep_enabled);
     sh('eth_st',!d.eth_dhcp);
@@ -413,7 +460,7 @@ function save(){
   ['mqtt_qos','tz_off'].forEach(function(k){
     var e=document.getElementById(k);if(e)cfg[k]=parseInt(e.value,10)||0;
   });
-  var out=Object.assign({},cfg,{rtu:rtu,tcp_devs:tcpd,regs:regs,chain_order:cord,co_en:coen});
+  var sl_regs=regs.map(function(r){return{ad:r.ad,si:SRC.indexOf(r.src)<0?0:SRC.indexOf(r.src),dt:r.dt,sc:r.sc,un:r.un,nm:r.nm}});var out=Object.assign({},cfg,{rtu:rtu,tcp_devs:tcpd,regs:regs,sl_regs:sl_regs,chain_order:cord,co_en:coen});
   fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(out)})
     .then(function(r){return r.json().then(function(d){
       if(r.ok && d.saved_to_sd) showMsg(true,'✓ Сохранено на SD');
@@ -435,13 +482,11 @@ function exp(){
 }
 
 window.addEventListener('DOMContentLoaded',function(){
-  var now=new Date();var pad=function(n){return n<10?"0"+n:n};document.getElementById("manual_dt").value=now.getFullYear()+"-"+pad(now.getMonth()+1)+"-"+pad(now.getDate())+"T"+pad(now.getHours())+":"+pad(now.getMinutes());loadRtcTime();
-
   initTZ();rndOrd();
   for(var p=0;p<3;p++){rtu.push({en:false,baud:9600,sb:1,par:'None',rms:500,fms:3,devs:[]});document.getElementById('tp'+p).innerHTML=rtuH(p)}
   initSns(4);
   fetch('/api/sensors').then(function(r){return r.json()}).then(function(d){initSns(d.count||4)}).catch(function(){});
-  reloadCfg();
+  reloadCfg();setNow();setTimeout(updateCurRtc,500);
 });
 </script>
 <script>
@@ -479,6 +524,32 @@ window.addEventListener('DOMContentLoaded',function(){
       })
       .catch(function(){document.getElementById('fm_list').innerHTML='<span style="color:red">Ошибка чтения SD</span>';});
   }
-  </script>
+  
+function setNow(){
+  var n=new Date(),pad=function(x){return x<10?'0'+x:''+x};
+  document.getElementById('manual_dt').value=
+    n.getFullYear()+'-'+pad(n.getMonth()+1)+'-'+pad(n.getDate())+
+    'T'+pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds());
+}
+function updateCurRtc(){
+  fetch('/api/sensors').then(function(r){return r.json()}).then(function(d){
+    var el=document.getElementById('cur_rtc');
+    if(el&&d.time)el.textContent='RTC: '+d.time;
+  }).catch(function(){});
+}
+function setManualTime(){
+  var v=document.getElementById('manual_dt').value;
+  if(!v){showMsg(false,'Введите дату и время');return}
+  var p=v.replace('T',' ').split(/[\- :]/);
+  while(p.length<6)p.push('0');
+  fetch('/api/settime',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({year:+p[0],month:+p[1],day:+p[2],hour:+p[3],minute:+p[4],second:+p[5]})
+  }).then(function(r){return r.json()}).then(function(d){
+    if(d.ok){showMsg(true,'\u2713 Время установлено');updateCurRtc()}
+    else showMsg(false,'\u2717 '+(d.error||'Ошибка'));
+  }).catch(function(){showMsg(false,'\u2717 Нет ответа сервера')});
+}
+</script>
 </body>
 </html>
