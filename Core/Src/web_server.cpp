@@ -3950,6 +3950,50 @@ void WebServer::handleApiBackupDownload(uint8_t sn){
     f_close(&fil);
 }
 
+// ── POST /api/settime ─────────────────────────────────────────────────────────
+void WebServer::handleApiSetTime(uint8_t sn, const char* body) {
+    if (!body || std::strlen(body) < 2) {
+        const char* r = "{\"ok\":false,\"error\":\"empty body\"}";
+        sendResponse(sn, 400, "application/json", r, (uint16_t)std::strlen(r)); return;
+    }
+    if (!m_rtc) {
+        const char* r = "{\"ok\":false,\"error\":\"RTC not bound\"}";
+        sendResponse(sn, 503, "application/json", r, (uint16_t)std::strlen(r)); return;
+    }
+    DateTime dt{};
+    auto getI = [&](const char* key) -> int {
+        const char* p = std::strstr(body, key);
+        if (!p) return 0;
+        p += std::strlen(key);
+        while (*p == ':' || *p == ' ') p++;
+        return (int)std::strtol(p, nullptr, 10);
+    };
+    int yr  = getI("\"year\"");
+    dt.year    = (uint8_t)((yr >= 2000) ? (yr - 2000) : (yr > 0 ? yr : 25));
+    dt.month   = (uint8_t)getI("\"month\"");
+    dt.date    = (uint8_t)getI("\"day\"");
+    dt.hours   = (uint8_t)getI("\"hour\"");
+    dt.minutes = (uint8_t)getI("\"minute\"");
+    dt.seconds = (uint8_t)getI("\"second\"");
+    if (dt.month < 1 || dt.month > 12 || dt.date < 1 || dt.date > 31 ||
+        dt.hours > 23 || dt.minutes > 59 || dt.seconds > 59) {
+        const char* r = "{\"ok\":false,\"error\":\"invalid datetime\"}";
+        sendResponse(sn, 400, "application/json", r, (uint16_t)std::strlen(r)); return;
+    }
+    bool ok = m_rtc->setTimeAutoDOW(dt);
+    if (ok) {
+        char resp[80];
+        std::snprintf(resp, sizeof(resp),
+            "{\"ok\":true,\"set\":\"20%02u-%02u-%02uT%02u:%02u:%02u\"}",
+            (unsigned)dt.year,(unsigned)dt.month,(unsigned)dt.date,
+            (unsigned)dt.hours,(unsigned)dt.minutes,(unsigned)dt.seconds);
+        sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
+    } else {
+        const char* r = "{\"ok\":false,\"error\":\"DS3231 write failed\"}";
+        sendResponse(sn, 500, "application/json", r, (uint16_t)std::strlen(r));
+    }
+}
+
 // ── POST /config ──────────────────────────────────────────────────────────────
 void WebServer::handlePostConfig(uint8_t sn,const char* body){
     if(!body||std::strlen(body)<2){
@@ -4106,6 +4150,7 @@ void WebServer::handleRequest(uint8_t sn,const char* request,uint16_t reqLen){
         if(body) body+=4;
         if(std::strcmp(cleanPath,"/config")==0||
            std::strcmp(cleanPath,"/api/config")==0) handlePostConfig(sn,body);
+        else if(std::strcmp(cleanPath,"/api/settime")==0)    handleApiSetTime(sn,body);
         else if(std::strcmp(cleanPath,"/api/test_send")==0)  handleApiTestSend(sn);
         else if(std::strcmp(cleanPath,"/api/logs/clear")==0) handleApiLogsClear(sn);
     else if(std::strcmp(cleanPath,"/api/backup/download")==0) handleApiBackupDownload(sn);
