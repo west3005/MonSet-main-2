@@ -653,7 +653,11 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
                 if (m_webServer.isRunning()) m_webServer.tick();
                 checkWebTimeout();
                 IWDG->KR = 0xAAAAU;
-                if (m_webActive) break;   /* browser connected — go to tight loop */
+                // Выходим немедленно при входящем TCP-соединении (до первого запроса)
+                // или когда браузер уже активен (m_webActive выставлен handleRequest)
+                if (m_webActive
+                    || getSn_SR(WebServer::HTTP_SOCKET) == SOCK_ESTABLISHED
+                    || getSn_RX_RSR(WebServer::HTTP_SOCKET) > 0) break;
                 HAL_Delay(5);
             }
             wokeFromStop = false;
