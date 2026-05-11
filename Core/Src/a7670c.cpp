@@ -82,13 +82,12 @@ static bool parseHttpUrl(const char* url, UrlParts& out)
 A7670C::A7670C(UART_HandleTypeDef* uart,
                GPIO_TypeDef*        pwrPort,
                uint16_t             pwrPin)
-    : m_uart(uart), m_pwrPort(pwrPort), m_pwrPin(pwrPin)
+    : Air780E(uart, pwrPort, pwrPin)
 {}
 
 // ============================================================================
 // Низкоуровневый I/O
 // ============================================================================
-void A7670C::sendRaw(const char* data, uint16_t len)
 {
     if (!m_uart || !data || len == 0) return;
     HAL_UART_Transmit(m_uart,
@@ -96,92 +95,7 @@ void A7670C::sendRaw(const char* data, uint16_t len)
                       len, 1000);
 }
 
-uint16_t A7670C::readResponse(char* buf, uint16_t bsize, uint32_t timeout)
-{
-    if (!buf || bsize < 2) return 0;
-
-    uint16_t idx   = 0;
-    uint32_t start = HAL_GetTick();
-    uint32_t lastByte = start;
-    std::memset(buf, 0, bsize);
-
-    while (idx < (uint16_t)(bsize - 1))
-    {
-        uint8_t ch;
-        if (HAL_UART_Receive(m_uart, &ch, 1, 5) == HAL_OK) {
-            buf[idx++] = static_cast<char>(ch);
-            lastByte = HAL_GetTick();
-            if (idx >= 4) {
-                if (std::strstr(buf, "OK\r\n") ||
-                    std::strstr(buf, "ERROR\r\n") ||
-                    std::strstr(buf, "ERROR"))
-                    break;
-            }
-        } else {
-            uint32_t now = HAL_GetTick();
-            if (idx > 0 && (now - lastByte) >= 30) break;
-            if ((now - start) >= timeout) break;
-        }
-        IWDG->KR = 0xAAAA;
-    }
-    buf[idx] = '\0';
-    return idx;
-}
-
-uint16_t A7670C::waitFor(char* buf, uint16_t bsize,
-                          const char* expected, uint32_t timeout)
-{
-    if (!buf || !expected || bsize < 2) return 0;
-
-    uint16_t idx   = 0;
-    uint32_t start = HAL_GetTick();
-    uint32_t lastByte = start;
-    std::memset(buf, 0, bsize);
-
-    while (idx < (uint16_t)(bsize - 1))
-    {
-        uint8_t ch;
-        if (HAL_UART_Receive(m_uart, &ch, 1, 5) == HAL_OK) {
-            buf[idx++] = static_cast<char>(ch);
-            lastByte = HAL_GetTick();
-            if (std::strstr(buf, expected) || std::strstr(buf, "ERROR"))
-                break;
-        } else {
-            uint32_t now = HAL_GetTick();
-            if (idx > 0 && (now - lastByte) >= 30) break;
-            if ((now - start) >= timeout) break;
-        }
-        IWDG->KR = 0xAAAA;
-    }
-    buf[idx] = '\0';
-    return idx;
-}
-
-GsmStatus A7670C::sendCommand(const char* cmd,
-                               char*       resp,
-                               uint16_t    rsize,
-                               uint32_t    timeout)
-{
-    if (!resp || rsize == 0) return GsmStatus::Timeout;
-
-    char at[256];
-    std::snprintf(at, sizeof(at), "AT%s\r\n", cmd ? cmd : "");
-    DBG.data("[A7670>] %s", at);
-
-    sendRaw(at, (uint16_t)std::strlen(at));
-    readResponse(resp, rsize, timeout);
-
-    DBG.data("[A7670<] %s", resp);
-
-    if (std::strstr(resp, "OK"))    return GsmStatus::Ok;
-    if (std::strstr(resp, "ERROR")) return GsmStatus::HttpErr;
-    return GsmStatus::Timeout;
-}
-
-// ============================================================================
-// Управление питанием
-// ============================================================================
-bool A7670C::waitRdy(uint32_t timeoutMs)
+bool A7670C::waitRdyA7670(uint32_t timeoutMs)
 {
     char buf[256]{};
     uint16_t idx = 0;
@@ -230,11 +144,10 @@ void A7670C::powerOn()
     HAL_GPIO_WritePin(PIN_CELL_PWRKEY_PORT, PIN_CELL_PWRKEY_PIN, GPIO_PIN_SET);
 
     DBG.info("A7670C: ожидание готовности...");
-    if (!waitRdy(25000)) {
+    if (!waitRdyA7670(25000)) {
         DBG.warn("A7670C: ME PDN ACT не получен — пробуем AT");
     }
 }
-
 void A7670C::powerOff()
 {
     DBG.info("A7670C: выключение...");
@@ -263,7 +176,7 @@ void A7670C::hardReset()
 // ============================================================================
 // Инициализация
 // ============================================================================
-GsmStatus A7670C::activatePdn()
+GsmStatus A7670C::activatePdnA7670()
 {
     const RuntimeConfig& c = Cfg();
     char r[256], cmd[128];
