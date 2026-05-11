@@ -65,7 +65,7 @@ public:
                          const char* expected, uint32_t timeout)
     { return waitFor(buf, bsize, expected, timeout); }
 
-private:
+protected:
     UART_HandleTypeDef* m_uart;
     GPIO_TypeDef*       m_pwrPort;
     uint16_t            m_pwrPin;
