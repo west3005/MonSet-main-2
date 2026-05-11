@@ -41,6 +41,13 @@ public:
     static constexpr uint8_t HTTP_SOCK_IDX = 0;
     static constexpr uint8_t TLS_SOCK_IDX  = 1;
 
+    // --- MQTT (переопределяем под A7670C AT+CMQNEW/CMQCON/CMQPUB) ---
+    GsmStatus mqttConnect(const char* broker, uint16_t port,
+                          const char* clientId,
+                          const char* user, const char* pass);
+    GsmStatus mqttPublish(const char* topic, const char* payload, uint16_t len);
+    void      mqttDisconnect();
+
 private:
     bool      waitRdyA7670(uint32_t timeoutMs);
     GsmStatus activatePdnA7670();
