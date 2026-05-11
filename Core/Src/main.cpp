@@ -10,7 +10,7 @@
 #include "debug_uart.hpp"
 #include "app.hpp"
 #include "spi.h"
-#include "air780e.hpp"
+#include "a7670c.hpp"
 
 extern "C" {
 #include "fatfs.h"
