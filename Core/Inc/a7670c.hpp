@@ -64,3 +64,6 @@ private:
     bool      waitRdy(uint32_t timeoutMs);
     GsmStatus activatePdn();
 };
+
+// Алиас для совместимости: mqtt_client, webhook и др. используют Air780E*
+using Air780E = A7670C;
