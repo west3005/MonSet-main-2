@@ -2,20 +2,15 @@
  * ================================================================
  * @file    a7670c.cpp
  * @brief   Реализация драйвера A7670C LTE Cat-1 / GSM.
+ *          Наследует Air780E, переопределяет AT-команды.
  *
- * Протоколы:
- *   HTTP POST — через нативный TCP socket (AT+CSOC/CSOCON/CSOSEND/CSORCVDATA)
- *   MQTT      — через нативный MQTT-стек (AT+CMQNEW/CMQCON/CMQPUB)
- *   HTTPS     — через TLS поверх TCP (см. a7670c_tls.cpp)
- *
- * Отличия от SIM7020C:
- *   - Регистрация: AT+CREG (GSM) + AT+CEREG (LTE), fallback GSM/GPRS
- *   - TCP send:    AT+CSOSEND (не CSODSEND)
- *   - TCP recv:    AT+CSORCVDATA (не CSORCV)
- *   - Загрузка:    ждём "SMS DONE" + "+CGEV: ME PDN ACT"
- *   - PWRKEY:      pulse LOW 1500 мс (не 1200)
- *
- * AT-команды: A76XX Series AT Command Manual
+ * Отличия от Air780E (Air780E):
+ *   - Ожидание загрузки: "+CGEV: ME PDN ACT" (не "RDY")
+ *   - PWRKEY: 1500 мс
+ *   - Регистрация: CREG + CEREG (GSM fallback)
+ *   - TCP send: AT+CSOSEND (не CIPSEND)
+ *   - TCP recv: AT+CSORCVDATA (не CIPRXGET)
+ *   - MQTT: AT+CMQNEW/CMQCON/CMQPUB (не CMQTTSTART)
  * ================================================================
  */
 #include "a7670c.hpp"
@@ -29,10 +24,9 @@
 #include <cctype>
 
 // ============================================================================
-// Вспомогательный парсинг URL
+// Вспомогательный парсинг HTTP URL
 // ============================================================================
 namespace {
-
 struct UrlParts {
     char     host[64]{};
     char     path[128]{};
@@ -44,19 +38,14 @@ static bool parseHttpUrl(const char* url, UrlParts& out)
     if (!url) return false;
     out = UrlParts{};
     out.port = 80;
-
     const char* prefix = "http://";
     if (std::strncmp(url, prefix, std::strlen(prefix)) != 0) return false;
-
     const char* p = url + std::strlen(prefix);
-
-    const char* hostBeg = p;
+    const char* hb = p;
     while (*p && *p != '/' && *p != ':') p++;
-    size_t hostLen = (size_t)(p - hostBeg);
-    if (hostLen == 0 || hostLen >= sizeof(out.host)) return false;
-    std::memcpy(out.host, hostBeg, hostLen);
-    out.host[hostLen] = '\0';
-
+    size_t hl = (size_t)(p - hb);
+    if (hl == 0 || hl >= sizeof(out.host)) return false;
+    std::memcpy(out.host, hb, hl); out.host[hl] = '\0';
     if (*p == ':') {
         p++;
         uint32_t port = 0;
@@ -65,19 +54,17 @@ static bool parseHttpUrl(const char* url, UrlParts& out)
         if (port == 0 || port > 65535) return false;
         out.port = (uint16_t)port;
     }
-
     if (*p == '\0') { std::strcpy(out.path, "/"); return true; }
     if (*p != '/') return false;
-    size_t pathLen = std::strlen(p);
-    if (pathLen == 0 || pathLen >= sizeof(out.path)) return false;
-    std::memcpy(out.path, p, pathLen + 1);
+    size_t pl = std::strlen(p);
+    if (pl == 0 || pl >= sizeof(out.path)) return false;
+    std::memcpy(out.path, p, pl + 1);
     return true;
 }
-
 } // namespace
 
 // ============================================================================
-// Конструктор
+// Конструктор — делегируем в Air780E
 // ============================================================================
 A7670C::A7670C(UART_HandleTypeDef* uart,
                GPIO_TypeDef*        pwrPort,
@@ -86,22 +73,14 @@ A7670C::A7670C(UART_HandleTypeDef* uart,
 {}
 
 // ============================================================================
-// Низкоуровневый I/O
+// Ожидание готовности (ждём "+CGEV: ME PDN ACT")
 // ============================================================================
-{
-    if (!m_uart || !data || len == 0) return;
-    HAL_UART_Transmit(m_uart,
-                      reinterpret_cast<const uint8_t*>(data),
-                      len, 1000);
-}
-
 bool A7670C::waitRdyA7670(uint32_t timeoutMs)
 {
     char buf[256]{};
     uint16_t idx = 0;
     uint32_t start = HAL_GetTick();
 
-    // Ждём "ME PDN ACT" — последнее сообщение загрузки A7670C
     while ((HAL_GetTick() - start) < timeoutMs) {
         uint8_t ch;
         if (HAL_UART_Receive(m_uart, &ch, 1, 20) == HAL_OK) {
@@ -110,10 +89,9 @@ bool A7670C::waitRdyA7670(uint32_t timeoutMs)
             if (std::strstr(buf, "ME PDN ACT")) {
                 DBG.info("A7670C: загрузка завершена за %lu мс",
                          (unsigned long)(HAL_GetTick() - start));
-                HAL_Delay(2000);  // пауза после последнего URC
+                HAL_Delay(2000);
                 return true;
             }
-            // Сдвигаем буфер если переполнен
             if (idx >= sizeof(buf) - 2) {
                 std::memmove(buf, buf + 64, sizeof(buf) - 64);
                 idx -= 64;
@@ -125,29 +103,30 @@ bool A7670C::waitRdyA7670(uint32_t timeoutMs)
     return false;
 }
 
+// ============================================================================
+// Управление питанием
+// ============================================================================
 void A7670C::powerOn()
 {
-    DBG.info("A7670C: включение питания...");
+    DBG.info("A7670C: включение...");
     HAL_GPIO_WritePin(m_pwrPort, m_pwrPin, GPIO_PIN_SET);
     HAL_Delay(300);
 
-    // Проверить STATUS — если уже включён, пропустить PWRKEY
     GPIO_PinState status = HAL_GPIO_ReadPin(PIN_CELL_STATUS_PORT, PIN_CELL_STATUS_PIN);
     if (status == GPIO_PIN_SET) {
         DBG.info("A7670C: уже включён (STATUS=HIGH)");
         return;
     }
 
-    DBG.info("A7670C: подача PWRKEY (1500 мс)...");
+    DBG.info("A7670C: PWRKEY 1500 мс...");
     HAL_GPIO_WritePin(PIN_CELL_PWRKEY_PORT, PIN_CELL_PWRKEY_PIN, GPIO_PIN_RESET);
-    HAL_Delay(1500);   // A7670C требует ≥ 1000 мс, 1500 надёжнее
+    HAL_Delay(1500);
     HAL_GPIO_WritePin(PIN_CELL_PWRKEY_PORT, PIN_CELL_PWRKEY_PIN, GPIO_PIN_SET);
 
-    DBG.info("A7670C: ожидание готовности...");
-    if (!waitRdyA7670(25000)) {
+    if (!waitRdyA7670(25000))
         DBG.warn("A7670C: ME PDN ACT не получен — пробуем AT");
-    }
 }
+
 void A7670C::powerOff()
 {
     DBG.info("A7670C: выключение...");
@@ -170,36 +149,34 @@ void A7670C::hardReset()
     HAL_Delay(200);
     HAL_GPIO_WritePin(PIN_CELL_RESET_PORT, PIN_CELL_RESET_PIN, GPIO_PIN_SET);
     HAL_Delay(500);
-    waitRdy(25000);
+    waitRdyA7670(25000);
 }
 
 // ============================================================================
-// Инициализация
+// Активация PDN
 // ============================================================================
 GsmStatus A7670C::activatePdnA7670()
 {
     const RuntimeConfig& c = Cfg();
     char r[256], cmd[128];
 
-    std::snprintf(cmd, sizeof(cmd),
-                  "+CGDCONT=1,\"IP\",\"%s\"", c.gsm_apn);
+    std::snprintf(cmd, sizeof(cmd), "+CGDCONT=1,\"IP\",\"%s\"", c.gsm_apn);
     sendCommand(cmd, r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS);
 
     if (sendCommand("+CGACT=1,1", r, sizeof(r),
                     Config::SIM7020_PDN_TIMEOUT_MS) != GsmStatus::Ok) {
-        // Контекст может быть уже активен — проверяем
         sendCommand("+CGACT?", r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS);
         if (!std::strstr(r, ",1")) {
             DBG.error("A7670C: PDN activation failed");
             return GsmStatus::PdnErr;
         }
     }
-
-    sendCommand("+CGCONTRDP", r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS);
-    DBG.info("A7670C: PDN UP — %s", r);
     return GsmStatus::Ok;
 }
 
+// ============================================================================
+// Инициализация
+// ============================================================================
 GsmStatus A7670C::init()
 {
     char r[256];
@@ -207,95 +184,46 @@ GsmStatus A7670C::init()
     __HAL_UART_FLUSH_DRREGISTER(m_uart);
     HAL_Delay(100);
 
-    // Синхронизация autobaud — несколько попыток AT
-    DBG.info("A7670E: проверка связи...");
     bool alive = false;
     for (uint8_t i = 0; i < 10 && !alive; i++) {
         if (sendCommand("", r, sizeof(r), 2000) == GsmStatus::Ok) alive = true;
         else HAL_Delay(500);
         IWDG->KR = 0xAAAA;
     }
-    if (!alive) {
-        DBG.error("A7670C: нет ответа на AT");
-        return GsmStatus::Timeout;
-    }
+    if (!alive) { DBG.error("A7670C: нет ответа на AT"); return GsmStatus::Timeout; }
 
-    // Выключить эхо
     sendCommand("E0", r, sizeof(r), 2000);
     sendCommand("E0", r, sizeof(r), 2000);
-
-    // Зафиксировать скорость
     sendCommand("+IPR=115200", r, sizeof(r), 2000);
     sendCommand("&W", r, sizeof(r), 2000);
-
-    // Информация о модуле
-    sendCommand("I", r, sizeof(r), 2000);
-    DBG.info("A7670E:\n%s", r);
-
-    // Версия прошивки
-    sendCommand("+GMR", r, sizeof(r), 2000);
-    DBG.info("A7670E FW:\n%s", r);
-
-    // Авто-время из сети
     sendCommand("+CTZU=1", r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS);
-    DBG.info("A7670E: CTZU (авто-время) включён");
 
-    // SIM
     sendCommand("+CPIN?", r, sizeof(r), 5000);
     if (!std::strstr(r, "READY")) {
         DBG.error("A7670C: SIM не готова");
         return GsmStatus::NoSim;
     }
-    DBG.info("A7670E: SIM OK");
 
-    // Регистрация: сначала GSM (CREG), потом LTE (CEREG)
-    // A7670C поддерживает fallback GSM/GPRS если LTE нет
-    sendCommand("+CREG?", r, sizeof(r), 2000);
-    bool registered = std::strstr(r, ",1") || std::strstr(r, ",5");
-    DBG.info("A7670E: сеть OK");
-
-    if (!registered) {
+    // Регистрация: CREG (GSM) + CEREG (LTE), ждём до 60 сек
+    bool registered = false;
+    for (uint8_t i = 0; i < 60 && !registered; i++) {
+        sendCommand("+CREG?", r, sizeof(r), 2000);
+        if (std::strstr(r, ",1") || std::strstr(r, ",5")) { registered = true; break; }
         sendCommand("+CEREG?", r, sizeof(r), 2000);
-        registered = std::strstr(r, ",1") || std::strstr(r, ",5");
+        if (std::strstr(r, ",1") || std::strstr(r, ",5")) { registered = true; break; }
+        HAL_Delay(1000);
+        IWDG->KR = 0xAAAA;
     }
+    if (!registered) { DBG.error("A7670C: нет регистрации"); return GsmStatus::NoReg; }
 
-    if (!registered) {
-        // Ждём регистрацию до 60 сек
-        for (uint8_t i = 0; i < 60 && !registered; i++) {
-            sendCommand("+CREG?", r, sizeof(r), 2000);
-            if (std::strstr(r, ",1") || std::strstr(r, ",5")) {
-                registered = true; break;
-            }
-            sendCommand("+CEREG?", r, sizeof(r), 2000);
-            if (std::strstr(r, ",1") || std::strstr(r, ",5")) {
-                registered = true; break;
-            }
-            HAL_Delay(1000);
-            IWDG->KR = 0xAAAA;
-        }
-    }
-
-    if (!registered) {
-        DBG.error("A7670C: нет регистрации в сети");
-        return GsmStatus::NoReg;
-    }
-
-    // APN
-    sendCommand("+CGDCONT=1,\"IP\",\"\"", r, sizeof(r),
-                Config::SIM7020_CMD_TIMEOUT_MS);
-    DBG.info("A7670E: APN настроен");
-
-    sendCommand("+CGACT=1,1", r, sizeof(r), Config::SIM7020_PDN_TIMEOUT_MS);
-
-    // CEREG для отладки
-    sendCommand("+CEREG?", r, sizeof(r), 2000);
-    DBG.info("A7670E: CEREG=%s", r);
-
-    DBG.info("A7670E: APN настроен");
-    DBG.info("A7670E: init завершён");
+    activatePdnA7670();
+    DBG.info("A7670C: init OK");
     return GsmStatus::Ok;
 }
 
+// ============================================================================
+// Отключение
+// ============================================================================
 void A7670C::disconnect()
 {
     char r[64];
@@ -305,7 +233,7 @@ void A7670C::disconnect()
 }
 
 // ============================================================================
-// Утилиты
+// Уровень сигнала
 // ============================================================================
 uint8_t A7670C::getSignalQuality()
 {
@@ -321,18 +249,17 @@ uint8_t A7670C::getSignalQuality()
 }
 
 // ============================================================================
-// HTTP POST через TCP socket (AT+CSOC) — порт 80
-// Отличие от SIM7020C: AT+CSOSEND вместо AT+CSODSEND
+// HTTP POST через TCP socket (порт 80)
+// AT+CSOC / CSOCON / CSOSEND / CSORCVDATA
 // ============================================================================
 uint16_t A7670C::httpPost(const char* url, const char* json, uint16_t len)
 {
     if (!url || !json || len == 0) return 0;
 
     const RuntimeConfig& c = Cfg();
-
     UrlParts u{};
     if (!parseHttpUrl(url, u)) {
-        DBG.error("A7670C HTTP: не удалось разобрать URL: %s", url);
+        DBG.error("A7670C HTTP: плохой URL: %s", url);
         return 0;
     }
 
@@ -344,86 +271,62 @@ uint16_t A7670C::httpPost(const char* url, const char* json, uint16_t len)
         DBG.error("A7670C HTTP: CSOC create failed");
         return 0;
     }
+    uint8_t sockId = 0;
+    { const char* p = std::strstr(r, "+CSOC:"); if (p) std::sscanf(p, "+CSOC: %hhu", &sockId); }
 
-    uint8_t sockId = HTTP_SOCK_IDX;
-    {
-        const char* p = std::strstr(r, "+CSOC:");
-        if (p) std::sscanf(p, "+CSOC: %hhu", &sockId);
-    }
-
-    // Подключиться к серверу
-    std::snprintf(cmd, sizeof(cmd),
-                  "+CSOCON=%hhu,%u,\"%s\"", sockId, u.port, u.host);
-    if (sendCommand(cmd, r, sizeof(r),
-                    Config::SIM7020_TCP_TIMEOUT_MS) != GsmStatus::Ok) {
-        DBG.error("A7670C HTTP: CSOCON failed host=%s:%u", u.host, u.port);
+    // Подключиться к хосту
+    std::snprintf(cmd, sizeof(cmd), "+CSOCON=%hhu,%u,\"%s\"", sockId, u.port, u.host);
+    if (sendCommand(cmd, r, sizeof(r), Config::SIM7020_TCP_TIMEOUT_MS) != GsmStatus::Ok) {
+        DBG.error("A7670C HTTP: CSOCON failed %s:%u", u.host, u.port);
         sendCommand("+CSOCL=0", r, sizeof(r), 2000);
         return 0;
     }
 
-    // Сформировать HTTP-заголовок
+    // HTTP-заголовок
     char hdr[600];
     int hdrLen;
     if (c.server_auth_b64[0]) {
         hdrLen = std::snprintf(hdr, sizeof(hdr),
-            "POST %s HTTP/1.1\r\n"
-            "Host: %s\r\n"
+            "POST %s HTTP/1.1\r\nHost: %s\r\n"
             "Authorization: Basic %s\r\n"
-            "Content-Type: application/json\r\n"
-            "Content-Length: %u\r\n"
-            "Connection: close\r\n"
-            "\r\n",
+            "Content-Type: application/json\r\nContent-Length: %u\r\n"
+            "Connection: close\r\n\r\n",
             u.path, u.host, c.server_auth_b64, (unsigned)len);
     } else {
         hdrLen = std::snprintf(hdr, sizeof(hdr),
-            "POST %s HTTP/1.1\r\n"
-            "Host: %s\r\n"
-            "Content-Type: application/json\r\n"
-            "Content-Length: %u\r\n"
-            "Connection: close\r\n"
-            "\r\n",
+            "POST %s HTTP/1.1\r\nHost: %s\r\n"
+            "Content-Type: application/json\r\nContent-Length: %u\r\n"
+            "Connection: close\r\n\r\n",
             u.path, u.host, (unsigned)len);
     }
 
-    uint16_t totalLen = (uint16_t)(hdrLen + len);
-
-    // AT+CSOSEND=<id>,<totalLen>,"<hex_data>"
-    // A7670C использует HEX-строку в кавычках, не бинарный поток
-    // Для простоты — отправляем заголовок и тело двумя CSOSEND
+    // Отправить заголовок
     std::snprintf(cmd, sizeof(cmd), "+CSOSEND=%hhu,%d", sockId, hdrLen);
-    if (sendCommand(cmd, r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS) != GsmStatus::Ok) {
-        DBG.error("A7670C HTTP: CSOSEND header failed");
-        sendCommand("+CSOCL=0", r, sizeof(r), 2000);
-        return 0;
-    }
-    // Ждём '>' и отправляем данные
+    sendCommand(cmd, r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS);
     sendRaw(hdr, (uint16_t)hdrLen);
     readResponse(r, sizeof(r), 3000);
 
+    // Отправить тело
     std::snprintf(cmd, sizeof(cmd), "+CSOSEND=%hhu,%u", sockId, (unsigned)len);
-    if (sendCommand(cmd, r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS) != GsmStatus::Ok) {
-        DBG.error("A7670C HTTP: CSOSEND body failed");
-        sendCommand("+CSOCL=0", r, sizeof(r), 2000);
-        return 0;
-    }
+    sendCommand(cmd, r, sizeof(r), Config::SIM7020_CMD_TIMEOUT_MS);
     sendRaw(json, len);
     readResponse(r, sizeof(r), 3000);
 
-    // Прочитать HTTP-ответ
+    // Читаем HTTP-ответ
     std::snprintf(cmd, sizeof(cmd), "+CSORCVDATA=%hhu,512", sockId);
     waitFor(r, sizeof(r), "HTTP/1.", Config::SIM7020_TCP_TIMEOUT_MS);
 
     uint16_t code = 0;
     const char* p = std::strstr(r, "HTTP/1.");
     if (p) std::sscanf(p, "HTTP/1.%*c %hu", &code);
-    DBG.info("A7670C HTTP: response code %u", (unsigned)code);
+    DBG.info("A7670C HTTP: code=%u", (unsigned)code);
 
     sendCommand("+CSOCL=0", r, sizeof(r), 2000);
     return code;
 }
 
 // ============================================================================
-// MQTT (нативный стек A7670C)
+// MQTT (AT+CMQNEW / CMQCON / CMQPUB)
 // ============================================================================
 GsmStatus A7670C::mqttConnect(const char* broker, uint16_t port,
                                const char* clientId,
@@ -478,7 +381,6 @@ GsmStatus A7670C::mqttPublish(const char* topic, const char* payload, uint16_t l
     }
     return GsmStatus::Ok;
 }
-
 void A7670C::mqttDisconnect()
 {
     char r[64];
