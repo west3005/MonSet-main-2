@@ -340,6 +340,11 @@ struct RuntimeConfig
     char server_url[192]       {}; ///< Base URL of the telemetry server (legacy field)
     char server_auth_b64[128]  {}; ///< HTTP Basic Auth credentials, Base64-encoded
 
+    // --- TLS (GSM / HTTPS) ---
+    /// CA certificate in PEM format for HTTPS over GSM (A7670CTls).
+    /// Leave empty to use VERIFY_NONE (encrypted but no server authentication).
+    char tls_ca_cert[2048] {}; ///< CA certificate PEM (empty = VERIFY_NONE)
+
     // --- ETH (W5500) ---
     /**
      * @brief Selects static IP or DHCP assignment for the W5500 interface.
