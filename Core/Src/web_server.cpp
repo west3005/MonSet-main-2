@@ -4567,11 +4567,15 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
         const char* r="{\"error\":\"empty body\"}";
         sendResponse(sn,400,"application/json",r,(uint16_t)std::strlen(r)); return;
     }
-    // Use CfgBackup() as rollback buffer — both singletons live in .bss, never on stack
-    CfgBackup() = Cfg();
-    if(Cfg().loadFromJson(body,std::strlen(body))){
-        bool sdSaved = Cfg().saveToSd(RUNTIME_CONFIG_FILENAME);
+
+    // Parse into backup object first; commit only after successful parse.
+    // This avoids rollback copies around save path and keeps mutation localized.
+    RuntimeConfig& tmp = CfgBackup();
+    if(tmp.loadFromJson(body,std::strlen(body))){
+        bool sdSaved = tmp.saveToSd(RUNTIME_CONFIG_FILENAME);
         if (sdSaved) m_sdOk = true;
+
+        Cfg() = tmp;
 
         char resp[256];
         if (sdSaved) {
@@ -4584,9 +4588,8 @@ void WebServer::handlePostConfig(uint8_t sn,const char* body){
         }
 
         sendResponse(sn, 200, "application/json", resp, (uint16_t)std::strlen(resp));
-        DBG.info("WebServer: config updated in RAM, sd_saved=%d", (int)sdSaved);
+        DBG.info("WebServer: config updated via tmp cfg, sd_saved=%d", (int)sdSaved);
     }else{
-        Cfg() = CfgBackup();  // rollback — parse failed
         const char* r="{\"error\":\"JSON parse failed\"}";
         sendResponse(sn,400,"application/json",r,(uint16_t)std::strlen(r));
     }
