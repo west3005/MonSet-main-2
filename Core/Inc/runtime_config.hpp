@@ -33,7 +33,7 @@ static constexpr uint8_t MAX_RTU_PORTS = 3;
 /**
  * @brief Selects the telemetry transmission protocol.
  *
- * @note HTTPS_GENERIC (value 0) replaces HTTPS_THINGSBOARD for backward-compatible JSON storage.
+ * @note HTTPS_GENERIC (value 0) — generic HTTPS for any server. Backward-compatible JSON storage.
  *       Numeric values are preserved for backward-compatible JSON/EEPROM
  *       storage.
  */
@@ -41,7 +41,7 @@ enum class ProtocolMode : uint8_t {
     HTTPS_GENERIC    = 0, ///< Generic HTTPS POST to any server
     MQTT_GENERIC      = 1, ///< Generic MQTT broker
     WEBHOOK_HTTP      = 2, ///< Arbitrary HTTP webhook
-    MQTT_THINGSBOARD  = 3  ///< ThingsBoard cloud via MQTT
+    MQTT_THINGSBOARD  = 3  ///< MQTT with TB-style topic (legacy)
 };
 
 // ================================================================
@@ -156,7 +156,7 @@ struct WebConfig {
 struct ProtocolConfig {
     ProtocolMode mode = ProtocolMode::HTTPS_GENERIC;    ///< Active protocol
 
-    // --- MQTT broker (MQTT_GENERIC and MQTT_THINGSBOARD) ---
+    // --- MQTT broker settings ---
     char     mqtt_host[64]  = "";                          ///< Broker hostname or IP
     uint16_t mqtt_port      = 1883;                        ///< Broker TCP port
     char     mqtt_user[32]  = "";                          ///< MQTT username (empty = anonymous)
@@ -171,7 +171,7 @@ struct ProtocolConfig {
     char     server_path[128] = "/api/ingest";  ///< URL path
     uint16_t server_port      = 443;            ///< TCP port
 
-    // --- Legacy ThingsBoard aliases (backward compat) ---
+    // --- Legacy server aliases (backward compat) ---
     char     tb_host[64]   = "";  ///< @deprecated use server_host
     char     tb_token[64]  = "";  ///< @deprecated use server_token
     uint16_t tb_port       = 443; ///< @deprecated use server_port
