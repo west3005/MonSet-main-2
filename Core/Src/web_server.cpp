@@ -4149,10 +4149,10 @@ void WebServer::handleApiConfig(uint8_t sn){
 
     // Protocol string
     const char* protoStr =
-        (c.protocol==ProtocolMode::HTTPS_THINGSBOARD)?"https_tb":
-        (c.protocol==ProtocolMode::MQTT_THINGSBOARD) ?"mqtt_tb" :
-        (c.protocol==ProtocolMode::MQTT_GENERIC)     ?"mqtt_gen":
-        (c.protocol==ProtocolMode::WEBHOOK_HTTP)     ?"webhook" :"https_tb";
+        (c.protocol==ProtocolMode::HTTPS_GENERIC)    ?"https_generic":
+        (c.protocol==ProtocolMode::MQTT_THINGSBOARD) ?"mqtt_tb"      :
+        (c.protocol==ProtocolMode::MQTT_GENERIC)     ?"mqtt_gen"     :
+        (c.protocol==ProtocolMode::WEBHOOK_HTTP)     ?"webhook"      :"https_generic";
 
     // Channel flags (new sub-config takes priority, legacy as fallback)
     bool ch_eth  = c.channels.eth_enabled     || c.eth_enabled;
