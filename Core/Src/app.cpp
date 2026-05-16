@@ -23,6 +23,7 @@
 #include "w5500_net.hpp"
 #include "https_w5500.hpp"
 #include "air780e_tls.hpp"
+#include "a7670c_tls.hpp"
 #include "runtime_config.hpp"
 #include "cfg_uart_bridge.hpp"
 #include "board_pins.hpp"
@@ -364,7 +365,13 @@ int App::postViaGsm(const char* json,uint16_t len) {
     if((c.protocol==ProtocolMode::MQTT_GENERIC||c.protocol==ProtocolMode::MQTT_THINGSBOARD)&&c.mqtt_host[0]){
         if(!m_mqtt.isConnected()) m_mqtt.mqttConnect(MqttBackend::GSM);
         if(m_mqtt.publish(nullptr,json,len)) code=200;
-    } else { code=(int)m_gsm.httpPost(c.server_url,json,len); }
+    } else if(startsWith(c.server_url,"https://")) {
+        A7670CTls tls(m_gsm);
+        if(c.tls_ca_cert[0]) tls.setCaCert(c.tls_ca_cert);
+        code=(int)tls.httpsPost(c.server_url,json,len);
+    } else {
+        code=(int)m_gsm.httpPost(c.server_url,json,len);
+    }
     m_gsm.disconnect(); m_gsm.powerOff(); return code;
 }
 bool App::sendViaMqtt(const char* json,uint16_t len) {

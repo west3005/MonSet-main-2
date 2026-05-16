@@ -23,6 +23,7 @@
 #include "ds3231.hpp"
 #include "modbus_rtu.hpp"
 #include "air780e_tls.hpp"
+#include "a7670c_tls.hpp"
 #include "sd_backup.hpp"
 #include "modbus_tcp_master.hpp"
 #include "modbus_tcp_slave.hpp"
@@ -73,7 +74,7 @@ private:
     DS3231         m_rtc;
     ModbusRTU      m_modbusPort0;  ///< USART3
     ModbusRTU*     m_modbusPorts[3]; ///< Array of port pointers
-    SIM7020C       m_gsm;
+    A7670C         m_gsm;
     SdBackup       m_sdBackup;
     SensorReader   m_sensor;
     DataBuffer     m_buffer;
