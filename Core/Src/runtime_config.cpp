@@ -642,7 +642,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
           else if (std::strcmp(pv,"webhook")      ==0) { tmp.protocol=ProtocolMode::WEBHOOK_HTTP;     tmp.proto.mode=ProtocolMode::WEBHOOK_HTTP;     }
       } }
 
-    // Legacy ThingsBoard: tb_host / tb_token / tb_port (backward compat)
+    // Legacy server aliases: tb_host / tb_token / tb_port (backward compat)
     { char s[64]{};
       if (jsonGetString(json,"tb_host", s,sizeof(s))) copyStr(tmp.proto.tb_host, sizeof(tmp.proto.tb_host), s); }
     { char s[128]{};
