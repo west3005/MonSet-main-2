@@ -85,7 +85,7 @@ void RuntimeConfig::setDefaultsFromConfig() {
     copyStr(mqtt_topic, sizeof(mqtt_topic), "v1/devices/me/telemetry");
     mqtt_qos = 1;
     mqtt_tls = false;
-    protocol = ProtocolMode::HTTPS_THINGSBOARD;
+    protocol = ProtocolMode::HTTPS_GENERIC;
 
     // Webhook defaults
     webhook_url[0] = 0;
@@ -547,7 +547,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
           if (std::strcmp(proto,"mqtt")==0 || std::strcmp(proto,"MQTT")==0)
               tmp.protocol = ProtocolMode::MQTT_GENERIC;
           else
-              tmp.protocol = ProtocolMode::HTTPS_THINGSBOARD;
+              tmp.protocol = ProtocolMode::HTTPS_GENERIC;
       } }
 
     // Webhook
@@ -635,19 +635,38 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     // Protocol alias: "proto" -> ProtocolMode enum
     { char pv[16]{};
       if (jsonGetString(json,"proto",pv,sizeof(pv))) {
-          if      (std::strcmp(pv,"https_tb") ==0) { tmp.protocol=ProtocolMode::HTTPS_THINGSBOARD; tmp.proto.mode=ProtocolMode::HTTPS_THINGSBOARD; }
-          else if (std::strcmp(pv,"mqtt_tb")  ==0) { tmp.protocol=ProtocolMode::MQTT_THINGSBOARD;  tmp.proto.mode=ProtocolMode::MQTT_THINGSBOARD;  }
-          else if (std::strcmp(pv,"mqtt_gen") ==0) { tmp.protocol=ProtocolMode::MQTT_GENERIC;      tmp.proto.mode=ProtocolMode::MQTT_GENERIC;      }
-          else if (std::strcmp(pv,"webhook")  ==0) { tmp.protocol=ProtocolMode::WEBHOOK_HTTP;      tmp.proto.mode=ProtocolMode::WEBHOOK_HTTP;      }
+          if      (std::strcmp(pv,"https_generic")==0) { tmp.protocol=ProtocolMode::HTTPS_GENERIC;    tmp.proto.mode=ProtocolMode::HTTPS_GENERIC;    }
+          else if (std::strcmp(pv,"https_tb")     ==0) { tmp.protocol=ProtocolMode::HTTPS_GENERIC;    tmp.proto.mode=ProtocolMode::HTTPS_GENERIC;    }
+          else if (std::strcmp(pv,"mqtt_tb")      ==0) { tmp.protocol=ProtocolMode::MQTT_THINGSBOARD; tmp.proto.mode=ProtocolMode::MQTT_THINGSBOARD; }
+          else if (std::strcmp(pv,"mqtt_gen")     ==0) { tmp.protocol=ProtocolMode::MQTT_GENERIC;     tmp.proto.mode=ProtocolMode::MQTT_GENERIC;     }
+          else if (std::strcmp(pv,"webhook")      ==0) { tmp.protocol=ProtocolMode::WEBHOOK_HTTP;     tmp.proto.mode=ProtocolMode::WEBHOOK_HTTP;     }
       } }
 
-    // ThingsBoard: tb_host / tb_token / tb_port
+    // Legacy ThingsBoard: tb_host / tb_token / tb_port (backward compat)
     { char s[64]{};
       if (jsonGetString(json,"tb_host", s,sizeof(s))) copyStr(tmp.proto.tb_host, sizeof(tmp.proto.tb_host), s); }
     { char s[128]{};
       if (jsonGetString(json,"tb_token",s,sizeof(s))) copyStr(tmp.proto.tb_token,sizeof(tmp.proto.tb_token),s); }
     { uint16_t v16=0;
       if (jsonGetU16(json,"tb_port",v16) && v16>0) tmp.proto.tb_port = v16; }
+
+    // Universal server fields
+    { char s[64]{};
+      if (jsonGetString(json,"server_host",s,sizeof(s))) copyStr(tmp.proto.server_host,sizeof(tmp.proto.server_host),s); }
+    { char s[128]{};
+      if (jsonGetString(json,"server_token",s,sizeof(s))) copyStr(tmp.proto.server_token,sizeof(tmp.proto.server_token),s); }
+    { char s[128]{};
+      if (jsonGetString(json,"server_path",s,sizeof(s))) copyStr(tmp.proto.server_path,sizeof(tmp.proto.server_path),s); }
+    { uint16_t v16=0;
+      if (jsonGetU16(json,"server_port",v16) && v16>0) tmp.proto.server_port = v16; }
+
+    // Backward compat: tb_host/tb_token -> server_host/server_token if server_host not set
+    if (tmp.proto.tb_host[0] && !tmp.proto.server_host[0])
+        copyStr(tmp.proto.server_host, sizeof(tmp.proto.server_host), tmp.proto.tb_host);
+    if (tmp.proto.tb_token[0] && !tmp.proto.server_token[0])
+        copyStr(tmp.proto.server_token, sizeof(tmp.proto.server_token), tmp.proto.tb_token);
+    if (tmp.proto.tb_port && tmp.proto.tb_port != 443 && tmp.proto.server_port == 443)
+        tmp.proto.server_port = tmp.proto.tb_port;
 
     // NTP: ntp_server / ntp_enabled / tz_off
     { char s[64]{};
@@ -1047,7 +1066,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     if (n<0||n>=(int)sizeof(json)) goto overflow;
 
     {
-        const char* protoStr = "https_tb";
+        const char* protoStr = "https_generic";
         if      (proto.mode==ProtocolMode::MQTT_GENERIC)     protoStr = "mqtt_gen";
         else if (proto.mode==ProtocolMode::MQTT_THINGSBOARD) protoStr = "mqtt_tb";
         else if (proto.mode==ProtocolMode::WEBHOOK_HTTP)     protoStr = "webhook";
@@ -1093,7 +1112,8 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
             "\"sl_ctms\":%u"
             "}\n",
             protoStr,
-            proto.tb_host, proto.tb_token, (unsigned)proto.tb_port,
+            proto.server_host, proto.server_token, proto.server_path, (unsigned)proto.server_port,
+            proto.server_host, proto.server_token, (unsigned)proto.server_port,
             (unsigned)meas.poll_interval_s, (unsigned)meas.send_interval_s,
             (unsigned)meas.backup_retry_s,
             meas.deep_sleep_enabled?"true":"false", (unsigned)meas.deep_sleep_s,
@@ -1235,5 +1255,27 @@ void RuntimeConfig::log() const {
         DBG.info("  reg[%u]: port=%u slave=%u fc=%u start=%u cnt=%u name=%s",
             (unsigned)i,(unsigned)e.port_idx,(unsigned)e.slave_id,
             (unsigned)e.function,(unsigned)e.start_reg,(unsigned)e.count,e.name);
+    }
+}
+
+// ============================================================================
+// buildServerUrl — build effective HTTPS URL from config
+// ============================================================================
+void RuntimeConfig::buildServerUrl(char* out, size_t outSz) const {
+    if (!out || outSz == 0) return;
+    // If legacy server_url is set explicitly, use it as-is
+    if (server_url[0]) {
+        std::strncpy(out, server_url, outSz - 1);
+        out[outSz - 1] = 0;
+        return;
+    }
+    const char* host   = proto.server_host[0] ? proto.server_host : "localhost";
+    const char* path   = proto.server_path[0] ? proto.server_path : "/api/ingest";
+    uint16_t    port   = proto.server_port    ? proto.server_port  : 443;
+    const char* scheme = (port == 80) ? "http" : "https";
+    if (port == 443 || port == 80) {
+        std::snprintf(out, outSz, "%s://%s%s", scheme, host, path);
+    } else {
+        std::snprintf(out, outSz, "%s://%s:%u%s", scheme, host, (unsigned)port, path);
     }
 }
