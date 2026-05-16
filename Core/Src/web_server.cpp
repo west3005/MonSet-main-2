@@ -4168,7 +4168,7 @@ void WebServer::handleApiConfig(uint8_t sn){
     uint8_t  avg    = c.meas.avg_count        ? c.meas.avg_count       : c.avg_count;
 
     // Protocol fields (new sub-config takes priority, legacy as fallback)
-    const char* tb_host  = c.proto.tb_host[0]       ? c.proto.tb_host       : "thingsboard.cloud";
+    const char* tb_host  = c.proto.server_host[0]   ? c.proto.server_host   : (c.proto.tb_host[0] ? c.proto.tb_host : "");
     const char* tb_token = c.proto.tb_token;
     const char* mq_host  = c.proto.mqtt_host[0]     ? c.proto.mqtt_host     : c.mqtt_host;
     uint16_t    mq_port  = c.proto.mqtt_port         ? c.proto.mqtt_port     : c.mqtt_port;
