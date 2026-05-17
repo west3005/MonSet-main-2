@@ -198,6 +198,22 @@ static bool jsonGetU8(const char* json, const char* key, uint8_t& out) {
     out = (uint8_t)std::strtoul(p, nullptr, 10);
     return true;
 }
+static void normalizeHost(char* s, size_t sz) {
+    if (!s || sz == 0 || s[0] == 0) return;
+    const char* p = s;
+    if (std::strncmp(p, "https://", 8) == 0) p += 8;
+    else if (std::strncmp(p, "http://", 7) == 0) p += 7;
+    char tmp[128]{};
+    size_t i = 0;
+    while (p[i] && p[i] != '/' && i < sizeof(tmp) - 1) {
+        tmp[i] = p[i];
+        ++i;
+    }
+    tmp[i] = 0;
+    std::strncpy(s, tmp, sz - 1);
+    s[sz - 1] = 0;
+}
+
 static bool jsonGetBool(const char* json, const char* key, bool& out) {
     const char* p = findKey(json, key);
     if (!p) return false;
