@@ -277,7 +277,7 @@ function loadChannels(){
       var col=dis?'#8b949e':'#c9d1d9';
       html+='<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:'+(dis?'not-allowed':'pointer')+';background:'+bg+';border:1px solid '+brd+'">'
            +'<input type="radio" name="ch" value="'+c.name+'" '+(sel?'checked':'')+(dis?'disabled':'')
-           +' onchange="selectChannel(''+c.name+'')" style="accent-color:#2dd4bf">'
+           +' onchange="selectChannel(\''+c.name+'\'')" style="accent-color:#2dd4bf">'
            +'<span style="font-size:13px;color:'+col+'">'+c.name+'</span>'
            +'<span class="badge badge-'+(c.status==='ACTIVE'?'ok':c.status==='STANDBY'?'warn':'err')+'" style="margin-left:auto">'+c.status+'</span>'
            +'</label>';
