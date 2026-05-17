@@ -888,7 +888,7 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
     ftoa6(sensor_zero_level, zStr, sizeof(zStr));
     ftoa6(sensor_divider,    dStr, sizeof(dStr));
 
-    static char json[10240];
+    static char json[20480];
     int n = 0;
 
     n += std::snprintf(json+n, sizeof(json)-n,
@@ -1073,6 +1073,10 @@ bool RuntimeConfig::saveToSd(const char* filename) const {
 
         n += std::snprintf(json+n,sizeof(json)-n,
             "\"proto\":\"%s\","
+            "\"server_host\":\"%s\","
+            "\"server_token\":\"%s\","
+            "\"server_path\":\"%s\","
+            "\"server_port\":%u,"
             "\"tb_host\":\"%s\","
             "\"tb_token\":\"%s\","
             "\"tb_port\":%u,"
