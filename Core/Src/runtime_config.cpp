@@ -460,7 +460,9 @@ static bool parseBoolArray(const char* json, const char* key, bool* out, uint8_t
 // -----------------------------------------------------------------------------
 bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     if (!json || len < 2) return false;
-    RuntimeConfig tmp = *this;
+    // Use global scratch buffer to avoid placing a full RuntimeConfig copy (~8KB) on the task stack.
+    RuntimeConfig& tmp = CfgBackup();
+    tmp = *this;
 
     // --- Legacy fields (backward compat) ---
     (void)jsonGetBool  (json, "complex_enabled", tmp.complex_enabled);
