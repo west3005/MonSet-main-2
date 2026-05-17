@@ -135,3 +135,14 @@ void App::runTestSend() {
                                               (int)result, (unsigned long)m_testElapsedMs);
     }
 }
+
+
+// ============================================================================
+// processTestSend — call periodically from main loop
+// ============================================================================
+void App::processTestSend() {
+    if (m_testState == TestSendState::Reading) {
+        DBG.info("[TEST] starting runTestSend() from processTestSend");
+        runTestSend();
+    }
+}
