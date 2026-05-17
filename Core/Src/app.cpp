@@ -610,6 +610,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
 
         // FIX: проверяем таймаут веб-бездействия
         checkWebTimeout();
+                processTestSend();
 
         // Backup retransmit
         // FIX: проверяем только isMounted() — m_sdOk может быть false
@@ -643,6 +644,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
                 if (m_webServer.isRunning()) m_webServer.tick();
                 g_web_exclusive = m_webActive;
                 checkWebTimeout();
+                processTestSend();
                 IWDG->KR = 0xAAAA;
                 HAL_Delay(5); // 200 запросов/сек — мгновенный отклик
                 if (!m_webActive) {
@@ -668,6 +670,7 @@ bool App::syncRtcWithNtpIfNeeded(const char* tag,bool verbose) {
                 if (eth.ready()) eth.tick();
                 if (m_webServer.isRunning()) m_webServer.tick();
                 checkWebTimeout();
+                processTestSend();
                 IWDG->KR = 0xAAAAU;
                 // Выходим немедленно при входящем TCP-соединении (до первого запроса)
                 // или когда браузер уже активен (m_webActive выставлен handleRequest)
