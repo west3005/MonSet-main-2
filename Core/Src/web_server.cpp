@@ -4047,15 +4047,10 @@ void WebServer::handleTestPage(uint8_t sn){
     writeHead(buf,n,bsz,"Test Send");
     SNCAT("<h2>&#9654; Test Send</h2>");
     writeNav(buf,n,bsz,"test");
-    SNCAT("<div class='card'><h3>Manual Trigger</h3>"
-          "<p style='color:#8b949e;font-size:13px;margin-bottom:14px'>"
-          "Send one data packet to the configured server URL immediately.</p>"
-          "<button class='btn' onclick='doTest()'>&#9654; Send Now</button>"
-          "<div id='res' style='margin-top:14px;padding:10px;border-radius:4px;"
-          "background:#21262d;min-height:36px;font-size:13px'>Ready.</div></div>"
-          "<div class='card'><h3>Target URL</h3>"
+    { char _effUrl[192]{}; Cfg().buildServerUrl(_effUrl, sizeof(_effUrl));
+    SNCAT("<div class='card'><h3>Target URL</h3>"
           "<div style='font-size:12px;color:#8b949e;word-break:break-all'>%s</div></div>",
-          Cfg().server_url);
+          _effUrl); }
     SNCAT("<script>"
           "var t;"
           "function doTest(){"
