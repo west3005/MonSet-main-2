@@ -142,9 +142,10 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
         <!-- Канал -->
         <div class="card">
           <div class="card-title">Канал отправки</div>
+          <div style="margin-bottom:10px"><button class="btn-ghost btn-sm" onclick="refreshChannels()">↻ Обновить каналы</button></div>
           <div id="ch-list" style="display:flex;flex-direction:column;gap:6px">
             <!-- заполняется из /api/channels -->
-            <div style="color:#8b949e;font-size:13px">Загрузка каналов…</div>
+            <div style="color:#8b949e;font-size:13px">Нажмите «Обновить каналы»</div>
           </div>
         </div>
 
@@ -165,7 +166,7 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
           <div class="card-title">Отправка</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn-primary" id="btn-send" onclick="doSend()">▶ Отправить</button>
-            <button class="btn-ghost" onclick="pollResult()">↻ Обновить результат</button>
+            
             <button class="btn-ghost btn-sm" onclick="resetForm()" style="margin-left:auto">✕ Сброс</button>
           </div>
           <div id="send-msg" style="margin-top:10px;font-size:13px;display:none"></div>
@@ -179,6 +180,7 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
         <!-- Статус -->
         <div class="card">
           <div class="card-title">Результат</div>
+          <div style="margin-bottom:10px"><button class="btn-ghost btn-sm" onclick="refreshResult()">↻ Обновить результат</button></div>
           <div class="stat-row">
             <span class="stat-key">Статус</span>
             <span class="stat-val" id="r-status">—</span>
@@ -214,7 +216,7 @@ body{padding:0;display:flex;flex-direction:row;min-height:100dvh}
               </tr>
             </thead>
             <tbody id="ch-status-tbody">
-              <tr><td colspan="3" style="color:#8b949e;padding:8px">Загрузка…</td></tr>
+              <tr><td colspan="3" style="color:#8b949e;padding:8px">Нажмите «Обновить каналы»</td></tr>
             </tbody>
           </table>
         </div>
@@ -411,12 +413,26 @@ function pollResult(cb){
 }
 
 /* ── Инициализация ── */
-loadChannels();
-pollResult();
 addRow('temperature','23.5');
 addRow('pressure','1013.2');
 updatePreview();
-setInterval(loadChannels, 15000);
+
+function refreshChannels(){
+  var list=document.getElementById('ch-list');
+  var tbody=document.getElementById('ch-status-tbody');
+  if(list) list.innerHTML='<div style="color:#8b949e;font-size:13px">Нажмите «Обновить каналы»</div>';
+  if(tbody) tbody.innerHTML='<tr><td colspan="3" style="color:#8b949e">Нажмите «Обновить каналы»</td></tr>';
+  setTimeout(loadChannels, 150);
+}
+
+function refreshResult(){
+  setTimeout(function(){ pollResult(); }, 150);
+}
+
+window.addEventListener('load', function(){
+  // На односокетном HTTP-сервере не запускаем fetch сразу во время загрузки HTML.
+  // Оставляем страницу интерактивной и вызываем API только по отдельному действию.
+});
 </script>
 </body>
 </html>
