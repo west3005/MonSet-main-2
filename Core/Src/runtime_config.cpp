@@ -646,7 +646,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
 
     // Legacy server aliases: tb_host / tb_token / tb_port (backward compat)
     { char s[64]{};
-      if (jsonGetString(json,"tb_host", s,sizeof(s))) copyStr(tmp.proto.tb_host, sizeof(tmp.proto.tb_host), s); }
+      if (jsonGetString(json,"tb_host", s,sizeof(s))) { normalizeHost(s, sizeof(s)); copyStr(tmp.proto.tb_host, sizeof(tmp.proto.tb_host), s); } }
     { char s[128]{};
       if (jsonGetString(json,"tb_token",s,sizeof(s))) copyStr(tmp.proto.tb_token,sizeof(tmp.proto.tb_token),s); }
     { uint16_t v16=0;
@@ -654,7 +654,7 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
 
     // Universal server fields
     { char s[64]{};
-      if (jsonGetString(json,"server_host",s,sizeof(s))) copyStr(tmp.proto.server_host,sizeof(tmp.proto.server_host),s); }
+      if (jsonGetString(json,"server_host",s,sizeof(s))) { normalizeHost(s, sizeof(s)); copyStr(tmp.proto.server_host,sizeof(tmp.proto.server_host),s); } }
     { char s[128]{};
       if (jsonGetString(json,"server_token",s,sizeof(s))) copyStr(tmp.proto.server_token,sizeof(tmp.proto.server_token),s); }
     { char s[128]{};
@@ -665,6 +665,8 @@ bool RuntimeConfig::loadFromJson(const char* json, size_t len) {
     // Backward compat: tb_host/tb_token -> server_host/server_token if server_host not set
     if (tmp.proto.tb_host[0] && !tmp.proto.server_host[0])
         copyStr(tmp.proto.server_host, sizeof(tmp.proto.server_host), tmp.proto.tb_host);
+    normalizeHost(tmp.proto.tb_host, sizeof(tmp.proto.tb_host));
+    normalizeHost(tmp.proto.server_host, sizeof(tmp.proto.server_host));
     if (tmp.proto.tb_token[0] && !tmp.proto.server_token[0])
         copyStr(tmp.proto.server_token, sizeof(tmp.proto.server_token), tmp.proto.tb_token);
     if (tmp.proto.tb_port && tmp.proto.tb_port != 443 && tmp.proto.server_port == 443)
@@ -1275,9 +1277,14 @@ void RuntimeConfig::buildServerUrl(char* out, size_t outSz) const {
         out[outSz - 1] = 0;
         return;
     }
-    const char* host   = proto.server_host[0] ? proto.server_host : "localhost";
+    const char* host   = proto.server_host;
     const char* path   = proto.server_path[0] ? proto.server_path : "/api/ingest";
     uint16_t    port   = proto.server_port    ? proto.server_port  : 443;
+    if (!host[0]) {
+        out[0] = 0;
+        DBG.error("CFG: buildServerUrl failed: empty server_host");
+        return;
+    }
     const char* scheme = (port == 80) ? "http" : "https";
     if (port == 443 || port == 80) {
         std::snprintf(out, outSz, "%s://%s%s", scheme, host, path);
